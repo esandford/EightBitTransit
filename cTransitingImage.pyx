@@ -24,7 +24,7 @@ class TransitingImage(object):
 		self.blockedflux = None
 		self.LD = None
 		
-		allowed_keys = ["imfile","lowres","lowrestype","lowresround","opacitymat","v","t_ref","LDlaw","LDCs", "t_arr"]
+		allowed_keys = ["imfile","lowres","lowrestype","lowresround","opacitymat","v","t_ref","LDlaw","LDCs", "t_arr", "positions", "areas"]
 		
 		#update with values passed in kwargs. values not passed in kwargs will remain None
 		self.__dict__.update((k,v) for k,v in kwargs.iteritems() if k in allowed_keys)
@@ -57,7 +57,9 @@ class TransitingImage(object):
 		self.w = 2./(np.shape(self.opacitymat)[0])
 		
 		gridshape = np.shape(self.opacitymat)
-		self.positions = positions(n=gridshape[0], m=gridshape[1], t=self.t_arr, tref=self.t_ref, v=self.v)
+		
+		if self.positions is not None:
+			self.positions = positions(n=gridshape[0], m=gridshape[1], t=self.t_arr, tref=self.t_ref, v=self.v)
 		
 		#if opacity matrix is passed in but the desired pixel resolution is smaller, lower the resolution
 		if (("opacitymat" in kwargs) and ("lowres" in kwargs)):
@@ -78,7 +80,8 @@ class TransitingImage(object):
 			self.positions = positions(n=gridshape[0], m=gridshape[1], t=self.t_arr, tref=self.t_ref, v=self.v)
 		
 		if self.LDlaw == "uniform":
-			self.areas = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
+			if self.areas is not None:
+				self.areas = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
 			self.blockedflux = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
 			
 			#t0 = time.time()
@@ -88,7 +91,8 @@ class TransitingImage(object):
 						#print (k, i, j)
 						# allow for opacities between 0 and 1
 						#print self.t_arr[k]
-						self.areas[k,i,j] = pixeloverlaparea(x0=self.positions[k,i,j,0], y0=self.positions[k,i,j,1], w=self.w)
+						if numpy.count_nonzero(self.areas) == 0:
+							self.areas[k,i,j] = pixeloverlaparea(x0=self.positions[k,i,j,0], y0=self.positions[k,i,j,1], w=self.w)
 						self.blockedflux[k,i,j] = self.areas[k,i,j]*self.opacitymat[i,j]
 						
 						#if j==0 and i==0:
