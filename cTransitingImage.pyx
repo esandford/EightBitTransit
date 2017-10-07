@@ -58,7 +58,7 @@ class TransitingImage(object):
 		
 		gridshape = np.shape(self.opacitymat)
 		
-		if self.positions is not None:
+		if self.positions is None:
 			self.positions = positions(n=gridshape[0], m=gridshape[1], t=self.t_arr, tref=self.t_ref, v=self.v)
 		
 		#if opacity matrix is passed in but the desired pixel resolution is smaller, lower the resolution
@@ -80,28 +80,28 @@ class TransitingImage(object):
 			self.positions = positions(n=gridshape[0], m=gridshape[1], t=self.t_arr, tref=self.t_ref, v=self.v)
 		
 		if self.LDlaw == "uniform":
-			if self.areas is not None:
+			if self.areas is None:
 				self.areas = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
 			self.blockedflux = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
 			
 			#t0 = time.time()
-			for i in range(0,gridshape[0]):
-				for j in range(0,gridshape[1]):
-					for k in range(0,len(self.t_arr)):
-						#print (k, i, j)
-						# allow for opacities between 0 and 1
-						#print self.t_arr[k]
-						if numpy.count_nonzero(self.areas) == 0:
+
+			if np.count_nonzero(self.areas) == 0:
+				for i in range(0,gridshape[0]):
+					for j in range(0,gridshape[1]):
+						for k in range(0,len(self.t_arr)):
+							#print (k, i, j)
+							# allow for opacities between 0 and 1
+							#print self.t_arr[k]
 							self.areas[k,i,j] = pixeloverlaparea(x0=self.positions[k,i,j,0], y0=self.positions[k,i,j,1], w=self.w)
-						self.blockedflux[k,i,j] = self.areas[k,i,j]*self.opacitymat[i,j]
+							self.blockedflux[k,i,j] = self.areas[k,i,j]*self.opacitymat[i,j]
+			
+			else:
+				for i in range(0,gridshape[0]):
+					for j in range(0,gridshape[1]):
+						for k in range(0,len(self.t_arr)):
+							self.blockedflux[k,i,j] = self.areas[k,i,j]*self.opacitymat[i,j]
 						
-						#if j==0 and i==0:
-						#	print self.t_arr[k]
-						#	print self.areas[k,i,j]
-						#print self.blockedflux[k,i,j]
-						
-			#t1 = time.time()
-			#print (t1-t0)
 			
 			fluxtot = np.zeros(len(self.t_arr))
 			for k in range(0,len(self.t_arr)):
