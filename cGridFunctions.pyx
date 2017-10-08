@@ -439,19 +439,23 @@ cpdef pixeloverlaparea(double x0, double y0, double w):
 			non_tb_y = np.array(non_tb_y)
 
 			if (len(non_tb_x) == 0) & (len(non_tb_y)==0):
-				if ((x0**2 + y0**2) <= 1.): #pixel is fully inside stellar disk
-					area = w**2
+				if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk, so the occulted area is the area of the star
+					area = np.pi
+				elif ((x0**2 + y0**2) == 1.): #pixel is exactly halfway inside stellar disk, so the occulted area is half the area of the star
+					area = np.pi/2.
 				else:
 					area = 0.
 
 			else:
 				chord = ((non_tb_x[1] - non_tb_x[0])**2 + (non_tb_y[1] - non_tb_y[0])**2)**0.5
 				unobscured_area = np.arcsin(0.5*chord) - 0.5*np.sin(2.*np.arcsin(0.5*chord))
+				#print "blah"
+				#print 1.0 - (unobscured_area/np.pi)
 				return 1.0 - (unobscured_area/np.pi)
 
 		else:    #no valid intersection points found
-			if ((x0**2 + y0**2) <= 1.): #pixel is fully inside stellar disk
-				area = w**2
+			if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk
+				area = np.min([w**2,np.pi]) #to account for the case of a one-row grid
 		
 			else: #pixel is fully outside stellar disk
 				area = 0.

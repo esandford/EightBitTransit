@@ -1245,6 +1245,7 @@ static const char __pyx_k_x0[] = "x0";
 static const char __pyx_k_y0[] = "y0";
 static const char __pyx_k_abs[] = "abs";
 static const char __pyx_k_all[] = "__all__";
+static const char __pyx_k_min[] = "min";
 static const char __pyx_k_pos[] = "pos";
 static const char __pyx_k_sin[] = "sin";
 static const char __pyx_k_sum[] = "sum";
@@ -1354,6 +1355,7 @@ static PyObject *__pyx_n_s_m;
 static PyObject *__pyx_n_s_main;
 static PyObject *__pyx_n_s_mean;
 static PyObject *__pyx_n_s_method;
+static PyObject *__pyx_n_s_min;
 static PyObject *__pyx_n_s_misc;
 static PyObject *__pyx_n_s_mode;
 static PyObject *__pyx_n_s_most_common;
@@ -5987,6 +5989,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_pixeloverlaparea(dou
   PyObject *(*__pyx_t_15)(PyObject *);
   PyObject *__pyx_t_16 = NULL;
   PyObject *__pyx_t_17 = NULL;
+  Py_ssize_t __pyx_t_18;
   __Pyx_RefNannySetupContext("pixeloverlaparea", 0);
   __Pyx_TraceCall("pixeloverlaparea", __pyx_f[0], 175, 0, __PYX_ERR(0, 175, __pyx_L1_error));
 
@@ -10903,7 +10906,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_pixeloverlaparea(dou
  * 			non_tb_x = np.array(non_tb_x)
  * 			non_tb_y = np.array(non_tb_y)             # <<<<<<<<<<<<<<
  * 
- * 			chord = ((non_tb_x[1] - non_tb_x[0])**2 + (non_tb_y[1] - non_tb_y[0])**2)**0.5
+ * 			if (len(non_tb_x) == 0) & (len(non_tb_y)==0):
  */
       __pyx_t_17 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 439, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_17);
@@ -10959,246 +10962,358 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_pixeloverlaparea(dou
       /* "EightBitTransit/cGridFunctions.pyx":441
  * 			non_tb_y = np.array(non_tb_y)
  * 
- * 			chord = ((non_tb_x[1] - non_tb_x[0])**2 + (non_tb_y[1] - non_tb_y[0])**2)**0.5             # <<<<<<<<<<<<<<
- * 
- * 			unobscured_area = np.arcsin(0.5*chord) - 0.5*np.sin(2.*np.arcsin(0.5*chord))
+ * 			if (len(non_tb_x) == 0) & (len(non_tb_y)==0):             # <<<<<<<<<<<<<<
+ * 				if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk, so the occulted area is the area of the star
+ * 					area = np.pi
  */
-      __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_non_tb_x, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 441, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_12 = __Pyx_GetItemInt(__pyx_v_non_tb_x, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 441, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_12);
-      __pyx_t_6 = PyNumber_Subtract(__pyx_t_4, __pyx_t_12); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 441, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-      __pyx_t_12 = PyNumber_Power(__pyx_t_6, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 441, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_12);
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __pyx_t_6 = __Pyx_GetItemInt(__pyx_v_non_tb_y, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 441, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_non_tb_y, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 441, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_17 = PyNumber_Subtract(__pyx_t_6, __pyx_t_4); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 441, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_17);
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __pyx_t_4 = PyNumber_Power(__pyx_t_17, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 441, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_4);
-      __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-      __pyx_t_17 = PyNumber_Add(__pyx_t_12, __pyx_t_4); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 441, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_17);
-      __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __pyx_t_4 = PyNumber_Power(__pyx_t_17, __pyx_float_0_5, Py_None); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 441, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_4);
-      __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-      __pyx_t_8 = __pyx_PyFloat_AsDouble(__pyx_t_4); if (unlikely((__pyx_t_8 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 441, __pyx_L1_error)
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __pyx_v_chord = __pyx_t_8;
+      __pyx_t_14 = PyObject_Length(__pyx_v_non_tb_x); if (unlikely(__pyx_t_14 == -1)) __PYX_ERR(0, 441, __pyx_L1_error)
+      __pyx_t_18 = PyObject_Length(__pyx_v_non_tb_y); if (unlikely(__pyx_t_18 == -1)) __PYX_ERR(0, 441, __pyx_L1_error)
+      __pyx_t_1 = (((__pyx_t_14 == 0) & (__pyx_t_18 == 0)) != 0);
+      if (__pyx_t_1) {
 
-      /* "EightBitTransit/cGridFunctions.pyx":443
- * 			chord = ((non_tb_x[1] - non_tb_x[0])**2 + (non_tb_y[1] - non_tb_y[0])**2)**0.5
+        /* "EightBitTransit/cGridFunctions.pyx":442
  * 
- * 			unobscured_area = np.arcsin(0.5*chord) - 0.5*np.sin(2.*np.arcsin(0.5*chord))             # <<<<<<<<<<<<<<
- * 			return 1.0 - (unobscured_area/np.pi)
- * 
+ * 			if (len(non_tb_x) == 0) & (len(non_tb_y)==0):
+ * 				if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk, so the occulted area is the area of the star             # <<<<<<<<<<<<<<
+ * 					area = np.pi
+ * 				elif ((x0**2 + y0**2) == 1.): #pixel is exactly halfway inside stellar disk, so the occulted area is half the area of the star
  */
-      __pyx_t_17 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_17);
-      __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_t_17, __pyx_n_s_arcsin); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_12);
-      __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-      __pyx_t_17 = PyFloat_FromDouble((0.5 * __pyx_v_chord)); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_17);
-      __pyx_t_6 = NULL;
-      if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_12))) {
-        __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_12);
-        if (likely(__pyx_t_6)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_12);
-          __Pyx_INCREF(__pyx_t_6);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_12, function);
-        }
-      }
-      if (!__pyx_t_6) {
-        __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_t_12, __pyx_t_17); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 443, __pyx_L1_error)
-        __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-        __Pyx_GOTREF(__pyx_t_4);
-      } else {
-        #if CYTHON_FAST_PYCALL
-        if (PyFunction_Check(__pyx_t_12)) {
-          PyObject *__pyx_temp[2] = {__pyx_t_6, __pyx_t_17};
-          __pyx_t_4 = __Pyx_PyFunction_FastCall(__pyx_t_12, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+        __pyx_t_1 = (((pow(__pyx_v_x0, 2.0) + pow(__pyx_v_y0, 2.0)) < 1.) != 0);
+        if (__pyx_t_1) {
+
+          /* "EightBitTransit/cGridFunctions.pyx":443
+ * 			if (len(non_tb_x) == 0) & (len(non_tb_y)==0):
+ * 				if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk, so the occulted area is the area of the star
+ * 					area = np.pi             # <<<<<<<<<<<<<<
+ * 				elif ((x0**2 + y0**2) == 1.): #pixel is exactly halfway inside stellar disk, so the occulted area is half the area of the star
+ * 					area = np.pi/2.
+ */
+          __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 443, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_4);
-          __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-        } else
-        #endif
-        #if CYTHON_FAST_PYCCALL
-        if (__Pyx_PyFastCFunction_Check(__pyx_t_12)) {
-          PyObject *__pyx_temp[2] = {__pyx_t_6, __pyx_t_17};
-          __pyx_t_4 = __Pyx_PyCFunction_FastCall(__pyx_t_12, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+          __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_pi); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 443, __pyx_L1_error)
+          __Pyx_GOTREF(__pyx_t_12);
+          __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+          __pyx_t_8 = __pyx_PyFloat_AsDouble(__pyx_t_12); if (unlikely((__pyx_t_8 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 443, __pyx_L1_error)
+          __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+          __pyx_v_area = __pyx_t_8;
+
+          /* "EightBitTransit/cGridFunctions.pyx":442
+ * 
+ * 			if (len(non_tb_x) == 0) & (len(non_tb_y)==0):
+ * 				if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk, so the occulted area is the area of the star             # <<<<<<<<<<<<<<
+ * 					area = np.pi
+ * 				elif ((x0**2 + y0**2) == 1.): #pixel is exactly halfway inside stellar disk, so the occulted area is half the area of the star
+ */
+          goto __pyx_L37;
+        }
+
+        /* "EightBitTransit/cGridFunctions.pyx":444
+ * 				if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk, so the occulted area is the area of the star
+ * 					area = np.pi
+ * 				elif ((x0**2 + y0**2) == 1.): #pixel is exactly halfway inside stellar disk, so the occulted area is half the area of the star             # <<<<<<<<<<<<<<
+ * 					area = np.pi/2.
+ * 				else:
+ */
+        __pyx_t_1 = (((pow(__pyx_v_x0, 2.0) + pow(__pyx_v_y0, 2.0)) == 1.) != 0);
+        if (__pyx_t_1) {
+
+          /* "EightBitTransit/cGridFunctions.pyx":445
+ * 					area = np.pi
+ * 				elif ((x0**2 + y0**2) == 1.): #pixel is exactly halfway inside stellar disk, so the occulted area is half the area of the star
+ * 					area = np.pi/2.             # <<<<<<<<<<<<<<
+ * 				else:
+ * 					area = 0.
+ */
+          __pyx_t_12 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 445, __pyx_L1_error)
+          __Pyx_GOTREF(__pyx_t_12);
+          __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_12, __pyx_n_s_pi); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 445, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_4);
-          __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-        } else
-        #endif
-        {
-          __pyx_t_11 = PyTuple_New(1+1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_11);
-          __Pyx_GIVEREF(__pyx_t_6); PyTuple_SET_ITEM(__pyx_t_11, 0, __pyx_t_6); __pyx_t_6 = NULL;
-          __Pyx_GIVEREF(__pyx_t_17);
-          PyTuple_SET_ITEM(__pyx_t_11, 0+1, __pyx_t_17);
-          __pyx_t_17 = 0;
-          __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_12, __pyx_t_11, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_4);
-          __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
+          __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+          __pyx_t_12 = __Pyx_PyFloat_DivideObjC(__pyx_t_4, __pyx_float_2_, 2., 0); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 445, __pyx_L1_error)
+          __Pyx_GOTREF(__pyx_t_12);
+          __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+          __pyx_t_8 = __pyx_PyFloat_AsDouble(__pyx_t_12); if (unlikely((__pyx_t_8 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 445, __pyx_L1_error)
+          __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+          __pyx_v_area = __pyx_t_8;
+
+          /* "EightBitTransit/cGridFunctions.pyx":444
+ * 				if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk, so the occulted area is the area of the star
+ * 					area = np.pi
+ * 				elif ((x0**2 + y0**2) == 1.): #pixel is exactly halfway inside stellar disk, so the occulted area is half the area of the star             # <<<<<<<<<<<<<<
+ * 					area = np.pi/2.
+ * 				else:
+ */
+          goto __pyx_L37;
         }
-      }
-      __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-      __pyx_t_11 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_11);
-      __pyx_t_17 = __Pyx_PyObject_GetAttrStr(__pyx_t_11, __pyx_n_s_sin); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_17);
-      __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-      __pyx_t_6 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_arcsin); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_7);
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __pyx_t_6 = PyFloat_FromDouble((0.5 * __pyx_v_chord)); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_3 = NULL;
-      if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_7))) {
-        __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_7);
-        if (likely(__pyx_t_3)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_7);
-          __Pyx_INCREF(__pyx_t_3);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_7, function);
+
+        /* "EightBitTransit/cGridFunctions.pyx":447
+ * 					area = np.pi/2.
+ * 				else:
+ * 					area = 0.             # <<<<<<<<<<<<<<
+ * 
+ * 			else:
+ */
+        /*else*/ {
+          __pyx_v_area = 0.;
         }
+        __pyx_L37:;
+
+        /* "EightBitTransit/cGridFunctions.pyx":441
+ * 			non_tb_y = np.array(non_tb_y)
+ * 
+ * 			if (len(non_tb_x) == 0) & (len(non_tb_y)==0):             # <<<<<<<<<<<<<<
+ * 				if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk, so the occulted area is the area of the star
+ * 					area = np.pi
+ */
+        goto __pyx_L36;
       }
-      if (!__pyx_t_3) {
-        __pyx_t_11 = __Pyx_PyObject_CallOneArg(__pyx_t_7, __pyx_t_6); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 443, __pyx_L1_error)
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        __Pyx_GOTREF(__pyx_t_11);
-      } else {
-        #if CYTHON_FAST_PYCALL
-        if (PyFunction_Check(__pyx_t_7)) {
-          PyObject *__pyx_temp[2] = {__pyx_t_3, __pyx_t_6};
-          __pyx_t_11 = __Pyx_PyFunction_FastCall(__pyx_t_7, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-          __Pyx_GOTREF(__pyx_t_11);
-          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        } else
-        #endif
-        #if CYTHON_FAST_PYCCALL
-        if (__Pyx_PyFastCFunction_Check(__pyx_t_7)) {
-          PyObject *__pyx_temp[2] = {__pyx_t_3, __pyx_t_6};
-          __pyx_t_11 = __Pyx_PyCFunction_FastCall(__pyx_t_7, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-          __Pyx_GOTREF(__pyx_t_11);
-          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        } else
-        #endif
-        {
-          __pyx_t_13 = PyTuple_New(1+1); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_13);
-          __Pyx_GIVEREF(__pyx_t_3); PyTuple_SET_ITEM(__pyx_t_13, 0, __pyx_t_3); __pyx_t_3 = NULL;
-          __Pyx_GIVEREF(__pyx_t_6);
-          PyTuple_SET_ITEM(__pyx_t_13, 0+1, __pyx_t_6);
-          __pyx_t_6 = 0;
-          __pyx_t_11 = __Pyx_PyObject_Call(__pyx_t_7, __pyx_t_13, NULL); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_11);
-          __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
-        }
-      }
-      __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-      __pyx_t_7 = PyNumber_Multiply(__pyx_float_2_, __pyx_t_11); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_7);
-      __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-      __pyx_t_11 = NULL;
-      if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_17))) {
-        __pyx_t_11 = PyMethod_GET_SELF(__pyx_t_17);
-        if (likely(__pyx_t_11)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_17);
-          __Pyx_INCREF(__pyx_t_11);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_17, function);
-        }
-      }
-      if (!__pyx_t_11) {
-        __pyx_t_12 = __Pyx_PyObject_CallOneArg(__pyx_t_17, __pyx_t_7); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 443, __pyx_L1_error)
-        __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+
+      /* "EightBitTransit/cGridFunctions.pyx":450
+ * 
+ * 			else:
+ * 				chord = ((non_tb_x[1] - non_tb_x[0])**2 + (non_tb_y[1] - non_tb_y[0])**2)**0.5             # <<<<<<<<<<<<<<
+ * 				unobscured_area = np.arcsin(0.5*chord) - 0.5*np.sin(2.*np.arcsin(0.5*chord))
+ * 				#print "blah"
+ */
+      /*else*/ {
+        __pyx_t_12 = __Pyx_GetItemInt(__pyx_v_non_tb_x, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 450, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_12);
-      } else {
-        #if CYTHON_FAST_PYCALL
-        if (PyFunction_Check(__pyx_t_17)) {
-          PyObject *__pyx_temp[2] = {__pyx_t_11, __pyx_t_7};
-          __pyx_t_12 = __Pyx_PyFunction_FastCall(__pyx_t_17, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_XDECREF(__pyx_t_11); __pyx_t_11 = 0;
-          __Pyx_GOTREF(__pyx_t_12);
-          __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-        } else
-        #endif
-        #if CYTHON_FAST_PYCCALL
-        if (__Pyx_PyFastCFunction_Check(__pyx_t_17)) {
-          PyObject *__pyx_temp[2] = {__pyx_t_11, __pyx_t_7};
-          __pyx_t_12 = __Pyx_PyCFunction_FastCall(__pyx_t_17, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_XDECREF(__pyx_t_11); __pyx_t_11 = 0;
-          __Pyx_GOTREF(__pyx_t_12);
-          __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-        } else
-        #endif
-        {
-          __pyx_t_13 = PyTuple_New(1+1); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_13);
-          __Pyx_GIVEREF(__pyx_t_11); PyTuple_SET_ITEM(__pyx_t_13, 0, __pyx_t_11); __pyx_t_11 = NULL;
-          __Pyx_GIVEREF(__pyx_t_7);
-          PyTuple_SET_ITEM(__pyx_t_13, 0+1, __pyx_t_7);
-          __pyx_t_7 = 0;
-          __pyx_t_12 = __Pyx_PyObject_Call(__pyx_t_17, __pyx_t_13, NULL); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 443, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_12);
-          __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
-        }
-      }
-      __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-      __pyx_t_17 = PyNumber_Multiply(__pyx_float_0_5, __pyx_t_12); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_17);
-      __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-      __pyx_t_12 = PyNumber_Subtract(__pyx_t_4, __pyx_t_17); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_12);
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-      __pyx_t_8 = __pyx_PyFloat_AsDouble(__pyx_t_12); if (unlikely((__pyx_t_8 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 443, __pyx_L1_error)
-      __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-      __pyx_v_unobscured_area = __pyx_t_8;
+        __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_non_tb_x, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 450, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_4);
+        __pyx_t_6 = PyNumber_Subtract(__pyx_t_12, __pyx_t_4); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 450, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_6);
+        __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+        __pyx_t_4 = PyNumber_Power(__pyx_t_6, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 450, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_4);
+        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+        __pyx_t_6 = __Pyx_GetItemInt(__pyx_v_non_tb_y, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 450, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_6);
+        __pyx_t_12 = __Pyx_GetItemInt(__pyx_v_non_tb_y, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 450, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_12);
+        __pyx_t_17 = PyNumber_Subtract(__pyx_t_6, __pyx_t_12); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 450, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_17);
+        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+        __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+        __pyx_t_12 = PyNumber_Power(__pyx_t_17, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 450, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_12);
+        __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+        __pyx_t_17 = PyNumber_Add(__pyx_t_4, __pyx_t_12); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 450, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_17);
+        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+        __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+        __pyx_t_12 = PyNumber_Power(__pyx_t_17, __pyx_float_0_5, Py_None); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 450, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_12);
+        __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+        __pyx_t_8 = __pyx_PyFloat_AsDouble(__pyx_t_12); if (unlikely((__pyx_t_8 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 450, __pyx_L1_error)
+        __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+        __pyx_v_chord = __pyx_t_8;
 
-      /* "EightBitTransit/cGridFunctions.pyx":444
- * 
- * 			unobscured_area = np.arcsin(0.5*chord) - 0.5*np.sin(2.*np.arcsin(0.5*chord))
- * 			return 1.0 - (unobscured_area/np.pi)             # <<<<<<<<<<<<<<
+        /* "EightBitTransit/cGridFunctions.pyx":451
+ * 			else:
+ * 				chord = ((non_tb_x[1] - non_tb_x[0])**2 + (non_tb_y[1] - non_tb_y[0])**2)**0.5
+ * 				unobscured_area = np.arcsin(0.5*chord) - 0.5*np.sin(2.*np.arcsin(0.5*chord))             # <<<<<<<<<<<<<<
+ * 				#print "blah"
+ * 				#print 1.0 - (unobscured_area/np.pi)
+ */
+        __pyx_t_17 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_17);
+        __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_17, __pyx_n_s_arcsin); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_4);
+        __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+        __pyx_t_17 = PyFloat_FromDouble((0.5 * __pyx_v_chord)); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_17);
+        __pyx_t_6 = NULL;
+        if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_4))) {
+          __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_4);
+          if (likely(__pyx_t_6)) {
+            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_4);
+            __Pyx_INCREF(__pyx_t_6);
+            __Pyx_INCREF(function);
+            __Pyx_DECREF_SET(__pyx_t_4, function);
+          }
+        }
+        if (!__pyx_t_6) {
+          __pyx_t_12 = __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_17); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 451, __pyx_L1_error)
+          __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+          __Pyx_GOTREF(__pyx_t_12);
+        } else {
+          #if CYTHON_FAST_PYCALL
+          if (PyFunction_Check(__pyx_t_4)) {
+            PyObject *__pyx_temp[2] = {__pyx_t_6, __pyx_t_17};
+            __pyx_t_12 = __Pyx_PyFunction_FastCall(__pyx_t_4, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+            __Pyx_GOTREF(__pyx_t_12);
+            __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+          } else
+          #endif
+          #if CYTHON_FAST_PYCCALL
+          if (__Pyx_PyFastCFunction_Check(__pyx_t_4)) {
+            PyObject *__pyx_temp[2] = {__pyx_t_6, __pyx_t_17};
+            __pyx_t_12 = __Pyx_PyCFunction_FastCall(__pyx_t_4, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+            __Pyx_GOTREF(__pyx_t_12);
+            __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+          } else
+          #endif
+          {
+            __pyx_t_11 = PyTuple_New(1+1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_11);
+            __Pyx_GIVEREF(__pyx_t_6); PyTuple_SET_ITEM(__pyx_t_11, 0, __pyx_t_6); __pyx_t_6 = NULL;
+            __Pyx_GIVEREF(__pyx_t_17);
+            PyTuple_SET_ITEM(__pyx_t_11, 0+1, __pyx_t_17);
+            __pyx_t_17 = 0;
+            __pyx_t_12 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_11, NULL); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_12);
+            __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
+          }
+        }
+        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+        __pyx_t_11 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_11);
+        __pyx_t_17 = __Pyx_PyObject_GetAttrStr(__pyx_t_11, __pyx_n_s_sin); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_17);
+        __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
+        __pyx_t_6 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_6);
+        __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_arcsin); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_7);
+        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+        __pyx_t_6 = PyFloat_FromDouble((0.5 * __pyx_v_chord)); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_6);
+        __pyx_t_3 = NULL;
+        if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_7))) {
+          __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_7);
+          if (likely(__pyx_t_3)) {
+            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_7);
+            __Pyx_INCREF(__pyx_t_3);
+            __Pyx_INCREF(function);
+            __Pyx_DECREF_SET(__pyx_t_7, function);
+          }
+        }
+        if (!__pyx_t_3) {
+          __pyx_t_11 = __Pyx_PyObject_CallOneArg(__pyx_t_7, __pyx_t_6); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 451, __pyx_L1_error)
+          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+          __Pyx_GOTREF(__pyx_t_11);
+        } else {
+          #if CYTHON_FAST_PYCALL
+          if (PyFunction_Check(__pyx_t_7)) {
+            PyObject *__pyx_temp[2] = {__pyx_t_3, __pyx_t_6};
+            __pyx_t_11 = __Pyx_PyFunction_FastCall(__pyx_t_7, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
+            __Pyx_GOTREF(__pyx_t_11);
+            __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+          } else
+          #endif
+          #if CYTHON_FAST_PYCCALL
+          if (__Pyx_PyFastCFunction_Check(__pyx_t_7)) {
+            PyObject *__pyx_temp[2] = {__pyx_t_3, __pyx_t_6};
+            __pyx_t_11 = __Pyx_PyCFunction_FastCall(__pyx_t_7, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
+            __Pyx_GOTREF(__pyx_t_11);
+            __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+          } else
+          #endif
+          {
+            __pyx_t_13 = PyTuple_New(1+1); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_13);
+            __Pyx_GIVEREF(__pyx_t_3); PyTuple_SET_ITEM(__pyx_t_13, 0, __pyx_t_3); __pyx_t_3 = NULL;
+            __Pyx_GIVEREF(__pyx_t_6);
+            PyTuple_SET_ITEM(__pyx_t_13, 0+1, __pyx_t_6);
+            __pyx_t_6 = 0;
+            __pyx_t_11 = __Pyx_PyObject_Call(__pyx_t_7, __pyx_t_13, NULL); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_11);
+            __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+          }
+        }
+        __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+        __pyx_t_7 = PyNumber_Multiply(__pyx_float_2_, __pyx_t_11); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_7);
+        __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
+        __pyx_t_11 = NULL;
+        if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_17))) {
+          __pyx_t_11 = PyMethod_GET_SELF(__pyx_t_17);
+          if (likely(__pyx_t_11)) {
+            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_17);
+            __Pyx_INCREF(__pyx_t_11);
+            __Pyx_INCREF(function);
+            __Pyx_DECREF_SET(__pyx_t_17, function);
+          }
+        }
+        if (!__pyx_t_11) {
+          __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_t_17, __pyx_t_7); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 451, __pyx_L1_error)
+          __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+          __Pyx_GOTREF(__pyx_t_4);
+        } else {
+          #if CYTHON_FAST_PYCALL
+          if (PyFunction_Check(__pyx_t_17)) {
+            PyObject *__pyx_temp[2] = {__pyx_t_11, __pyx_t_7};
+            __pyx_t_4 = __Pyx_PyFunction_FastCall(__pyx_t_17, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_XDECREF(__pyx_t_11); __pyx_t_11 = 0;
+            __Pyx_GOTREF(__pyx_t_4);
+            __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+          } else
+          #endif
+          #if CYTHON_FAST_PYCCALL
+          if (__Pyx_PyFastCFunction_Check(__pyx_t_17)) {
+            PyObject *__pyx_temp[2] = {__pyx_t_11, __pyx_t_7};
+            __pyx_t_4 = __Pyx_PyCFunction_FastCall(__pyx_t_17, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_XDECREF(__pyx_t_11); __pyx_t_11 = 0;
+            __Pyx_GOTREF(__pyx_t_4);
+            __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+          } else
+          #endif
+          {
+            __pyx_t_13 = PyTuple_New(1+1); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_13);
+            __Pyx_GIVEREF(__pyx_t_11); PyTuple_SET_ITEM(__pyx_t_13, 0, __pyx_t_11); __pyx_t_11 = NULL;
+            __Pyx_GIVEREF(__pyx_t_7);
+            PyTuple_SET_ITEM(__pyx_t_13, 0+1, __pyx_t_7);
+            __pyx_t_7 = 0;
+            __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_17, __pyx_t_13, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 451, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_4);
+            __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+          }
+        }
+        __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+        __pyx_t_17 = PyNumber_Multiply(__pyx_float_0_5, __pyx_t_4); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_17);
+        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+        __pyx_t_4 = PyNumber_Subtract(__pyx_t_12, __pyx_t_17); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_4);
+        __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+        __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+        __pyx_t_8 = __pyx_PyFloat_AsDouble(__pyx_t_4); if (unlikely((__pyx_t_8 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 451, __pyx_L1_error)
+        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+        __pyx_v_unobscured_area = __pyx_t_8;
+
+        /* "EightBitTransit/cGridFunctions.pyx":454
+ * 				#print "blah"
+ * 				#print 1.0 - (unobscured_area/np.pi)
+ * 				return 1.0 - (unobscured_area/np.pi)             # <<<<<<<<<<<<<<
  * 
  * 		else:    #no valid intersection points found
  */
-      __Pyx_XDECREF(__pyx_r);
-      __pyx_t_12 = PyFloat_FromDouble(__pyx_v_unobscured_area); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 444, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_12);
-      __pyx_t_17 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 444, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_17);
-      __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_17, __pyx_n_s_pi); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 444, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_4);
-      __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-      __pyx_t_17 = __Pyx_PyNumber_Divide(__pyx_t_12, __pyx_t_4); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 444, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_17);
-      __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __pyx_t_4 = __Pyx_PyFloat_SubtractCObj(__pyx_float_1_0, __pyx_t_17, 1.0, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 444, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_4);
-      __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-      __pyx_r = __pyx_t_4;
-      __pyx_t_4 = 0;
-      goto __pyx_L0;
+        __Pyx_XDECREF(__pyx_r);
+        __pyx_t_4 = PyFloat_FromDouble(__pyx_v_unobscured_area); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 454, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_4);
+        __pyx_t_17 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 454, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_17);
+        __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_t_17, __pyx_n_s_pi); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 454, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_12);
+        __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+        __pyx_t_17 = __Pyx_PyNumber_Divide(__pyx_t_4, __pyx_t_12); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 454, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_17);
+        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+        __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+        __pyx_t_12 = __Pyx_PyFloat_SubtractCObj(__pyx_float_1_0, __pyx_t_17, 1.0, 0); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 454, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_12);
+        __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+        __pyx_r = __pyx_t_12;
+        __pyx_t_12 = 0;
+        goto __pyx_L0;
+      }
+      __pyx_L36:;
 
       /* "EightBitTransit/cGridFunctions.pyx":427
  * 					#print triarea1
@@ -11210,36 +11325,104 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_pixeloverlaparea(dou
       break;
       default:
 
-      /* "EightBitTransit/cGridFunctions.pyx":447
+      /* "EightBitTransit/cGridFunctions.pyx":457
  * 
  * 		else:    #no valid intersection points found
- * 			if ((x0**2 + y0**2) <= 1.): #pixel is fully inside stellar disk             # <<<<<<<<<<<<<<
- * 				area = w**2
+ * 			if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk             # <<<<<<<<<<<<<<
+ * 				area = np.min([w**2,np.pi]) #to account for the case of a one-row grid
  * 
  */
-      __pyx_t_1 = (((pow(__pyx_v_x0, 2.0) + pow(__pyx_v_y0, 2.0)) <= 1.) != 0);
+      __pyx_t_1 = (((pow(__pyx_v_x0, 2.0) + pow(__pyx_v_y0, 2.0)) < 1.) != 0);
       if (__pyx_t_1) {
 
-        /* "EightBitTransit/cGridFunctions.pyx":448
+        /* "EightBitTransit/cGridFunctions.pyx":458
  * 		else:    #no valid intersection points found
- * 			if ((x0**2 + y0**2) <= 1.): #pixel is fully inside stellar disk
- * 				area = w**2             # <<<<<<<<<<<<<<
+ * 			if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk
+ * 				area = np.min([w**2,np.pi]) #to account for the case of a one-row grid             # <<<<<<<<<<<<<<
  * 
  * 			else: #pixel is fully outside stellar disk
  */
-        __pyx_v_area = pow(__pyx_v_w, 2.0);
+        __pyx_t_17 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 458, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_17);
+        __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_17, __pyx_n_s_min); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 458, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_4);
+        __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+        __pyx_t_17 = PyFloat_FromDouble(pow(__pyx_v_w, 2.0)); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 458, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_17);
+        __pyx_t_13 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 458, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_13);
+        __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_13, __pyx_n_s_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 458, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_7);
+        __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+        __pyx_t_13 = PyList_New(2); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 458, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_13);
+        __Pyx_GIVEREF(__pyx_t_17);
+        PyList_SET_ITEM(__pyx_t_13, 0, __pyx_t_17);
+        __Pyx_GIVEREF(__pyx_t_7);
+        PyList_SET_ITEM(__pyx_t_13, 1, __pyx_t_7);
+        __pyx_t_17 = 0;
+        __pyx_t_7 = 0;
+        __pyx_t_7 = NULL;
+        if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_4))) {
+          __pyx_t_7 = PyMethod_GET_SELF(__pyx_t_4);
+          if (likely(__pyx_t_7)) {
+            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_4);
+            __Pyx_INCREF(__pyx_t_7);
+            __Pyx_INCREF(function);
+            __Pyx_DECREF_SET(__pyx_t_4, function);
+          }
+        }
+        if (!__pyx_t_7) {
+          __pyx_t_12 = __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_13); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 458, __pyx_L1_error)
+          __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+          __Pyx_GOTREF(__pyx_t_12);
+        } else {
+          #if CYTHON_FAST_PYCALL
+          if (PyFunction_Check(__pyx_t_4)) {
+            PyObject *__pyx_temp[2] = {__pyx_t_7, __pyx_t_13};
+            __pyx_t_12 = __Pyx_PyFunction_FastCall(__pyx_t_4, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 458, __pyx_L1_error)
+            __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
+            __Pyx_GOTREF(__pyx_t_12);
+            __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+          } else
+          #endif
+          #if CYTHON_FAST_PYCCALL
+          if (__Pyx_PyFastCFunction_Check(__pyx_t_4)) {
+            PyObject *__pyx_temp[2] = {__pyx_t_7, __pyx_t_13};
+            __pyx_t_12 = __Pyx_PyCFunction_FastCall(__pyx_t_4, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 458, __pyx_L1_error)
+            __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
+            __Pyx_GOTREF(__pyx_t_12);
+            __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+          } else
+          #endif
+          {
+            __pyx_t_17 = PyTuple_New(1+1); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 458, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_17);
+            __Pyx_GIVEREF(__pyx_t_7); PyTuple_SET_ITEM(__pyx_t_17, 0, __pyx_t_7); __pyx_t_7 = NULL;
+            __Pyx_GIVEREF(__pyx_t_13);
+            PyTuple_SET_ITEM(__pyx_t_17, 0+1, __pyx_t_13);
+            __pyx_t_13 = 0;
+            __pyx_t_12 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_17, NULL); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 458, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_12);
+            __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+          }
+        }
+        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+        __pyx_t_8 = __pyx_PyFloat_AsDouble(__pyx_t_12); if (unlikely((__pyx_t_8 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 458, __pyx_L1_error)
+        __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+        __pyx_v_area = __pyx_t_8;
 
-        /* "EightBitTransit/cGridFunctions.pyx":447
+        /* "EightBitTransit/cGridFunctions.pyx":457
  * 
  * 		else:    #no valid intersection points found
- * 			if ((x0**2 + y0**2) <= 1.): #pixel is fully inside stellar disk             # <<<<<<<<<<<<<<
- * 				area = w**2
+ * 			if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk             # <<<<<<<<<<<<<<
+ * 				area = np.min([w**2,np.pi]) #to account for the case of a one-row grid
  * 
  */
-        goto __pyx_L36;
+        goto __pyx_L38;
       }
 
-      /* "EightBitTransit/cGridFunctions.pyx":451
+      /* "EightBitTransit/cGridFunctions.pyx":461
  * 
  * 			else: #pixel is fully outside stellar disk
  * 				area = 0.             # <<<<<<<<<<<<<<
@@ -11249,35 +11432,35 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_pixeloverlaparea(dou
       /*else*/ {
         __pyx_v_area = 0.;
       }
-      __pyx_L36:;
+      __pyx_L38:;
       break;
     }
   }
   __pyx_L3:;
 
-  /* "EightBitTransit/cGridFunctions.pyx":453
+  /* "EightBitTransit/cGridFunctions.pyx":463
  * 				area = 0.
  * 
  * 	norm_area = area/np.pi #normalize by stellar area, which is pi*1**2             # <<<<<<<<<<<<<<
  * 	return norm_area
  * 
  */
-  __pyx_t_4 = PyFloat_FromDouble(__pyx_v_area); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 453, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_17 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 453, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_17);
-  __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_t_17, __pyx_n_s_pi); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 453, __pyx_L1_error)
+  __pyx_t_12 = PyFloat_FromDouble(__pyx_v_area); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 463, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_12);
-  __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-  __pyx_t_17 = __Pyx_PyNumber_Divide(__pyx_t_4, __pyx_t_12); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 453, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 463, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_17 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_pi); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 463, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_17);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_t_4 = __Pyx_PyNumber_Divide(__pyx_t_12, __pyx_t_17); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 463, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-  __pyx_t_8 = __pyx_PyFloat_AsDouble(__pyx_t_17); if (unlikely((__pyx_t_8 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 453, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
+  __pyx_t_8 = __pyx_PyFloat_AsDouble(__pyx_t_4); if (unlikely((__pyx_t_8 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 463, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __pyx_v_norm_area = __pyx_t_8;
 
-  /* "EightBitTransit/cGridFunctions.pyx":454
+  /* "EightBitTransit/cGridFunctions.pyx":464
  * 
  * 	norm_area = area/np.pi #normalize by stellar area, which is pi*1**2
  * 	return norm_area             # <<<<<<<<<<<<<<
@@ -11285,10 +11468,10 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_pixeloverlaparea(dou
  * cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, double w):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_17 = PyFloat_FromDouble(__pyx_v_norm_area); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 454, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_17);
-  __pyx_r = __pyx_t_17;
-  __pyx_t_17 = 0;
+  __pyx_t_4 = PyFloat_FromDouble(__pyx_v_norm_area); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 464, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_r = __pyx_t_4;
+  __pyx_t_4 = 0;
   goto __pyx_L0;
 
   /* "EightBitTransit/cGridFunctions.pyx":175
@@ -11432,7 +11615,7 @@ static PyObject *__pyx_pf_15EightBitTransit_14cGridFunctions_6pixeloverlaparea(C
   return __pyx_r;
 }
 
-/* "EightBitTransit/cGridFunctions.pyx":456
+/* "EightBitTransit/cGridFunctions.pyx":466
  * 	return norm_area
  * 
  * cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, double w):             # <<<<<<<<<<<<<<
@@ -11470,9 +11653,9 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
   int __pyx_t_10;
   int __pyx_t_11;
   __Pyx_RefNannySetupContext("LDfluxsmall", 0);
-  __Pyx_TraceCall("LDfluxsmall", __pyx_f[0], 456, 0, __PYX_ERR(0, 456, __pyx_L1_error));
+  __Pyx_TraceCall("LDfluxsmall", __pyx_f[0], 466, 0, __PYX_ERR(0, 466, __pyx_L1_error));
 
-  /* "EightBitTransit/cGridFunctions.pyx":473
+  /* "EightBitTransit/cGridFunctions.pyx":483
  * 
  * 	cdef:
  * 		double Ftot, r, S, am, bm, amR, bmR, Ar_ann, Fl_ann, pi=3.1415926535             # <<<<<<<<<<<<<<
@@ -11481,7 +11664,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
   __pyx_v_pi = 3.1415926535;
 
-  /* "EightBitTransit/cGridFunctions.pyx":476
+  /* "EightBitTransit/cGridFunctions.pyx":486
  * 		int n, i
  * 
  * 	Ftot = 1. - 0.2*c1 - (1./3.)*c2 - (3./7.)*c3 - 0.5*c4             # <<<<<<<<<<<<<<
@@ -11490,7 +11673,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
   __pyx_v_Ftot = ((((1. - (0.2 * __pyx_v_c1)) - ((1. / 3.) * __pyx_v_c2)) - ((3. / 7.) * __pyx_v_c3)) - (0.5 * __pyx_v_c4));
 
-  /* "EightBitTransit/cGridFunctions.pyx":478
+  /* "EightBitTransit/cGridFunctions.pyx":488
  * 	Ftot = 1. - 0.2*c1 - (1./3.)*c2 - (3./7.)*c3 - 0.5*c4
  * 
  * 	r = w/(pi**0.5) #set r such that area = w^2= pi*r^2 => r = w/sqrt(pi), i.e. r is the radius of the circle with area w**2             # <<<<<<<<<<<<<<
@@ -11500,33 +11683,33 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
   __pyx_t_1 = pow(__pyx_v_pi, 0.5);
   if (unlikely(__pyx_t_1 == 0)) {
     PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-    __PYX_ERR(0, 478, __pyx_L1_error)
+    __PYX_ERR(0, 488, __pyx_L1_error)
   }
   __pyx_v_r = (__pyx_v_w / __pyx_t_1);
 
-  /* "EightBitTransit/cGridFunctions.pyx":480
+  /* "EightBitTransit/cGridFunctions.pyx":490
  * 	r = w/(pi**0.5) #set r such that area = w^2= pi*r^2 => r = w/sqrt(pi), i.e. r is the radius of the circle with area w**2
  * 
  * 	n = len(t)             # <<<<<<<<<<<<<<
  * 
  * 	#S = np.zeros(n)
  */
-  __pyx_t_2 = PyObject_Length(__pyx_v_t); if (unlikely(__pyx_t_2 == -1)) __PYX_ERR(0, 480, __pyx_L1_error)
+  __pyx_t_2 = PyObject_Length(__pyx_v_t); if (unlikely(__pyx_t_2 == -1)) __PYX_ERR(0, 490, __pyx_L1_error)
   __pyx_v_n = __pyx_t_2;
 
-  /* "EightBitTransit/cGridFunctions.pyx":490
+  /* "EightBitTransit/cGridFunctions.pyx":500
  * 	#Ar_ann = np.zeros(n) #area of annulus
  * 	#Fl_ann = np.zeros(n) #flux within annulus
  * 	I0 = np.zeros(n)             # <<<<<<<<<<<<<<
  * 
  * 	for i in range(0,n):
  */
-  __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 490, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 500, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_zeros); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 490, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_zeros); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 500, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_n); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 490, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_n); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 500, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __pyx_t_6 = NULL;
   if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_5))) {
@@ -11539,14 +11722,14 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     }
   }
   if (!__pyx_t_6) {
-    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 490, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 500, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_GOTREF(__pyx_t_3);
   } else {
     #if CYTHON_FAST_PYCALL
     if (PyFunction_Check(__pyx_t_5)) {
       PyObject *__pyx_temp[2] = {__pyx_t_6, __pyx_t_4};
-      __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 490, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 500, __pyx_L1_error)
       __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
@@ -11555,20 +11738,20 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     #if CYTHON_FAST_PYCCALL
     if (__Pyx_PyFastCFunction_Check(__pyx_t_5)) {
       PyObject *__pyx_temp[2] = {__pyx_t_6, __pyx_t_4};
-      __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 490, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 500, __pyx_L1_error)
       __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     } else
     #endif
     {
-      __pyx_t_7 = PyTuple_New(1+1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 490, __pyx_L1_error)
+      __pyx_t_7 = PyTuple_New(1+1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 500, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_GIVEREF(__pyx_t_6); PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_t_6); __pyx_t_6 = NULL;
       __Pyx_GIVEREF(__pyx_t_4);
       PyTuple_SET_ITEM(__pyx_t_7, 0+1, __pyx_t_4);
       __pyx_t_4 = 0;
-      __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_7, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 490, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_7, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 500, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     }
@@ -11577,7 +11760,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
   __pyx_v_I0 = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "EightBitTransit/cGridFunctions.pyx":492
+  /* "EightBitTransit/cGridFunctions.pyx":502
  * 	I0 = np.zeros(n)
  * 
  * 	for i in range(0,n):             # <<<<<<<<<<<<<<
@@ -11588,35 +11771,35 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
   for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
     __pyx_v_i = __pyx_t_9;
 
-    /* "EightBitTransit/cGridFunctions.pyx":493
+    /* "EightBitTransit/cGridFunctions.pyx":503
  * 
  * 	for i in range(0,n):
  * 		S = (x[i]**2 + y[i]**2)**0.5 #distance from stellar center             # <<<<<<<<<<<<<<
  * 		am = (S - r)**2 #inner part of annulus
  * 		bm = (S + r)**2 #outer part of annulus
  */
-    __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_x, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_x, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 503, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_5 = PyNumber_Power(__pyx_t_3, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_5 = PyNumber_Power(__pyx_t_3, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 503, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_y, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_y, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 503, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_7 = PyNumber_Power(__pyx_t_3, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_7 = PyNumber_Power(__pyx_t_3, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 503, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_3 = PyNumber_Add(__pyx_t_5, __pyx_t_7); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_3 = PyNumber_Add(__pyx_t_5, __pyx_t_7); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 503, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-    __pyx_t_7 = PyNumber_Power(__pyx_t_3, __pyx_float_0_5, Py_None); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_7 = PyNumber_Power(__pyx_t_3, __pyx_float_0_5, Py_None); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 503, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_1 = __pyx_PyFloat_AsDouble(__pyx_t_7); if (unlikely((__pyx_t_1 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_1 = __pyx_PyFloat_AsDouble(__pyx_t_7); if (unlikely((__pyx_t_1 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 503, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     __pyx_v_S = __pyx_t_1;
 
-    /* "EightBitTransit/cGridFunctions.pyx":494
+    /* "EightBitTransit/cGridFunctions.pyx":504
  * 	for i in range(0,n):
  * 		S = (x[i]**2 + y[i]**2)**0.5 #distance from stellar center
  * 		am = (S - r)**2 #inner part of annulus             # <<<<<<<<<<<<<<
@@ -11625,7 +11808,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
     __pyx_v_am = pow((__pyx_v_S - __pyx_v_r), 2.0);
 
-    /* "EightBitTransit/cGridFunctions.pyx":495
+    /* "EightBitTransit/cGridFunctions.pyx":505
  * 		S = (x[i]**2 + y[i]**2)**0.5 #distance from stellar center
  * 		am = (S - r)**2 #inner part of annulus
  * 		bm = (S + r)**2 #outer part of annulus             # <<<<<<<<<<<<<<
@@ -11634,7 +11817,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
     __pyx_v_bm = pow((__pyx_v_S + __pyx_v_r), 2.0);
 
-    /* "EightBitTransit/cGridFunctions.pyx":497
+    /* "EightBitTransit/cGridFunctions.pyx":507
  * 		bm = (S + r)**2 #outer part of annulus
  * 
  * 		amR = (1. - am)**0.25             # <<<<<<<<<<<<<<
@@ -11643,7 +11826,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
     __pyx_v_amR = pow((1. - __pyx_v_am), 0.25);
 
-    /* "EightBitTransit/cGridFunctions.pyx":498
+    /* "EightBitTransit/cGridFunctions.pyx":508
  * 
  * 		amR = (1. - am)**0.25
  * 		bmR = (1. - bm)**0.25             # <<<<<<<<<<<<<<
@@ -11652,7 +11835,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
     __pyx_v_bmR = pow((1. - __pyx_v_bm), 0.25);
 
-    /* "EightBitTransit/cGridFunctions.pyx":507
+    /* "EightBitTransit/cGridFunctions.pyx":517
  * 		#bmR[i] = np.sqrt(np.sqrt(1. - bm[i]))
  * 
  * 		if S > (1. + r): #case I: pixel is outside of stellar disk             # <<<<<<<<<<<<<<
@@ -11662,7 +11845,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     __pyx_t_10 = ((__pyx_v_S > (1. + __pyx_v_r)) != 0);
     if (__pyx_t_10) {
 
-      /* "EightBitTransit/cGridFunctions.pyx":508
+      /* "EightBitTransit/cGridFunctions.pyx":518
  * 
  * 		if S > (1. + r): #case I: pixel is outside of stellar disk
  * 			Ar_ann = 0.             # <<<<<<<<<<<<<<
@@ -11671,7 +11854,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Ar_ann = 0.;
 
-      /* "EightBitTransit/cGridFunctions.pyx":509
+      /* "EightBitTransit/cGridFunctions.pyx":519
  * 		if S > (1. + r): #case I: pixel is outside of stellar disk
  * 			Ar_ann = 0.
  * 			Fl_ann = 0.             # <<<<<<<<<<<<<<
@@ -11680,16 +11863,16 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Fl_ann = 0.;
 
-      /* "EightBitTransit/cGridFunctions.pyx":510
+      /* "EightBitTransit/cGridFunctions.pyx":520
  * 			Ar_ann = 0.
  * 			Fl_ann = 0.
  * 			I0[i] = 0.             # <<<<<<<<<<<<<<
  * 
  * 		elif (S > r) and (S < (1.-r)): #case III: pixel fully overlaps stellar disk
  */
-      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_float_0_, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 510, __pyx_L1_error)
+      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_float_0_, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 520, __pyx_L1_error)
 
-      /* "EightBitTransit/cGridFunctions.pyx":507
+      /* "EightBitTransit/cGridFunctions.pyx":517
  * 		#bmR[i] = np.sqrt(np.sqrt(1. - bm[i]))
  * 
  * 		if S > (1. + r): #case I: pixel is outside of stellar disk             # <<<<<<<<<<<<<<
@@ -11699,7 +11882,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
       goto __pyx_L5;
     }
 
-    /* "EightBitTransit/cGridFunctions.pyx":512
+    /* "EightBitTransit/cGridFunctions.pyx":522
  * 			I0[i] = 0.
  * 
  * 		elif (S > r) and (S < (1.-r)): #case III: pixel fully overlaps stellar disk             # <<<<<<<<<<<<<<
@@ -11717,7 +11900,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     __pyx_L6_bool_binop_done:;
     if (__pyx_t_10) {
 
-      /* "EightBitTransit/cGridFunctions.pyx":513
+      /* "EightBitTransit/cGridFunctions.pyx":523
  * 
  * 		elif (S > r) and (S < (1.-r)): #case III: pixel fully overlaps stellar disk
  * 			Ar_ann = pi*(bm - am)             # <<<<<<<<<<<<<<
@@ -11726,7 +11909,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Ar_ann = (__pyx_v_pi * (__pyx_v_bm - __pyx_v_am));
 
-      /* "EightBitTransit/cGridFunctions.pyx":514
+      /* "EightBitTransit/cGridFunctions.pyx":524
  * 		elif (S > r) and (S < (1.-r)): #case III: pixel fully overlaps stellar disk
  * 			Ar_ann = pi*(bm - am)
  * 			Fl_ann = (am - bm)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 + (4./7.)*c3*amR**7 + 0.5*c4*amR**8 - 0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 -(4./7.)*c3*bmR**7 - 0.5*c4*bmR**8             # <<<<<<<<<<<<<<
@@ -11735,41 +11918,41 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Fl_ann = ((((((((((__pyx_v_am - __pyx_v_bm) * ((((__pyx_v_c1 + __pyx_v_c2) + __pyx_v_c3) + __pyx_v_c4) - 1.)) + ((0.8 * __pyx_v_c1) * pow(__pyx_v_amR, 5.0))) + (((2. / 3.) * __pyx_v_c2) * pow(__pyx_v_amR, 6.0))) + (((4. / 7.) * __pyx_v_c3) * pow(__pyx_v_amR, 7.0))) + ((0.5 * __pyx_v_c4) * pow(__pyx_v_amR, 8.0))) - ((0.8 * __pyx_v_c1) * pow(__pyx_v_bmR, 5.0))) - (((2. / 3.) * __pyx_v_c2) * pow(__pyx_v_bmR, 6.0))) - (((4. / 7.) * __pyx_v_c3) * pow(__pyx_v_bmR, 7.0))) - ((0.5 * __pyx_v_c4) * pow(__pyx_v_bmR, 8.0)));
 
-      /* "EightBitTransit/cGridFunctions.pyx":515
+      /* "EightBitTransit/cGridFunctions.pyx":525
  * 			Ar_ann = pi*(bm - am)
  * 			Fl_ann = (am - bm)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 + (4./7.)*c3*amR**7 + 0.5*c4*amR**8 - 0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 -(4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)             # <<<<<<<<<<<<<<
  * 
  * 		elif (S < r): #case IV: pixel is very close to stellar center
  */
-      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 515, __pyx_L1_error)
+      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 525, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
-      __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 515, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 525, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 515, __pyx_L1_error)
+      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 525, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_4 = __Pyx_PyNumber_Divide(__pyx_t_3, __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 515, __pyx_L1_error)
+      __pyx_t_4 = __Pyx_PyNumber_Divide(__pyx_t_3, __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 525, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 515, __pyx_L1_error)
+      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 525, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       if (unlikely(__pyx_v_Ftot == 0)) {
         PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-        __PYX_ERR(0, 515, __pyx_L1_error)
+        __PYX_ERR(0, 525, __pyx_L1_error)
       }
-      __pyx_t_4 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 515, __pyx_L1_error)
+      __pyx_t_4 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 525, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 515, __pyx_L1_error)
+      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 525, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 515, __pyx_L1_error)
+      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 525, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-      /* "EightBitTransit/cGridFunctions.pyx":512
+      /* "EightBitTransit/cGridFunctions.pyx":522
  * 			I0[i] = 0.
  * 
  * 		elif (S > r) and (S < (1.-r)): #case III: pixel fully overlaps stellar disk             # <<<<<<<<<<<<<<
@@ -11779,7 +11962,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
       goto __pyx_L5;
     }
 
-    /* "EightBitTransit/cGridFunctions.pyx":517
+    /* "EightBitTransit/cGridFunctions.pyx":527
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
  * 
  * 		elif (S < r): #case IV: pixel is very close to stellar center             # <<<<<<<<<<<<<<
@@ -11789,7 +11972,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     __pyx_t_10 = ((__pyx_v_S < __pyx_v_r) != 0);
     if (__pyx_t_10) {
 
-      /* "EightBitTransit/cGridFunctions.pyx":521
+      /* "EightBitTransit/cGridFunctions.pyx":531
  * 				#print "case IV problem! bmR is nan"
  * 
  * 			Ar_ann = pi*bm             # <<<<<<<<<<<<<<
@@ -11798,7 +11981,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Ar_ann = (__pyx_v_pi * __pyx_v_bm);
 
-      /* "EightBitTransit/cGridFunctions.pyx":522
+      /* "EightBitTransit/cGridFunctions.pyx":532
  * 
  * 			Ar_ann = pi*bm
  * 			Fl_ann = -1.*bm*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1 + (2./3.)*c2 + (4./7.)*c3 + 0.5*c4 -0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 - (4./7.)*c3*bmR**7 - 0.5*c4*bmR**8             # <<<<<<<<<<<<<<
@@ -11807,41 +11990,41 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Fl_ann = ((((((((((-1. * __pyx_v_bm) * ((((__pyx_v_c1 + __pyx_v_c2) + __pyx_v_c3) + __pyx_v_c4) - 1.)) + (0.8 * __pyx_v_c1)) + ((2. / 3.) * __pyx_v_c2)) + ((4. / 7.) * __pyx_v_c3)) + (0.5 * __pyx_v_c4)) - ((0.8 * __pyx_v_c1) * pow(__pyx_v_bmR, 5.0))) - (((2. / 3.) * __pyx_v_c2) * pow(__pyx_v_bmR, 6.0))) - (((4. / 7.) * __pyx_v_c3) * pow(__pyx_v_bmR, 7.0))) - ((0.5 * __pyx_v_c4) * pow(__pyx_v_bmR, 8.0)));
 
-      /* "EightBitTransit/cGridFunctions.pyx":523
+      /* "EightBitTransit/cGridFunctions.pyx":533
  * 			Ar_ann = pi*bm
  * 			Fl_ann = -1.*bm*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1 + (2./3.)*c2 + (4./7.)*c3 + 0.5*c4 -0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 - (4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)             # <<<<<<<<<<<<<<
  * 
  * 
  */
-      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 523, __pyx_L1_error)
+      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 533, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
-      __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 523, __pyx_L1_error)
+      __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 533, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 523, __pyx_L1_error)
+      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 533, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_3 = __Pyx_PyNumber_Divide(__pyx_t_4, __pyx_t_5); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 523, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyNumber_Divide(__pyx_t_4, __pyx_t_5); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 533, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 523, __pyx_L1_error)
+      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 533, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       if (unlikely(__pyx_v_Ftot == 0)) {
         PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-        __PYX_ERR(0, 523, __pyx_L1_error)
+        __PYX_ERR(0, 533, __pyx_L1_error)
       }
-      __pyx_t_3 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 523, __pyx_L1_error)
+      __pyx_t_3 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 533, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 523, __pyx_L1_error)
+      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 533, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 523, __pyx_L1_error)
+      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 533, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-      /* "EightBitTransit/cGridFunctions.pyx":517
+      /* "EightBitTransit/cGridFunctions.pyx":527
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
  * 
  * 		elif (S < r): #case IV: pixel is very close to stellar center             # <<<<<<<<<<<<<<
@@ -11851,7 +12034,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
       goto __pyx_L5;
     }
 
-    /* "EightBitTransit/cGridFunctions.pyx":530
+    /* "EightBitTransit/cGridFunctions.pyx":540
  * 				#print "case II problem! amR is nan"
  * 
  * 			Ar_ann = pi*(1.-am)             # <<<<<<<<<<<<<<
@@ -11861,7 +12044,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     /*else*/ {
       __pyx_v_Ar_ann = (__pyx_v_pi * (1. - __pyx_v_am));
 
-      /* "EightBitTransit/cGridFunctions.pyx":531
+      /* "EightBitTransit/cGridFunctions.pyx":541
  * 
  * 			Ar_ann = pi*(1.-am)
  * 			Fl_ann = (am - 1.)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 +(4./7.)*c3*amR**7 + 0.5*c4*amR**8             # <<<<<<<<<<<<<<
@@ -11870,44 +12053,44 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Fl_ann = ((((((__pyx_v_am - 1.) * ((((__pyx_v_c1 + __pyx_v_c2) + __pyx_v_c3) + __pyx_v_c4) - 1.)) + ((0.8 * __pyx_v_c1) * pow(__pyx_v_amR, 5.0))) + (((2. / 3.) * __pyx_v_c2) * pow(__pyx_v_amR, 6.0))) + (((4. / 7.) * __pyx_v_c3) * pow(__pyx_v_amR, 7.0))) + ((0.5 * __pyx_v_c4) * pow(__pyx_v_amR, 8.0)));
 
-      /* "EightBitTransit/cGridFunctions.pyx":532
+      /* "EightBitTransit/cGridFunctions.pyx":542
  * 			Ar_ann = pi*(1.-am)
  * 			Fl_ann = (am - 1.)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 +(4./7.)*c3*amR**7 + 0.5*c4*amR**8
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)             # <<<<<<<<<<<<<<
  * 
  * 
  */
-      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 532, __pyx_L1_error)
+      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 542, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
-      __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 532, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 542, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 532, __pyx_L1_error)
+      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 542, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_4 = __Pyx_PyNumber_Divide(__pyx_t_3, __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 532, __pyx_L1_error)
+      __pyx_t_4 = __Pyx_PyNumber_Divide(__pyx_t_3, __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 542, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 532, __pyx_L1_error)
+      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 542, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       if (unlikely(__pyx_v_Ftot == 0)) {
         PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-        __PYX_ERR(0, 532, __pyx_L1_error)
+        __PYX_ERR(0, 542, __pyx_L1_error)
       }
-      __pyx_t_4 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 532, __pyx_L1_error)
+      __pyx_t_4 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 542, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 532, __pyx_L1_error)
+      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 542, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 532, __pyx_L1_error)
+      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 542, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     }
     __pyx_L5:;
   }
 
-  /* "EightBitTransit/cGridFunctions.pyx":535
+  /* "EightBitTransit/cGridFunctions.pyx":545
  * 
  * 
  * 	return I0             # <<<<<<<<<<<<<<
@@ -11918,7 +12101,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
   __pyx_r = __pyx_v_I0;
   goto __pyx_L0;
 
-  /* "EightBitTransit/cGridFunctions.pyx":456
+  /* "EightBitTransit/cGridFunctions.pyx":466
  * 	return norm_area
  * 
  * cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, double w):             # <<<<<<<<<<<<<<
@@ -11986,46 +12169,46 @@ static PyObject *__pyx_pw_15EightBitTransit_14cGridFunctions_9LDfluxsmall(PyObje
         case  1:
         if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_y)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 1); __PYX_ERR(0, 456, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 1); __PYX_ERR(0, 466, __pyx_L3_error)
         }
         case  2:
         if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_t)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 2); __PYX_ERR(0, 456, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 2); __PYX_ERR(0, 466, __pyx_L3_error)
         }
         case  3:
         if (likely((values[3] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_Ar_occ)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 3); __PYX_ERR(0, 456, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 3); __PYX_ERR(0, 466, __pyx_L3_error)
         }
         case  4:
         if (likely((values[4] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_c1)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 4); __PYX_ERR(0, 456, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 4); __PYX_ERR(0, 466, __pyx_L3_error)
         }
         case  5:
         if (likely((values[5] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_c2)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 5); __PYX_ERR(0, 456, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 5); __PYX_ERR(0, 466, __pyx_L3_error)
         }
         case  6:
         if (likely((values[6] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_c3)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 6); __PYX_ERR(0, 456, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 6); __PYX_ERR(0, 466, __pyx_L3_error)
         }
         case  7:
         if (likely((values[7] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_c4)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 7); __PYX_ERR(0, 456, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 7); __PYX_ERR(0, 466, __pyx_L3_error)
         }
         case  8:
         if (likely((values[8] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_w)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 8); __PYX_ERR(0, 456, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, 8); __PYX_ERR(0, 466, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "LDfluxsmall") < 0)) __PYX_ERR(0, 456, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "LDfluxsmall") < 0)) __PYX_ERR(0, 466, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 9) {
       goto __pyx_L5_argtuple_error;
@@ -12044,15 +12227,15 @@ static PyObject *__pyx_pw_15EightBitTransit_14cGridFunctions_9LDfluxsmall(PyObje
     __pyx_v_y = values[1];
     __pyx_v_t = values[2];
     __pyx_v_Ar_occ = values[3];
-    __pyx_v_c1 = __pyx_PyFloat_AsDouble(values[4]); if (unlikely((__pyx_v_c1 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 456, __pyx_L3_error)
-    __pyx_v_c2 = __pyx_PyFloat_AsDouble(values[5]); if (unlikely((__pyx_v_c2 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 456, __pyx_L3_error)
-    __pyx_v_c3 = __pyx_PyFloat_AsDouble(values[6]); if (unlikely((__pyx_v_c3 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 456, __pyx_L3_error)
-    __pyx_v_c4 = __pyx_PyFloat_AsDouble(values[7]); if (unlikely((__pyx_v_c4 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 456, __pyx_L3_error)
-    __pyx_v_w = __pyx_PyFloat_AsDouble(values[8]); if (unlikely((__pyx_v_w == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 456, __pyx_L3_error)
+    __pyx_v_c1 = __pyx_PyFloat_AsDouble(values[4]); if (unlikely((__pyx_v_c1 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 466, __pyx_L3_error)
+    __pyx_v_c2 = __pyx_PyFloat_AsDouble(values[5]); if (unlikely((__pyx_v_c2 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 466, __pyx_L3_error)
+    __pyx_v_c3 = __pyx_PyFloat_AsDouble(values[6]); if (unlikely((__pyx_v_c3 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 466, __pyx_L3_error)
+    __pyx_v_c4 = __pyx_PyFloat_AsDouble(values[7]); if (unlikely((__pyx_v_c4 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 466, __pyx_L3_error)
+    __pyx_v_w = __pyx_PyFloat_AsDouble(values[8]); if (unlikely((__pyx_v_w == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 466, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 456, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("LDfluxsmall", 1, 9, 9, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 466, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("EightBitTransit.cGridFunctions.LDfluxsmall", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -12071,9 +12254,9 @@ static PyObject *__pyx_pf_15EightBitTransit_14cGridFunctions_8LDfluxsmall(CYTHON
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("LDfluxsmall", 0);
-  __Pyx_TraceCall("LDfluxsmall (wrapper)", __pyx_f[0], 456, 0, __PYX_ERR(0, 456, __pyx_L1_error));
+  __Pyx_TraceCall("LDfluxsmall (wrapper)", __pyx_f[0], 466, 0, __PYX_ERR(0, 466, __pyx_L1_error));
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(__pyx_v_x, __pyx_v_y, __pyx_v_t, __pyx_v_Ar_occ, __pyx_v_c1, __pyx_v_c2, __pyx_v_c3, __pyx_v_c4, __pyx_v_w, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 456, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(__pyx_v_x, __pyx_v_y, __pyx_v_t, __pyx_v_Ar_occ, __pyx_v_c1, __pyx_v_c2, __pyx_v_c3, __pyx_v_c4, __pyx_v_w, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 466, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -12155,6 +12338,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
   {&__pyx_n_s_mean, __pyx_k_mean, sizeof(__pyx_k_mean), 0, 0, 1, 1},
   {&__pyx_n_s_method, __pyx_k_method, sizeof(__pyx_k_method), 0, 0, 1, 1},
+  {&__pyx_n_s_min, __pyx_k_min, sizeof(__pyx_k_min), 0, 0, 1, 1},
   {&__pyx_n_s_misc, __pyx_k_misc, sizeof(__pyx_k_misc), 0, 0, 1, 1},
   {&__pyx_n_s_mode, __pyx_k_mode, sizeof(__pyx_k_mode), 0, 0, 1, 1},
   {&__pyx_n_s_most_common, __pyx_k_most_common, sizeof(__pyx_k_most_common), 0, 0, 1, 1},
