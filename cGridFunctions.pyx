@@ -428,30 +428,53 @@ cpdef pixeloverlaparea(double x0, double y0, double w):
 			#eliminate intersections at the top and bottom of the stellar disk, which add no information
 			non_tb_x = []
 			non_tb_y = []
-			for i in range(0,6):
-				if (abs(xg[i]) == 0.0) and (abs(yg[i]) == 1.0):
-					pass
+
+			if w == 2.: #one-row grid
+				for i in range(0,6):
+					if (abs(xg[i]) == 0.0) and (abs(yg[i]) == 1.0):
+						pass
+					else:
+						non_tb_x.append(xg[i])
+						non_tb_y.append(yg[i])
+
+				non_tb_x = np.array(non_tb_x)
+				non_tb_y = np.array(non_tb_y)
+
+				if (len(non_tb_x) == 0) & (len(non_tb_y)==0):
+					if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk, so the occulted area is the area of the star
+						#print "called"
+						area = np.pi
+					elif ((x0**2 + y0**2) == 1.): #pixel is exactly halfway inside stellar disk, so the occulted area is half the area of the star
+						area = np.pi/2.
+					else:
+						area = 0.
+
 				else:
-					non_tb_x.append(xg[i])
-					non_tb_y.append(yg[i])
+					chord = ((non_tb_x[1] - non_tb_x[0])**2 + (non_tb_y[1] - non_tb_y[0])**2)**0.5
+					unobscured_area = np.arcsin(0.5*chord) - 0.5*np.sin(2.*np.arcsin(0.5*chord))
+					if ((x0**2 + y0**2) < 1.):
+						return 1.0 - (unobscured_area/np.pi)
+					else:
+						area = 0.
 
-			non_tb_x = np.array(non_tb_x)
-			non_tb_y = np.array(non_tb_y)
+			elif w == 1.: #two-row grid
+				tbandside = [0,0]
 
-			if (len(non_tb_x) == 0) & (len(non_tb_y)==0):
-				if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk, so the occulted area is the area of the star
-					area = np.pi
-				elif ((x0**2 + y0**2) == 1.): #pixel is exactly halfway inside stellar disk, so the occulted area is half the area of the star
-					area = np.pi/2.
+				for i in range(0,6):
+					if (abs(xg[i]) == 0.0) and (abs(yg[i]) == 1.0):
+						tbandside[0] = 1
+					if (abs(xg[i]) == 1.0) and (abs(yg[i]) == 0.0):
+						tbandside[1] = 1
+
+				if sum(tbandside) == 2:
+					area = np.pi/4.
+
 				else:
-					area = 0.
+					if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk
+						area = w**2
+					else:
+						area = 0.
 
-			else:
-				chord = ((non_tb_x[1] - non_tb_x[0])**2 + (non_tb_y[1] - non_tb_y[0])**2)**0.5
-				unobscured_area = np.arcsin(0.5*chord) - 0.5*np.sin(2.*np.arcsin(0.5*chord))
-				#print "blah"
-				#print 1.0 - (unobscured_area/np.pi)
-				return 1.0 - (unobscured_area/np.pi)
 
 		else:    #no valid intersection points found
 			if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk
@@ -461,6 +484,7 @@ cpdef pixeloverlaparea(double x0, double y0, double w):
 				area = 0.
 	
 	norm_area = area/np.pi #normalize by stellar area, which is pi*1**2
+	#print norm_area
 	return norm_area
 
 cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, double w):
