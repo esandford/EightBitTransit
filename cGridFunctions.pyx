@@ -15,8 +15,8 @@ def positions(n, m, t, tref, v):
 	n = height of grid, in pixels
 	m = width of grid, in pixels
 	t = array of times at which to output pixel grid positions
-	tref = reference transit midpoint time [days]
-	v = grid velocity [1/days] (since distance is in units of R*)
+	tref = reference transit midpoint time [time units]
+	v = grid velocity [1/(time units)] (since distance is in units of R*)
 	
 	Outputs:
 	pos = array of shape (len(t), n, m, 2) containing thepositions of pixel (n,m) at each time t. pos[k,:,:,0] are
