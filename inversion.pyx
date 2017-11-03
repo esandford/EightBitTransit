@@ -6,7 +6,7 @@ from .cGridFunctions import *
 from .misc import *
 
 
-__all__ = ['ART','ART_normal','simultaneous_ART', 'neighborPermutations', 'AStarGeneticStep', 'LCfromSummedPixels', 'AStarGeneticStep_pixsum']
+__all__ = ['ART','ART_normal','simultaneous_ART', 'neighborPermutations', 'AStarGeneticStep', 'LCfromSummedPixels', 'perimeter', 'AStarGeneticStep_pixsum']
 
 def ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6):
     """
@@ -240,7 +240,7 @@ def simultaneous_ART(n_iter, tau_init, A, obsLC):
         
     return tau
 
-def neighborPermutations(grid,grid_i,grid_j):
+def neighborPermutations(grid,grid_i,grid_j,wraparound=False):
     """
     Inputs:
     grid = a grid of 1s and 0s
@@ -271,17 +271,29 @@ def neighborPermutations(grid,grid_i,grid_j):
     #find neighbors
     #vertical
     if grid_i == 0:
-        neighbors_i = [N-1, 0, 1]
+        if wraparound is True:
+            neighbors_i = [N-1, 0, 1]
+        else:
+            neighbors_i = [0, 1]
     elif grid_i == N-1:
-        neighbors_i = [N-2, N-1, 0]
+        if wraparound is True:
+            neighbors_i = [N-2, N-1, 0]
+        else:
+            neighbors_i = [N-2, N-1]
     else:
         neighbors_i = [grid_i - 1, grid_i, grid_i + 1]
     
     #horizontal
     if grid_j == 0:
-        neighbors_j = [M-1, 0, 1]
+        if wraparound is True:
+            neighbors_j = [M-1, 0, 1]
+        else:
+            neighbors_j = [0, 1]
     elif grid_j == M-1:
-        neighbors_j = [M-2, M-1, 0]
+        if wraparound is True:
+            neighbors_j = [M-2, M-1, 0]
+        else:
+            neighbors_j = [M-2, M-1]
     else:
         neighbors_j = [grid_j - 1, grid_j, grid_j + 1]
     
@@ -289,8 +301,8 @@ def neighborPermutations(grid,grid_i,grid_j):
     #print neighbors_j
     #get indices of these 9 neighbor grid positions into the raveled pixel grid (1D array of length NM)
     ravelidxs = []
-    for k in range(0,3):
-        for m in range(0,3):
+    for k in range(0,len(neighbors_i)):
+        for m in range(0,len(neighbors_j)):
             thisneighbor_i = neighbors_i[k]
             thisneighbor_j = neighbors_j[m]
             
@@ -375,7 +387,7 @@ def AStarGeneticStep(currentgrid, obsLC, times, temperature=0.01, saveplots=Fals
     #print alreadyEvaluated
     
     #choose random "on" pixel
-    onmask = np.ravel((currentgrid == 1.))
+    onmask = np.ravel((currentgrid > 0.))
     
     onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
     
@@ -449,7 +461,7 @@ def AStarGeneticStep(currentgrid, obsLC, times, temperature=0.01, saveplots=Fals
         notYetEvaluated.difference_update(alreadyEvaluated)
         
         #select a new "on" pixel to test
-        onmask = np.ravel((currentgrid == 1.))
+        onmask = np.ravel((currentgrid > 0.))
     
         onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
         
@@ -498,7 +510,35 @@ def LCfromSummedPixels(base10number, LCdecrements):
     LC = np.ones_like(onpixdecrements) - onpixdecrements
     return LC
 
-def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplots=False, filename="astrofestpetridish",costfloor=1.e-10):
+
+def perimeter(grid):
+    """
+    Calculate the perimeter of a grid arrangement.
+    """
+
+    Pc = 0.
+    
+    N = np.shape(grid)[0]
+    M = np.shape(grid)[1]
+
+    onmask = np.ravel((grid > 0.))
+    onidxs = np.arange(0,len(np.ravel(grid)))[onmask]
+    N_on = len(onidxs)
+    
+    #vertical
+    for i in range (N-1):
+        for j in range (M):
+            if grid[i,j] > 0. and grid[i+1,j] > 0.:
+                Pc += 1.
+    #horizontal
+    for i in range(N):
+        for j in range(M-1):
+            if grid[i,j] > 0. and grid[i,j+1] > 0.:
+                Pc += 1.
+
+    return ((4.*N_on) + (2.*Pc))
+
+def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplots=False, filename="astrofestpetridish",costfloor=1.e-10,perimeterFac=0.1):
     """
     Find the grid that best matches obsLC.
     
@@ -519,15 +559,17 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
             onepixgrid[i,j] = 1
             onepix_ti = TransitingImage(opacitymat=onepixgrid, LDlaw="uniform", v=0.4, t_ref=0., t_arr=times)
             onepix_LC = onepix_ti.gen_LC(times)
-            onepixcost = RMS(onepix_LC,obsLC,temperature)
+            onepixcost = RMS(onepix_LC,obsLC,temperature) + perimeterFac*perimeter(onepixgrid)/(N*M) #(100.*(1./(N*M)))
             if onepixcost <= costfloor:
                 costList.append(onepixcost)
                 return onepixgrid, onepixcost,costList
             
             LCdecrements[i,j,:] = np.ones_like(onepix_LC) - onepix_LC
     
-    currentLC = LCfromSummedPixels(fromBinaryGrid(currentgrid),LCdecrements)   
-    currentcost = RMS(currentLC, obsLC, temperature)
+    currentLC = LCfromSummedPixels(fromBinaryGrid(currentgrid),LCdecrements)  
+    onmask = np.ravel((currentgrid > 0.))
+    onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
+    currentcost = RMS(currentLC, obsLC, temperature) + perimeterFac*perimeter(currentgrid)/(N*M) #(100.*(len(onidxs)/(N*M)))
     costList.append(currentcost)
     
     numfig=0
@@ -556,7 +598,7 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
     #print alreadyEvaluated
     
     #choose random "on" pixel
-    onmask = np.ravel((currentgrid == 1.))
+    onmask = np.ravel((currentgrid > 0.))
     
     onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
     
@@ -577,8 +619,10 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
         for checkBase10 in notYetEvaluated:
             checkGrid = toBinaryGrid(checkBase10,N,M)
             
-            LC = LCfromSummedPixels(checkBase10,LCdecrements)   
-            cost = RMS(LC, obsLC, temperature)
+            LC = LCfromSummedPixels(checkBase10,LCdecrements)
+            checkonmask = np.ravel((checkGrid > 0.))
+            checkonidxs = np.arange(0,len(np.ravel(checkGrid)))[checkonmask]
+            cost = RMS(LC, obsLC, temperature) + perimeterFac*perimeter(checkGrid)/(N*M) #(100.*(len(checkonidxs)/(N*M)))
             
             alreadyEvaluated.add(checkBase10)
             
@@ -632,7 +676,7 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
         notYetEvaluated.difference_update(alreadyEvaluated)
         
         #select a new "on" pixel to test
-        onmask = np.ravel((currentgrid == 1.))
+        onmask = np.ravel((currentgrid > 0.))
     
         onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
         
