@@ -6,7 +6,7 @@ from .cGridFunctions import *
 from .misc import *
 
 
-__all__ = ['ART','ART_normal','simultaneous_ART', 'neighborPermutations', 'AStarGeneticStep', 'LCfromSummedPixels', 'perimeter', 'AStarGeneticStep_pixsum']
+__all__ = ['ART','ART_normal','simultaneous_ART', 'neighborPermutations', 'AStarGeneticStep', 'LCfromSummedPixels', 'perimeter', 'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeRearrange']
 
 def ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6):
     """
@@ -308,7 +308,7 @@ def neighborPermutations(grid,grid_i,grid_j,wraparound=False):
             
             ravelidxs.append(thisneighbor_j + M*thisneighbor_i)
     #add in index of the counterpart across the midplane
-    ravelidxs.append(mirror_j + M*mirror_i)
+    #ravelidxs.append(mirror_j + M*mirror_i)
     
     #sort these and make sure you're not double-counting the midplane counterpart
     ravelidxs = np.sort(np.unique(np.array(ravelidxs)))
@@ -549,7 +549,10 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
     N = np.shape(currentgrid)[0]
     M = np.shape(currentgrid)[1]
     
+    tested_i = []
+    tested_j = []
     costList = []
+    currentcost = perimeterFac*perimeter(currentgrid)/(N*M)
     #get array of flux decrements due to each individual pixel being "on"
     LCdecrements = np.zeros((N, M, len(times)))
     
@@ -609,9 +612,9 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
     randompix_j = randompix % M
     
     #print randompix_i, randompix_j
+    tested_i.append(randompix_i)
+    tested_j.append(randompix_j)
     
-    
-    #why isn't the below working for grids bigger than 4x4??
     notYetEvaluated = neighborPermutations(grid=copy.copy(currentgrid),grid_i=randompix_i,grid_j=randompix_j)
     #print notYetEvaluated
     
@@ -701,6 +704,8 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
         randompix_i = randompix // N
         randompix_j = randompix % M
         #print randompix_i, randompix_j
+        tested_i.append(randompix_i)
+        tested_j.append(randompix_j)
         #update with permutations about this new pixel
         newPermutations = neighborPermutations(grid=copy.copy(currentgrid),grid_i=randompix_i,grid_j=randompix_j)
         
@@ -708,4 +713,364 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
         notYetEvaluated.update(newPermutations)
     
     #print len(alreadyEvaluated)
-    return currentgrid, currentcost, costList
+    return currentgrid, currentcost, costList, tested_i, tested_j
+
+
+def AStarGeneticStep_pixsum_complete(currentgrid, obsLC, times, temperature=0.01, saveplots=False, filename="astrofestpetridish",costfloor=1.e-10,perimeterFac=0.1):
+    """
+    Find the grid that best matches obsLC.
+    
+    Instead of recalculating the light curve from the grid every time, just sum up the light curves produced by individual
+    transiting pixels.
+    """
+    
+    N = np.shape(currentgrid)[0]
+    M = np.shape(currentgrid)[1]
+    
+    tested_i = []
+    tested_j = []
+    costList = []
+    currentcost = perimeterFac*perimeter(currentgrid)/(N*M)
+    #get array of flux decrements due to each individual pixel being "on"
+    LCdecrements = np.zeros((N, M, len(times)))
+    
+    for i in range(N):
+        for j in range(M):
+            onepixgrid = np.zeros((N,M),dtype=int)
+            onepixgrid[i,j] = 1
+            onepix_ti = TransitingImage(opacitymat=onepixgrid, LDlaw="uniform", v=0.4, t_ref=0., t_arr=times)
+            onepix_LC = onepix_ti.gen_LC(times)
+            onepixcost = RMS(onepix_LC,obsLC,temperature) + perimeterFac*perimeter(onepixgrid)/(N*M) #(100.*(1./(N*M)))
+            if onepixcost <= costfloor:
+                costList.append(onepixcost)
+                return onepixgrid, onepixcost,costList
+            
+            LCdecrements[i,j,:] = np.ones_like(onepix_LC) - onepix_LC
+    
+    currentLC = LCfromSummedPixels(fromBinaryGrid(currentgrid),LCdecrements)  
+    onmask = np.ravel((currentgrid > 0.))
+    onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
+    currentcost = RMS(currentLC, obsLC, temperature) + perimeterFac*perimeter(currentgrid)/(N*M) #(100.*(len(onidxs)/(N*M)))
+    costList.append(currentcost)
+    
+    numfig=0
+    nside=N
+    
+    if saveplots==True:
+        fig, ax = plt.subplots(1,1,figsize=(6,6))
+        ax.imshow(currentgrid,cmap="Greys",aspect="equal",origin="upper",interpolation='nearest',vmin=0,vmax=1)
+        ax.set_xlim(-0.5,nside-0.5)
+        ax.set_ylim(nside-0.5,-0.5)
+        ax.set_xticks(np.arange(-0.5,nside+0.5,1));
+        ax.set_yticks(np.arange(-0.5,nside+0.5,1));
+        ax.axes.get_xaxis().set_ticklabels([])
+        ax.axes.get_yaxis().set_ticklabels([])
+        #print "saved {0}".format(numfig)
+        plt.grid(which='major', color='k', linestyle='-', linewidth=1)
+        plt.savefig("./{0}{1}.pdf".format(filename,numfig), fmt="pdf")
+    
+        numfig+=1
+    
+    #print currentcost
+    
+    alreadyEvaluated = set()
+    alreadyEvaluated.add(fromBinaryGrid(currentgrid))
+    
+    #print alreadyEvaluated
+    
+    #choose random "on" pixel
+    onmask = np.ravel((currentgrid > 0.))
+    
+    onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
+    
+    pixAlready = []
+    notYetEvaluated = set()
+    for onidx in onidxs:
+        pixAlready.append(onidx)
+        onidx_i = onidx // N
+        onidx_j = onidx % M
+        tested_i.append(onidx_i)
+        tested_j.append(onidx_j)
+
+        notYetEvaluated.update(neighborPermutations(grid=copy.copy(currentgrid),grid_i=onidx_i,grid_j=onidx_j))
+    
+    while len(notYetEvaluated) > 0:
+        for checkBase10 in notYetEvaluated:
+            checkGrid = toBinaryGrid(checkBase10,N,M)
+            
+            LC = LCfromSummedPixels(checkBase10,LCdecrements)
+            checkonmask = np.ravel((checkGrid > 0.))
+            checkonidxs = np.arange(0,len(np.ravel(checkGrid)))[checkonmask]
+            cost = RMS(LC, obsLC, temperature) + perimeterFac*perimeter(checkGrid)/(N*M) #(100.*(len(checkonidxs)/(N*M)))
+            
+            alreadyEvaluated.add(checkBase10)
+            
+            if cost <= costfloor:
+                currentgrid = checkGrid
+                currentcost = cost
+                costList.append(currentcost)
+                
+                if saveplots==True:
+                    fig, ax = plt.subplots(1,1,figsize=(6,6))
+                    ax.imshow(currentgrid,cmap="Greys",aspect="equal",origin="upper",interpolation='nearest',vmin=0,vmax=1)
+                    ax.set_xlim(-0.5,nside-0.5)
+                    ax.set_ylim(nside-0.5,-0.5)
+                    ax.set_xticks(np.arange(-0.5,nside+0.5,1));
+                    ax.set_yticks(np.arange(-0.5,nside+0.5,1));
+                    ax.axes.get_xaxis().set_ticklabels([])
+                    ax.axes.get_yaxis().set_ticklabels([])
+                    plt.grid(which='major', color='k', linestyle='-', linewidth=1)
+                    plt.savefig("./{0}{1}.pdf".format(filename,numfig), fmt="pdf")
+                    #print "saved {0}".format(numfig)
+    
+                    numfig+=1
+                #print len(alreadyEvaluated)
+                return currentgrid, currentcost, costList
+            
+            elif cost <= currentcost:
+                currentgrid = checkGrid
+                currentcost = cost
+                costList.append(currentcost)
+                
+                if saveplots==True:
+                    fig, ax = plt.subplots(1,1,figsize=(6,6))
+                    ax.imshow(currentgrid,cmap="Greys",aspect="equal",origin="upper",interpolation='nearest',vmin=0,vmax=1)
+                    ax.set_xlim(-0.5,nside-0.5)
+                    ax.set_ylim(nside-0.5,-0.5)
+                    ax.set_xticks(np.arange(-0.5,nside+0.5,1));
+                    ax.set_yticks(np.arange(-0.5,nside+0.5,1));
+                    ax.axes.get_xaxis().set_ticklabels([])
+                    ax.axes.get_yaxis().set_ticklabels([])
+                    plt.grid(which='major', color='k', linestyle='-', linewidth=1)
+                    plt.savefig("./{0}{1}.pdf".format(filename,numfig), fmt="pdf")
+                    #print "saved {0}".format(numfig)
+    
+                    numfig+=1
+            
+            else:
+                pass
+        
+        #print currentgrid
+        #print currentcost
+        notYetEvaluated.difference_update(alreadyEvaluated)
+        
+        #select a new "on" pixel to test
+        onmask = np.ravel((currentgrid > 0.))
+    
+        onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
+        
+        #if we've already tried all of the choices
+        if np.all(np.in1d(onidxs,np.array(pixAlready))):
+            #print pixAlready
+            #print "try off pixel"
+            onidxs = np.arange(0,len(np.ravel(currentgrid)))[~onmask]
+        
+        randompix = np.random.choice(onidxs,1)[0]
+        
+        #make sure we haven't already tried this
+        while randompix in pixAlready:
+            randompix = np.random.choice(onidxs,1)[0]
+            #if we've tried every pixel
+            if len(pixAlready)==len(np.ravel(currentgrid)):
+                #print len(alreadyEvaluated)
+                return currentgrid, currentcost, costList
+        
+        pixAlready.append(randompix)
+    
+        randompix_i = randompix // N
+        randompix_j = randompix % M
+        #print randompix_i, randompix_j
+        tested_i.append(randompix_i)
+        tested_j.append(randompix_j)
+        #update with permutations about this new pixel
+        newPermutations = neighborPermutations(grid=copy.copy(currentgrid),grid_i=randompix_i,grid_j=randompix_j)
+        
+        newPermutations.difference_update(alreadyEvaluated)
+        notYetEvaluated.update(newPermutations)
+    
+    #print len(alreadyEvaluated)
+    return currentgrid, currentcost, costList, tested_i, tested_j
+
+
+def wedgeRearrange(tau):
+    """
+    Exploit the "wedge degeneracy" to shift opacity around and prevent unphysical opacities.
+    
+    Strategy: Move too-high & too-low opacities out, so they can be distributed across wider pixel blocks
+    (When you reach the edges of the grid, turn around and push remaining unphysical opacities in?? Or else just
+    round to 1s, 0s.)
+    """
+    newtau = copy.copy(tau)
+    
+    # Start at the middle of the grid
+    N = np.shape(tau)[0]
+    M = np.shape(tau)[1]
+    middleN = int(np.floor((N-1)/2.))
+    
+    w = 2./N
+    #N even
+    if N%2 == 0:
+        #print "even"
+        northRows = np.arange(middleN, -1, -1)
+        southRows = np.arange(N-1-middleN, N, 1)
+        b = w/2.
+        nextRow_b = (3.*w)/2.
+        
+    #N odd
+    else:
+        #print "odd"
+        northRows = np.arange(middleN-1, -1, -1)
+        southRows = np.arange(N-middleN, N, 1)
+        
+        #impact parameter of middle pixel row is 0. for an odd-N grid
+        middleRow = tau[middleN]
+        middleRow_unphys = np.arange(0,M)[(middleRow > 1.0) | (middleRow < 0.0)]
+        
+        #propagate unphysical opacities out to neighboring rows
+        b = 0.
+        nextRow_b = w
+        #width of pixel block with same transit duration [units of PIXELS]
+        sameDuration = (w + 2. - 2.*np.sqrt(1.-nextRow_b**2)) / w
+        
+        sameDuration_int = 0
+        sameDuration_leftover = sameDuration
+        while sameDuration_leftover > 1.:
+            sameDuration_int += 1
+            sameDuration_leftover -= 1
+
+        if sameDuration_int%2 == 0:
+            sameDuration_int = sameDuration_int - 1
+            sameDuration_leftover = sameDuration_leftover + 1.
+        
+        for j in middleRow_unphys:
+            #get spillover column idxs
+            spillover_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+            
+            #let unphysical opacities overflow, where the distribution of overflows is proportional to
+            # the pixel's "contribution" to the transit duration
+            
+            if middleRow[j] > 1.:
+                amtOverflow = middleRow[j] - 1.
+                newtau[middleN, j] = 1.
+            elif middleRow[j] < 0.:
+                amtOverflow = middleRow[j]
+                newtau[middleN, j] = 0.
+                
+            directOverflowWeight = (1./sameDuration)
+            edgeOverflowWeight = (sameDuration_leftover/2.)
+            
+            for col in spillover_j:
+                newtau[middleN+1,col] += (directOverflowWeight*amtOverflow)/2. #divide by 2 because middle row overflows both north and south
+                newtau[middleN-1,col] += (directOverflowWeight*amtOverflow)/2.
+            
+            try:
+                newtau[middleN+1, j - int(np.floor(sameDuration_int/2)) - 1] += (edgeOverflowWeight*amtOverflow)/2.
+            except IndexError:
+                newtau[middleN+1, j - int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)/2.
+                
+            try:
+                newtau[middleN-1, j - int(np.floor(sameDuration_int/2)) - 1] += (edgeOverflowWeight*amtOverflow)/2.
+            except IndexError:
+                newtau[middleN-1, j - int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)/2.
+            
+            
+            try:
+                newtau[middleN+1, j + int(np.floor(sameDuration_int/2)) + 1] += (edgeOverflowWeight*amtOverflow)/2.
+            except IndexError:
+                newtau[middleN+1, j + int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)/2.
+                
+            try:    
+                newtau[middleN-1, j + int(np.floor(sameDuration_int/2)) + 1] += (edgeOverflowWeight*amtOverflow)/2.
+            except IndexError:
+                newtau[middleN-1, j + int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)/2.
+            
+            b = w
+            nextRow_b = 2.*w
+            
+    
+    for row in northRows:
+        
+        northRow = tau[row]
+        northRow_unphys = np.arange(0,M)[(northRow > 1.0) | (northRow < 0.0)]
+        
+        southRow = tau[N-1-row]
+        southRow_unphys = np.arange(0,M)[(southRow > 1.0) | (southRow < 0.0)]
+        
+        #propagate unphysical opacities out to neighboring rows
+        #width of pixel block with same transit duration [units of PIXELS]
+        sameDuration = (w + 2. - 2.*np.sqrt(1.-nextRow_b**2)) / w
+        
+        sameDuration_int = 0
+        sameDuration_leftover = sameDuration
+        while sameDuration_leftover > 1.:
+            sameDuration_int += 1
+            sameDuration_leftover -= 1
+
+        if sameDuration_int%2 == 0:
+            sameDuration_int = sameDuration_int - 1
+            sameDuration_leftover = sameDuration_leftover + 1.
+        
+        for j in northRow_unphys:
+            #get spillover column idxs
+            spillover_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+            
+            #let unphysical opacities overflow, where the distribution of overflows is proportional to
+            # the pixel's "contribution" to the transit duration
+            
+            if northRow[j] > 1.:
+                amtOverflow = northRow[j] - 1.
+                newtau[row, j] = 1.
+            elif northRow[j] < 0.:
+                amtOverflow = northRow[j]
+                newtau[row, j] = 0.
+                
+            directOverflowWeight = (1./sameDuration)
+            edgeOverflowWeight = (sameDuration_leftover/2.)
+            
+            for col in spillover_j:
+                newtau[row-1,col] += (directOverflowWeight*amtOverflow)
+            
+            try:
+                newtau[row-1, j - int(np.floor(sameDuration_int/2)) - 1] += (edgeOverflowWeight*amtOverflow)
+            except IndexError:
+                newtau[row-1, j - int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)
+            
+            try:
+                newtau[row-1, j + int(np.floor(sameDuration_int/2)) + 1] += (edgeOverflowWeight*amtOverflow)
+            except IndexError:
+                newtau[row-1, j + int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)
+            
+        for j in southRow_unphys:
+            #get spillover column idxs
+            spillover_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+            
+            #let unphysical opacities overflow, where the distribution of overflows is proportional to
+            # the pixel's "contribution" to the transit duration
+            
+            if southRow[j] > 1.:
+                amtOverflow = southRow[j] - 1.
+                newtau[N-1-row, j] = 1.
+            elif southRow[j] < 0.:
+                amtOverflow = southRow[j]
+                newtau[N-1-row, j] = 0.
+                
+            directOverflowWeight = (1./sameDuration)
+            edgeOverflowWeight = (sameDuration_leftover/2.)
+            
+            for col in spillover_j:
+                newtau[N-row,col] += (directOverflowWeight*amtOverflow)
+            
+            try:
+                newtau[N-row, j - int(np.floor(sameDuration_int/2)) - 1] += (edgeOverflowWeight*amtOverflow)
+            except IndexError:
+                newtau[N-row, j - int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)
+                
+            try:
+                newtau[N-row, j + int(np.floor(sameDuration_int/2)) + 1] += (edgeOverflowWeight*amtOverflow)
+            except IndexError:
+                newtau[N-row, j + int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)
+            
+        b = w
+        nextRow_b = 2.*w
+    
+    return newtau
