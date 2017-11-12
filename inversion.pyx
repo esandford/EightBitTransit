@@ -6,9 +6,9 @@ from .cGridFunctions import *
 from .misc import *
 
 
-__all__ = ['ART','ART_normal','simultaneous_ART', 'neighborPermutations', 'AStarGeneticStep', 'LCfromSummedPixels', 'perimeter', 'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeRearrange']
+__all__ = ['ART','ART_normal','simultaneous_ART', 'neighborPermutations', 'AStarGeneticStep', 'LCfromSummedPixels', 'perimeter', 'compactness', 'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeRearrange', 'wedgeOptimize']
 
-def ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6):
+def ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6, reg=0.):
     """
     Use the algebraic reconstruction technique to solve the system A*tau = np.ones_like(obsLC) - obsLC.
     
@@ -35,6 +35,8 @@ def ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6):
     testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(10*10,1)))
     testRMS = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
     RMSdiff = 1.
+
+    A = A + (reg * np.eye(N=np.shape(A)[1]))
     
     if mirrored is False:
         while RMSmean > RMSstop:
@@ -538,6 +540,48 @@ def perimeter(grid):
 
     return ((4.*N_on) + (2.*Pc))
 
+
+def compactness(grid):
+    """
+    Inputs:
+    opacitymat = matrix of opacities, where >0 = on, 0 = off
+    
+    Outputs:
+    Cd = the compactness of this arrangement. 1 for most compact, 0 for least.
+    """
+    
+    # number of "on" pixels
+    p = np.sum(np.ceil(grid))
+    
+    if p == 1.:
+        return 1.
+    
+    # calculate the contact perimeter:
+    # first, step through the grid vertically, column by column, incrementing the contact perimeter every time there is a
+    # pixel with a vertical neighbor
+    # second, step through the grid horizontally, row by row, incrementing the contact perimeter every time there is a
+    # pixel with a horizontal neighbor
+    
+    Pc = 0.
+    
+    N = np.shape(grid)[0]
+    M = np.shape(grid)[1]
+    
+    #vertical
+    for i in range (N-1):
+        for j in range (M):
+            if grid[i,j] > 0. and grid[i+1,j] > 0.:
+                Pc += 1.
+    #horizontal
+    for i in range(N):
+        for j in range(M-1):
+            if grid[i,j] > 0. and grid[i,j+1] > 0.:
+                Pc += 1.
+                
+    Cd = (Pc/2.)/(p - np.sqrt(p))
+    
+    return Cd
+
 def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplots=False, filename="astrofestpetridish",costfloor=1.e-10,perimeterFac=0.1):
     """
     Find the grid that best matches obsLC.
@@ -552,7 +596,7 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
     tested_i = []
     tested_j = []
     costList = []
-    currentcost = perimeterFac*perimeter(currentgrid)/(N*M)
+    currentcost = 1 - perimeterFac*compactness(currentgrid)
     #get array of flux decrements due to each individual pixel being "on"
     LCdecrements = np.zeros((N, M, len(times)))
     
@@ -562,17 +606,17 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
             onepixgrid[i,j] = 1
             onepix_ti = TransitingImage(opacitymat=onepixgrid, LDlaw="uniform", v=0.4, t_ref=0., t_arr=times)
             onepix_LC = onepix_ti.gen_LC(times)
-            onepixcost = RMS(onepix_LC,obsLC,temperature) + perimeterFac*perimeter(onepixgrid)/(N*M) #(100.*(1./(N*M)))
+            onepixcost = RMS(onepix_LC,obsLC,temperature) + (1 - perimeterFac*compactness(onepixgrid)) #(100.*(1./(N*M)))
             if onepixcost <= costfloor:
                 costList.append(onepixcost)
-                return onepixgrid, onepixcost,costList
+                return onepixgrid, onepixcost, costList, tested_i, tested_j
             
             LCdecrements[i,j,:] = np.ones_like(onepix_LC) - onepix_LC
     
     currentLC = LCfromSummedPixels(fromBinaryGrid(currentgrid),LCdecrements)  
     onmask = np.ravel((currentgrid > 0.))
     onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
-    currentcost = RMS(currentLC, obsLC, temperature) + perimeterFac*perimeter(currentgrid)/(N*M) #(100.*(len(onidxs)/(N*M)))
+    currentcost = RMS(currentLC, obsLC, temperature) + (1 - perimeterFac*compactness(currentgrid)) #(100.*(len(onidxs)/(N*M)))
     costList.append(currentcost)
     
     numfig=0
@@ -625,7 +669,7 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
             LC = LCfromSummedPixels(checkBase10,LCdecrements)
             checkonmask = np.ravel((checkGrid > 0.))
             checkonidxs = np.arange(0,len(np.ravel(checkGrid)))[checkonmask]
-            cost = RMS(LC, obsLC, temperature) + perimeterFac*perimeter(checkGrid)/(N*M) #(100.*(len(checkonidxs)/(N*M)))
+            cost = RMS(LC, obsLC, temperature) + (1 - perimeterFac*compactness(checkGrid)) #(100.*(len(checkonidxs)/(N*M)))
             
             alreadyEvaluated.add(checkBase10)
             
@@ -649,7 +693,7 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
     
                     numfig+=1
                 #print len(alreadyEvaluated)
-                return currentgrid, currentcost, costList
+                return currentgrid, currentcost, costList, tested_i, tested_j
             
             elif cost <= currentcost:
                 currentgrid = checkGrid
@@ -697,7 +741,7 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, times, temperature=0.01, saveplo
             #if we've tried every pixel
             if len(pixAlready)==len(np.ravel(currentgrid)):
                 #print len(alreadyEvaluated)
-                return currentgrid, currentcost, costList
+                return currentgrid, currentcost, costList, tested_i, tested_j
         
         pixAlready.append(randompix)
     
@@ -730,7 +774,7 @@ def AStarGeneticStep_pixsum_complete(currentgrid, obsLC, times, temperature=0.01
     tested_i = []
     tested_j = []
     costList = []
-    currentcost = perimeterFac*perimeter(currentgrid)/(N*M)
+    currentcost = 1. - perimeterFac*compactness(currentgrid)
     #get array of flux decrements due to each individual pixel being "on"
     LCdecrements = np.zeros((N, M, len(times)))
     
@@ -740,17 +784,17 @@ def AStarGeneticStep_pixsum_complete(currentgrid, obsLC, times, temperature=0.01
             onepixgrid[i,j] = 1
             onepix_ti = TransitingImage(opacitymat=onepixgrid, LDlaw="uniform", v=0.4, t_ref=0., t_arr=times)
             onepix_LC = onepix_ti.gen_LC(times)
-            onepixcost = RMS(onepix_LC,obsLC,temperature) + perimeterFac*perimeter(onepixgrid)/(N*M) #(100.*(1./(N*M)))
+            onepixcost = RMS(onepix_LC,obsLC,temperature) + (1. - perimeterFac*compactness(onepixgrid)) #(100.*(1./(N*M)))
             if onepixcost <= costfloor:
                 costList.append(onepixcost)
-                return onepixgrid, onepixcost,costList
+                return onepixgrid, onepixcost, costList, tested_i, tested_j
             
             LCdecrements[i,j,:] = np.ones_like(onepix_LC) - onepix_LC
     
     currentLC = LCfromSummedPixels(fromBinaryGrid(currentgrid),LCdecrements)  
     onmask = np.ravel((currentgrid > 0.))
     onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
-    currentcost = RMS(currentLC, obsLC, temperature) + perimeterFac*perimeter(currentgrid)/(N*M) #(100.*(len(onidxs)/(N*M)))
+    currentcost = RMS(currentLC, obsLC, temperature) + (1. - perimeterFac*compactness(currentgrid)) #(100.*(len(onidxs)/(N*M)))
     costList.append(currentcost)
     
     numfig=0
@@ -801,7 +845,7 @@ def AStarGeneticStep_pixsum_complete(currentgrid, obsLC, times, temperature=0.01
             LC = LCfromSummedPixels(checkBase10,LCdecrements)
             checkonmask = np.ravel((checkGrid > 0.))
             checkonidxs = np.arange(0,len(np.ravel(checkGrid)))[checkonmask]
-            cost = RMS(LC, obsLC, temperature) + perimeterFac*perimeter(checkGrid)/(N*M) #(100.*(len(checkonidxs)/(N*M)))
+            cost = RMS(LC, obsLC, temperature) + (1. - perimeterFac*compactness(checkGrid)) #(100.*(len(checkonidxs)/(N*M)))
             
             alreadyEvaluated.add(checkBase10)
             
@@ -825,7 +869,7 @@ def AStarGeneticStep_pixsum_complete(currentgrid, obsLC, times, temperature=0.01
     
                     numfig+=1
                 #print len(alreadyEvaluated)
-                return currentgrid, currentcost, costList
+                return currentgrid, currentcost, costList, tested_i, tested_j
             
             elif cost <= currentcost:
                 currentgrid = checkGrid
@@ -873,7 +917,7 @@ def AStarGeneticStep_pixsum_complete(currentgrid, obsLC, times, temperature=0.01
             #if we've tried every pixel
             if len(pixAlready)==len(np.ravel(currentgrid)):
                 #print len(alreadyEvaluated)
-                return currentgrid, currentcost, costList
+                return currentgrid, currentcost, costList, tested_i, tested_j
         
         pixAlready.append(randompix)
     
@@ -889,6 +933,7 @@ def AStarGeneticStep_pixsum_complete(currentgrid, obsLC, times, temperature=0.01
         notYetEvaluated.update(newPermutations)
     
     #print len(alreadyEvaluated)
+
     return currentgrid, currentcost, costList, tested_i, tested_j
 
 
@@ -930,7 +975,7 @@ def wedgeRearrange(tau):
         b = 0.
         nextRow_b = w
         #width of pixel block with same transit duration [units of PIXELS]
-        sameDuration = (w + 2. - 2.*np.sqrt(1.-nextRow_b**2)) / w
+        sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-nextRow_b**2)) / w
         
         sameDuration_int = 0
         sameDuration_leftover = sameDuration
@@ -963,33 +1008,25 @@ def wedgeRearrange(tau):
                 newtau[middleN+1,col] += (directOverflowWeight*amtOverflow)/2. #divide by 2 because middle row overflows both north and south
                 newtau[middleN-1,col] += (directOverflowWeight*amtOverflow)/2.
             
-            try:
-                newtau[middleN+1, j - int(np.floor(sameDuration_int/2)) - 1] += (edgeOverflowWeight*amtOverflow)/2.
-            except IndexError:
-                newtau[middleN+1, j - int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)/2.
+            leftCol = j - int(np.floor(sameDuration_int/2)) - 1
+            rightCol = j + int(np.floor(sameDuration_int/2)) + 1
+                    
+            while leftCol < 0:
+                leftCol = leftCol + 1
+            while rightCol > M-1:
+                rightCol = rightCol - 1
                 
-            try:
-                newtau[middleN-1, j - int(np.floor(sameDuration_int/2)) - 1] += (edgeOverflowWeight*amtOverflow)/2.
-            except IndexError:
-                newtau[middleN-1, j - int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)/2.
+            newtau[middleN+1, leftCol] += (edgeOverflowWeight*amtOverflow)/2.
+            newtau[middleN+1, rightCol] += (edgeOverflowWeight*amtOverflow)/2.
             
-            
-            try:
-                newtau[middleN+1, j + int(np.floor(sameDuration_int/2)) + 1] += (edgeOverflowWeight*amtOverflow)/2.
-            except IndexError:
-                newtau[middleN+1, j + int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)/2.
-                
-            try:    
-                newtau[middleN-1, j + int(np.floor(sameDuration_int/2)) + 1] += (edgeOverflowWeight*amtOverflow)/2.
-            except IndexError:
-                newtau[middleN-1, j + int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)/2.
+            newtau[middleN-1, leftCol] += (edgeOverflowWeight*amtOverflow)/2.
+            newtau[middleN-1, rightCol] += (edgeOverflowWeight*amtOverflow)/2.
             
             b = w
             nextRow_b = 2.*w
             
     
-    for row in northRows:
-        
+    for row in northRows[:-1]:
         northRow = tau[row]
         northRow_unphys = np.arange(0,M)[(northRow > 1.0) | (northRow < 0.0)]
         
@@ -998,7 +1035,7 @@ def wedgeRearrange(tau):
         
         #propagate unphysical opacities out to neighboring rows
         #width of pixel block with same transit duration [units of PIXELS]
-        sameDuration = (w + 2. - 2.*np.sqrt(1.-nextRow_b**2)) / w
+        sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-nextRow_b**2)) / w
         
         sameDuration_int = 0
         sameDuration_leftover = sameDuration
@@ -1029,18 +1066,20 @@ def wedgeRearrange(tau):
             
             for col in spillover_j:
                 newtau[row-1,col] += (directOverflowWeight*amtOverflow)
-            
-            try:
-                newtau[row-1, j - int(np.floor(sameDuration_int/2)) - 1] += (edgeOverflowWeight*amtOverflow)
-            except IndexError:
-                newtau[row-1, j - int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)
-            
-            try:
-                newtau[row-1, j + int(np.floor(sameDuration_int/2)) + 1] += (edgeOverflowWeight*amtOverflow)
-            except IndexError:
-                newtau[row-1, j + int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)
+                
+            leftCol = j - int(np.floor(sameDuration_int/2)) - 1
+            rightCol = j + int(np.floor(sameDuration_int/2)) + 1
+                    
+            while leftCol < 0:
+                leftCol = leftCol + 1
+            while rightCol > M-1:
+                rightCol = rightCol - 1
+                
+            newtau[row-1, leftCol] += (edgeOverflowWeight*amtOverflow)
+            newtau[row-1, rightCol] += (edgeOverflowWeight*amtOverflow)
             
         for j in southRow_unphys:
+            #print j
             #get spillover column idxs
             spillover_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
             
@@ -1059,18 +1098,424 @@ def wedgeRearrange(tau):
             
             for col in spillover_j:
                 newtau[N-row,col] += (directOverflowWeight*amtOverflow)
-            
-            try:
-                newtau[N-row, j - int(np.floor(sameDuration_int/2)) - 1] += (edgeOverflowWeight*amtOverflow)
-            except IndexError:
-                newtau[N-row, j - int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)
                 
-            try:
-                newtau[N-row, j + int(np.floor(sameDuration_int/2)) + 1] += (edgeOverflowWeight*amtOverflow)
-            except IndexError:
-                newtau[N-row, j + int(np.floor(sameDuration_int/2))] += (edgeOverflowWeight*amtOverflow)
+            leftCol = j - int(np.floor(sameDuration_int/2)) - 1
+            rightCol = j + int(np.floor(sameDuration_int/2)) + 1
+                    
+            while leftCol < 0:
+                leftCol = leftCol + 1
+            while rightCol > M-1:
+                rightCol = rightCol - 1
+                
+            newtau[N-row, leftCol] += (edgeOverflowWeight*amtOverflow)
+            newtau[N-row, rightCol] += (edgeOverflowWeight*amtOverflow)
             
-        b = w
-        nextRow_b = 2.*w
+        b += w
+        nextRow_b += w
     
     return newtau
+
+def wedgeOptimize(tau, obsLC, areas):
+    """
+    Exploit the "wedge degeneracy" to shift opacity around. This is different from wedgeRearrange because here, we're
+    starting from a grid of physical opacities (0 <= tau <= 1).
+    
+    Strategy: Start from the middle, and pull opacity from the outermost row until the middle-most pixels are full or the outermost
+    pixels are empty. Then move outward to the next-middlemost row, pulling opacity from the outermost row and then the next-outermost row, etc.
+    
+    
+    RMS(LC_obs,LC_model,temperature=1)
+    """
+    
+    # Start at the middle of the grid
+    N = np.shape(tau)[0]
+    M = np.shape(tau)[1]
+    middleN = int(np.floor((N-1)/2.))
+    #print "middleN is {0}".format(middleN)
+    
+    w = 2./N
+    
+    newtau = copy.copy(tau)
+    newtauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(newtau,(N*M,1)))
+    newtauLC = newtauLC[:,0]
+    newtauCost = RMS(obsLC, newtauLC, temperature=1)
+    proptau = copy.copy(newtau)
+    
+    #N even
+    if N%2 == 0:
+        #print "even"
+        northRows = np.arange(middleN, -1, -1)
+        southRows = np.arange(N-1-middleN, N, 1)
+        b = w/2.
+        outermost_b = 1. - w/2.
+        
+    #N odd
+    else:
+        #print "odd"
+        northRows = np.arange(middleN-1, -1, -1)
+        southRows = np.arange(N-middleN, N, 1)
+        
+        #pull opacity from outer rows to central row
+        b = 0.
+        #propPrior = (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
+        
+        #row that opacity is pulled from: loop from outermost to innermost rows
+        for outerRow in range(0, middleN):
+            #re-evaluate which pixels are full
+            middleRow = proptau[middleN]
+            #print middleRow
+            middleRow_notfull = np.arange(0,M)[(middleRow > 0.0) & (middleRow < 0.5)]
+            
+            #print outerRow
+            #print N-1-outerRow
+        
+            outer_b = 1. - w/2. - outerRow*w
+            #print outer_b
+            
+        
+            #width of pixel block with same transit duration [units of PIXELS]
+            sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
+        
+            #prevent "same duration" block from becoming wider than the grid
+            while sameDuration > M:
+                sameDuration = sameDuration - 2.
+        
+            sameDuration_int = 0
+            sameDuration_leftover = sameDuration
+            while sameDuration_leftover > 1.:
+                sameDuration_int += 1
+                sameDuration_leftover -= 1
+
+            if sameDuration_int%2 == 0:
+                sameDuration_int = sameDuration_int - 1
+                sameDuration_leftover = sameDuration_leftover + 1.
+        
+            for j in middleRow_notfull:
+                #get spill-in column idxs (relative to idx of the pixel they're spilling into)
+                spillin_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+                #print j
+                #print spillin_j
+                #eliminate columns outside the bounds of the grid
+                spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
+                #print spillin_j
+            
+                #let outermost opacities flow in, where the distribution of where the opacities come from is proportional to
+                # the pixel's "contribution" to the transit duration
+                amtToFill = 1. - middleRow[j]
+            
+                print "amtToFill is {0}".format(amtToFill)
+                
+                directOverflowWeight = (1./sameDuration)
+                edgeOverflowWeight = (sameDuration_leftover/2.)
+            
+                for col in spillin_j: #This only works if the input grid is symmetrical!!!!
+                    if ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,col] - (directOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + directOverflowWeight*amtToFill <= 0.5):
+                        proptau[middleN, j] += directOverflowWeight*amtToFill
+                        proptau[outerRow,col] -= (directOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
+                        proptau[N-1-outerRow,col] -= (directOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
+                    elif ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)/2.) < 0.) | (proptau[N-1-outerRow,col] - (directOverflowWeight*amtToFill)/2. < 0.):
+                        proptau[middleN, j] += proptau[outerRow,col]
+                        proptau[middleN, j] += proptau[N-1-outerRow,col]
+                        proptau[outerRow, col] = 0.
+                        proptau[N-1-outerRow, col] = 0.
+                    elif (proptau[middleN, j] + directOverflowWeight*amtToFill > 0.5):
+                        excess = (0.5 - proptau[middleN, j])/2.
+                        proptau[middleN, j] = 0.5
+                        proptau[outerRow, col] -= excess
+                        proptau[N-1-outerRow, col] -= excess 
+                        
+                    
+                    leftCol = j - int(np.floor(sameDuration_int/2)) - 1
+                    rightCol = j + int(np.floor(sameDuration_int/2)) + 1
+                    
+                    while leftCol < 0:
+                        leftCol = leftCol + 1
+                    while rightCol > M-1:
+                        rightCol = rightCol - 1
+                        
+                    #left col
+                    if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill <= 0.5):
+                        proptau[middleN, j] += edgeOverflowWeight*amtToFill
+                        proptau[outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
+                        proptau[N-1-outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
+                    elif ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2.) < 0.) | (proptau[N-1-outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2. < 0.):
+                        proptau[middleN, j] += proptau[outerRow,leftCol]
+                        proptau[middleN, j] += proptau[N-1-outerRow,leftCol]
+                        proptau[outerRow,leftCol] = 0.
+                        proptau[N-1-outerRow,leftCol] = 0.
+                    elif ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill > 0.5):
+                        excess = (0.5 - proptau[middleN, j])/2.
+                        proptau[middleN, j] = 0.5
+                        proptau[outerRow,leftCol] -= excess 
+                        proptau[N-1-outerRow,leftCol] -= excess
+                        
+                    #right col
+                    if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill <= 0.5):
+                        proptau[middleN, j] += edgeOverflowWeight*amtToFill
+                        proptau[outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
+                        proptau[N-1-outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south       
+                    elif ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2.) < 0.) | (proptau[N-1-outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2. < 0.):
+                        proptau[middleN, j] += proptau[outerRow,rightCol]
+                        proptau[middleN, j] += proptau[N-1-outerRow,rightCol]
+                        proptau[outerRow,rightCol] = 0.
+                        proptau[N-1-outerRow,rightCol] = 0.
+                    elif ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill > 0.5):
+                        excess = (0.5 - proptau[middleN, j])/2.
+                        proptau[middleN, j] = 0.5
+                        proptau[outerRow,rightCol] -= excess 
+                        proptau[N-1-outerRow,rightCol] -= excess
+            
+            
+                #propPrior += (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
+                #oldPrior += (1.-outer_b**2)**0.5 * (2.*w*len(spillin_j)*w) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
+            
+        proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
+        proptauLC = proptauLC[:,0]
+        proptauCost = RMS(obsLC, proptauLC, temperature=1)
+            
+                
+        #if (propPrior*-1*proptauCost) < (oldPrior*-1*newtauCost):
+        #if proptauCost < newtauCost:
+        #    print "middle better"
+        #    newtau = proptau
+        #    newtauCost = proptauCost
+        #    proptau = copy.copy(newtau)
+                
+        newtau = proptau
+        newtauCost = proptauCost
+        proptau = copy.copy(newtau)
+    
+    #do the same for the next-middlemost rows, out toward the top and bottom of the grid.
+    for row in northRows[:-1]: #no need to do it for the top row
+        #print "northRow is {0}".format(row)
+        northRow = proptau[row]
+        northRow_notfull = np.arange(0,M)[(northRow > 0.0) & (northRow < 1.0)]
+        #print northRow_notfull
+    
+        #pull opacity from outermost row first
+        b = 1. - w/2. - row*w
+        
+        #print b
+        
+        #row that opacity is pulled from: loop from outermost to innermost rows
+        for outerRow in range(0, row):
+            #re-evaluate which pixels are full
+            #print outerRow
+            northRow = proptau[row]
+            northRow_notfull = np.arange(0,M)[(northRow > 0.0) & (northRow < 0.5)]
+            #print northRow
+        
+            outer_b = 1. - w/2. - outerRow*w
+            
+            #width of pixel block with same transit duration [units of PIXELS]
+            sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
+        
+            #prevent "same duration" block from becoming wider than the grid
+            while sameDuration > M:
+                sameDuration = sameDuration - 2.
+        
+            sameDuration_int = 0
+            sameDuration_leftover = sameDuration
+            while sameDuration_leftover > 1.:
+                sameDuration_int += 1
+                sameDuration_leftover -= 1
+
+            if sameDuration_int%2 == 0:
+                sameDuration_int = sameDuration_int - 1
+                sameDuration_leftover = sameDuration_leftover + 1.
+        
+            for j in northRow_notfull:
+                #get spill-in column idxs (relative to idx of the pixel they're spilling into)
+                spillin_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+                #print j
+                #print spillin_j
+                #eliminate columns outside the bounds of the grid
+                spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
+                #print spillin_j
+            
+                #let outermost opacities flow in, where the distribution of where the opacities come from is proportional to
+                # the pixel's "contribution" to the transit duration
+                amtToFill = 1. - northRow[j]
+            
+                #print "amtToFill is {0}".format(amtToFill)
+                
+                directOverflowWeight = (1./sameDuration)
+                edgeOverflowWeight = (sameDuration_leftover/2.)
+            
+                for col in spillin_j: 
+                    if ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)) >= 0.) & (proptau[row,j] + directOverflowWeight*amtToFill <= 0.5):
+                        proptau[row, j] += directOverflowWeight*amtToFill
+                        proptau[outerRow,col] -= (directOverflowWeight*amtToFill)
+                    elif (proptau[outerRow,col] - (directOverflowWeight*amtToFill) < 0.):
+                        proptau[row, j] += proptau[outerRow,col]
+                        proptau[outerRow, col] = 0.
+                    elif (proptau[row,j] + directOverflowWeight*amtToFill > 0.5):
+                        excess = 0.5 - proptau[row, j]
+                        proptau[row, j] = 0.5
+                        proptau[outerRow, col] -= excess
+                        
+                    leftCol = j - int(np.floor(sameDuration_int/2)) - 1
+                    rightCol = j + int(np.floor(sameDuration_int/2)) + 1
+                    
+                    while leftCol < 0:
+                        leftCol = leftCol + 1
+                    while rightCol > M-1:
+                        rightCol = rightCol - 1
+                        
+                    if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= 0.5) :
+                        proptau[row, j] += edgeOverflowWeight*amtToFill
+                        proptau[outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)    
+                    elif (proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill) < 0.):
+                        proptau[row, j] += proptau[outerRow,leftCol]
+                        proptau[outerRow,leftCol] = 0.
+                    elif (proptau[row, j] + edgeOverflowWeight*amtToFill > 0.5):
+                        excess = 0.5 - proptau[row,j]
+                        proptau[row, j] = 0.5
+                        proptau[outerRow,leftCol] -= excess
+                            
+                    if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= 0.5) :
+                        proptau[row, j] += edgeOverflowWeight*amtToFill
+                        proptau[outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)    
+                    elif (proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill) < 0.):
+                        proptau[row, j] += proptau[outerRow,rightCol]
+                        proptau[outerRow,rightCol] = 0.
+                    elif (proptau[row, j] + edgeOverflowWeight*amtToFill > 0.5):
+                        excess = 0.5 - proptau[row,j]
+                        proptau[row, j] = 0.5
+                        proptau[outerRow,rightCol] -= excess
+            
+            
+                #propPrior += (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
+                #oldPrior += (1.-outer_b**2)**0.5 * (2.*w*len(spillin_j)*w) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
+            
+        proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
+        proptauLC = proptauLC[:,0]
+        proptauCost = RMS(obsLC, proptauLC, temperature=1)
+        
+        #if (propPrior*-1*proptauCost) < (oldPrior*-1*newtauCost):
+        #if proptauCost < newtauCost:
+        #    print "north better"
+        #    newtau = proptau
+        #    newtauCost = proptauCost
+        #    proptau = copy.copy(newtau)
+        
+        newtau = proptau
+        newtauCost = proptauCost
+        proptau = copy.copy(newtau)
+                
+    for row in southRows[:-1]: #no need to do it for the top row
+        #print "southRow is {0}".format(row)
+        southRow = proptau[row]
+        southRow_notfull = np.arange(0,M)[(southRow > 0.0) & (southRow < 0.5)]
+        #print northRow_notfull
+    
+        #pull opacity from outermost row first
+        b = 1. - w/2. - row*w
+        
+        #print b
+        
+        #row that opacity is pulled from: loop from outermost to innermost rows
+        for outerRow in range(N-1, row, -1):
+            #print outerRow
+            #re-evaluate which pixels are full
+            southRow = proptau[row]
+            southRow_notfull = np.arange(0,M)[(southRow > 0.0) & (southRow < 0.5)]
+            
+            outer_b = 1. - w/2. - (N-1-outerRow)*w
+            
+            #width of pixel block with same transit duration [units of PIXELS]
+            sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
+        
+            #prevent "same duration" block from becoming wider than the grid
+            while sameDuration > M:
+                sameDuration = sameDuration - 2.
+        
+            sameDuration_int = 0
+            sameDuration_leftover = sameDuration
+            while sameDuration_leftover > 1.:
+                sameDuration_int += 1
+                sameDuration_leftover -= 1
+
+            if sameDuration_int%2 == 0:
+                sameDuration_int = sameDuration_int - 1
+                sameDuration_leftover = sameDuration_leftover + 1.
+        
+            for j in southRow_notfull:
+                #get spill-in column idxs (relative to idx of the pixel they're spilling into)
+                spillin_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+                #print j
+                #print spillin_j
+                #eliminate columns outside the bounds of the grid
+                spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
+                #print spillin_j
+            
+                #let outermost opacities flow in, where the distribution of where the opacities come from is proportional to
+                # the pixel's "contribution" to the transit duration
+                amtToFill = 1. - southRow[j]
+            
+                #print "amtToFill is {0}".format(amtToFill)
+                
+                directOverflowWeight = (1./sameDuration)
+                edgeOverflowWeight = (sameDuration_leftover/2.)
+            
+                for col in spillin_j: #This only works if the input grid is symmetrical!!!!   
+                    if ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)) >= 0.) & (proptau[row,j] + directOverflowWeight*amtToFill <= 0.5):
+                        proptau[row, j] += directOverflowWeight*amtToFill
+                        proptau[outerRow,col] -= (directOverflowWeight*amtToFill)
+                    elif (proptau[outerRow,col] - (directOverflowWeight*amtToFill) < 0.):
+                        proptau[row, j] += proptau[outerRow,col]
+                        proptau[outerRow, col] = 0.
+                    elif (proptau[row,j] + directOverflowWeight*amtToFill > 0.5):
+                        excess = 0.5 - proptau[row, j]
+                        proptau[row, j] = 0.5
+                        proptau[outerRow, col] -= excess
+                    
+                    leftCol = j - int(np.floor(sameDuration_int/2)) - 1
+                    rightCol = j + int(np.floor(sameDuration_int/2)) + 1
+                    
+                    while leftCol < 0:
+                        leftCol = leftCol + 1
+                    while rightCol > M-1:
+                        rightCol = rightCol - 1
+                        
+                    if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= 0.5) :
+                        proptau[row, j] += edgeOverflowWeight*amtToFill
+                        proptau[outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)    
+                    elif (proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill) < 0.):
+                        proptau[row, j] += proptau[outerRow,leftCol]
+                        proptau[outerRow,leftCol] = 0.
+                    elif (proptau[row, j] + edgeOverflowWeight*amtToFill > 0.5):
+                        excess = 0.5 - proptau[row,j]
+                        proptau[row, j] = 0.5
+                        proptau[outerRow,leftCol] -= excess
+                            
+                    if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= 0.5) :
+                        proptau[row, j] += edgeOverflowWeight*amtToFill
+                        proptau[outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)    
+                    elif (proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill) < 0.):
+                        proptau[row, j] += proptau[outerRow,rightCol]
+                        proptau[outerRow,rightCol] = 0.
+                    elif (proptau[row, j] + edgeOverflowWeight*amtToFill > 0.5):
+                        excess = 0.5 - proptau[row,j]
+                        proptau[row, j] = 0.5
+                        proptau[outerRow,rightCol] -= excess
+            
+            
+                #propPrior += (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
+                #oldPrior += (1.-outer_b**2)**0.5 * (2.*w*len(spillin_j)*w) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
+            
+        proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
+        proptauLC = proptauLC[:,0]
+        proptauCost = RMS(obsLC, proptauLC, temperature=1)
+        
+        #if (propPrior*-1*proptauCost) < (oldPrior*-1*newtauCost):
+        #if proptauCost < newtauCost:
+        #    print "south better"
+        #    newtau = proptau
+        #    newtauCost = proptauCost
+        #    proptau = copy.copy(newtau)
+        newtau = proptau
+        newtauCost = proptauCost
+        proptau = copy.copy(newtau)
+    
+    return proptau
