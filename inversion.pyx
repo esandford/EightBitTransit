@@ -6,7 +6,9 @@ from .cGridFunctions import *
 from .misc import *
 
 
-__all__ = ['ART','ART_normal','simultaneous_ART', 'neighborPermutations', 'AStarGeneticStep', 'LCfromSummedPixels', 'perimeter', 'compactness', 'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeRearrange', 'wedgeOptimize']
+__all__ = ['ART','ART_normal','simultaneous_ART', 'neighborPermutations', 
+'AStarGeneticStep', 'LCfromSummedPixels', 'perimeter', 'compactness', 
+'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeRearrange', 'wedgeOptimize']
 
 def ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6, reg=0.):
     """
@@ -1164,7 +1166,7 @@ def wedgeOptimize(tau, obsLC, areas):
             #re-evaluate which pixels are full
             middleRow = proptau[middleN]
             #print middleRow
-            middleRow_notfull = np.arange(0,M)[(middleRow > 0.0) & (middleRow < 0.5)]
+            middleRow_notfull = np.arange(0,M)[(middleRow > 0.0) & (middleRow < 1.0)]
             
             #print outerRow
             #print N-1-outerRow
@@ -1172,16 +1174,23 @@ def wedgeOptimize(tau, obsLC, areas):
             outer_b = 1. - w/2. - outerRow*w
             #print outer_b
             
+            #get diameter of the star at that position in the limb
+            outer_x = (2.*np.sqrt(1.-outer_b**2))/w
+            #print "central row outer_x is {0}".format(outer_x)
         
             #width of pixel block with same transit duration [units of PIXELS]
             sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
-        
+            
+            sameDuration_forOpacity = copy.copy(sameDuration)
             #prevent "same duration" block from becoming wider than the grid
             while sameDuration > M:
                 sameDuration = sameDuration - 2.
+                
+            while sameDuration > outer_x:
+                sameDuration = sameDuration - 2.
         
             sameDuration_int = 0
-            sameDuration_leftover = sameDuration
+            sameDuration_leftover = copy.copy(sameDuration)
             while sameDuration_leftover > 1.:
                 sameDuration_int += 1
                 sameDuration_leftover -= 1
@@ -1189,6 +1198,17 @@ def wedgeOptimize(tau, obsLC, areas):
             if sameDuration_int%2 == 0:
                 sameDuration_int = sameDuration_int - 1
                 sameDuration_leftover = sameDuration_leftover + 1.
+            
+            sameDuration_forOpacity_int = 0
+            sameDuration_forOpacity_leftover = copy.deepcopy(sameDuration_forOpacity)
+            
+            while sameDuration_forOpacity_leftover > 1.:
+                sameDuration_forOpacity_int += 1
+                sameDuration_forOpacity_leftover -= 1
+
+            if sameDuration_forOpacity_int%2 == 0:
+                sameDuration_forOpacity_int = sameDuration_forOpacity_int - 1
+                sameDuration_forOpacity_leftover = sameDuration_forOpacity_leftover + 1.
         
             for j in middleRow_notfull:
                 #get spill-in column idxs (relative to idx of the pixel they're spilling into)
@@ -1198,18 +1218,21 @@ def wedgeOptimize(tau, obsLC, areas):
                 #eliminate columns outside the bounds of the grid
                 spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
                 #print spillin_j
+                extra_spillin_j = np.arange(j-(int(np.floor(sameDuration_forOpacity_int/2))), j+(int(np.floor(sameDuration_forOpacity_int/2))) + 1)
+                extra_spillin_j = extra_spillin_j[(extra_spillin_j >= 0.) &  (extra_spillin_j < M)]
+                extra_spillin_j = extra_spillin_j[np.where(np.in1d(extra_spillin_j, spillin_j, invert=True))[0]]
             
                 #let outermost opacities flow in, where the distribution of where the opacities come from is proportional to
                 # the pixel's "contribution" to the transit duration
-                amtToFill = 1. - middleRow[j]
+                amtToFill = 1.0 - middleRow[j]
             
-                print "amtToFill is {0}".format(amtToFill)
+                #print "amtToFill is {0}".format(amtToFill)
                 
-                directOverflowWeight = (1./sameDuration)
+                directOverflowWeight = (1.0/sameDuration_forOpacity)
                 edgeOverflowWeight = (sameDuration_leftover/2.)
             
                 for col in spillin_j: #This only works if the input grid is symmetrical!!!!
-                    if ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,col] - (directOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + directOverflowWeight*amtToFill <= 0.5):
+                    if ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,col] - (directOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + directOverflowWeight*amtToFill <= 1.0):
                         proptau[middleN, j] += directOverflowWeight*amtToFill
                         proptau[outerRow,col] -= (directOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
                         proptau[N-1-outerRow,col] -= (directOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
@@ -1218,9 +1241,9 @@ def wedgeOptimize(tau, obsLC, areas):
                         proptau[middleN, j] += proptau[N-1-outerRow,col]
                         proptau[outerRow, col] = 0.
                         proptau[N-1-outerRow, col] = 0.
-                    elif (proptau[middleN, j] + directOverflowWeight*amtToFill > 0.5):
-                        excess = (0.5 - proptau[middleN, j])/2.
-                        proptau[middleN, j] = 0.5
+                    elif (proptau[middleN, j] + directOverflowWeight*amtToFill > 1.0):
+                        excess = (1.0 - proptau[middleN, j])/2.
+                        proptau[middleN, j] = 1.0
                         proptau[outerRow, col] -= excess
                         proptau[N-1-outerRow, col] -= excess 
                         
@@ -1234,7 +1257,7 @@ def wedgeOptimize(tau, obsLC, areas):
                         rightCol = rightCol - 1
                         
                     #left col
-                    if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill <= 0.5):
+                    if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill <= 1.0):
                         proptau[middleN, j] += edgeOverflowWeight*amtToFill
                         proptau[outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
                         proptau[N-1-outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
@@ -1243,14 +1266,14 @@ def wedgeOptimize(tau, obsLC, areas):
                         proptau[middleN, j] += proptau[N-1-outerRow,leftCol]
                         proptau[outerRow,leftCol] = 0.
                         proptau[N-1-outerRow,leftCol] = 0.
-                    elif ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill > 0.5):
-                        excess = (0.5 - proptau[middleN, j])/2.
-                        proptau[middleN, j] = 0.5
+                    elif ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill > 1.0):
+                        excess = (1.0 - proptau[middleN, j])/2.
+                        proptau[middleN, j] = 1.0
                         proptau[outerRow,leftCol] -= excess 
                         proptau[N-1-outerRow,leftCol] -= excess
                         
                     #right col
-                    if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill <= 0.5):
+                    if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill <= 1.0):
                         proptau[middleN, j] += edgeOverflowWeight*amtToFill
                         proptau[outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
                         proptau[N-1-outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south       
@@ -1259,11 +1282,14 @@ def wedgeOptimize(tau, obsLC, areas):
                         proptau[middleN, j] += proptau[N-1-outerRow,rightCol]
                         proptau[outerRow,rightCol] = 0.
                         proptau[N-1-outerRow,rightCol] = 0.
-                    elif ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill > 0.5):
-                        excess = (0.5 - proptau[middleN, j])/2.
-                        proptau[middleN, j] = 0.5
+                    elif ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill > 1.0):
+                        excess = (1.0 - proptau[middleN, j])/2.
+                        proptau[middleN, j] = 1.0
                         proptau[outerRow,rightCol] -= excess 
                         proptau[N-1-outerRow,rightCol] -= excess
+                    
+                for col in extra_spillin_j:
+                    proptau[outerRow, col] = 0.
             
             
                 #propPrior += (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
@@ -1281,113 +1307,134 @@ def wedgeOptimize(tau, obsLC, areas):
         #    newtauCost = proptauCost
         #    proptau = copy.copy(newtau)
                 
-        newtau = proptau
+        newtau = copy.copy(proptau)
         newtauCost = proptauCost
         proptau = copy.copy(newtau)
     
     #do the same for the next-middlemost rows, out toward the top and bottom of the grid.
-    for row in northRows[:-1]: #no need to do it for the top row
-        #print "northRow is {0}".format(row)
-        northRow = proptau[row]
-        northRow_notfull = np.arange(0,M)[(northRow > 0.0) & (northRow < 1.0)]
-        #print northRow_notfull
-    
-        #pull opacity from outermost row first
-        b = 1. - w/2. - row*w
-        
-        #print b
-        
-        #row that opacity is pulled from: loop from outermost to innermost rows
-        for outerRow in range(0, row):
-            #re-evaluate which pixels are full
-            #print outerRow
+    for fillop in [0.5, 1.0]:
+        for row in northRows[:-1]: #no need to do it for the top row
             northRow = proptau[row]
-            northRow_notfull = np.arange(0,M)[(northRow > 0.0) & (northRow < 0.5)]
-            #print northRow
-        
-            outer_b = 1. - w/2. - outerRow*w
-            
-            #width of pixel block with same transit duration [units of PIXELS]
-            sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
-        
-            #prevent "same duration" block from becoming wider than the grid
-            while sameDuration > M:
-                sameDuration = sameDuration - 2.
-        
-            sameDuration_int = 0
-            sameDuration_leftover = sameDuration
-            while sameDuration_leftover > 1.:
-                sameDuration_int += 1
-                sameDuration_leftover -= 1
+            northRow_notfull = np.arange(0,M)[(northRow > (fillop-0.5)) & (northRow < fillop)]
 
-            if sameDuration_int%2 == 0:
-                sameDuration_int = sameDuration_int - 1
-                sameDuration_leftover = sameDuration_leftover + 1.
-        
-            for j in northRow_notfull:
-                #get spill-in column idxs (relative to idx of the pixel they're spilling into)
-                spillin_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
-                #print j
-                #print spillin_j
-                #eliminate columns outside the bounds of the grid
-                spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
-                #print spillin_j
-            
-                #let outermost opacities flow in, where the distribution of where the opacities come from is proportional to
-                # the pixel's "contribution" to the transit duration
-                amtToFill = 1. - northRow[j]
-            
-                #print "amtToFill is {0}".format(amtToFill)
-                
-                directOverflowWeight = (1./sameDuration)
-                edgeOverflowWeight = (sameDuration_leftover/2.)
-            
-                for col in spillin_j: 
-                    if ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)) >= 0.) & (proptau[row,j] + directOverflowWeight*amtToFill <= 0.5):
-                        proptau[row, j] += directOverflowWeight*amtToFill
-                        proptau[outerRow,col] -= (directOverflowWeight*amtToFill)
-                    elif (proptau[outerRow,col] - (directOverflowWeight*amtToFill) < 0.):
-                        proptau[row, j] += proptau[outerRow,col]
+            #pull opacity from outermost row first
+            b = 1. - w/2. - row*w
+
+            #print b
+
+            #row that opacity is pulled from: loop from outermost to innermost rows
+            for outerRow in range(0, row):
+                #re-evaluate which pixels are full
+                northRow = proptau[row]
+                northRow_notfull = np.arange(0,M)[(northRow > (fillop-0.5)) & (northRow < fillop)]
+
+                #get impact parameter of outer transiting row
+                outer_b = 1. - w/2. - outerRow*w
+
+                #get stellar diameter at that impact parameter
+                outer_x = (2.*np.sqrt(1.-outer_b**2))/w
+
+                #width of pixel block with same transit duration [units of PIXELS]
+                sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
+
+                sameDuration_forOpacity = copy.deepcopy(sameDuration)
+
+                #prevent "same duration" block from becoming wider than the grid
+                while sameDuration > M:
+                    sameDuration = sameDuration - 2.
+
+                while sameDuration > outer_x:
+                    sameDuration = sameDuration - 2.
+
+                sameDuration_int = 0
+                sameDuration_leftover = copy.deepcopy(sameDuration)
+                while sameDuration_leftover > 1.:
+                    sameDuration_int += 1
+                    sameDuration_leftover -= 1
+
+                if sameDuration_int%2 == 0:
+                    sameDuration_int = sameDuration_int - 1
+                    sameDuration_leftover = sameDuration_leftover + 1.
+
+                sameDuration_forOpacity_int = 0
+                sameDuration_forOpacity_leftover = copy.deepcopy(sameDuration_forOpacity)
+
+                while sameDuration_forOpacity_leftover > 1.:
+                    sameDuration_forOpacity_int += 1
+                    sameDuration_forOpacity_leftover -= 1
+
+                if sameDuration_forOpacity_int%2 == 0:
+                    sameDuration_forOpacity_int = sameDuration_forOpacity_int - 1
+                    sameDuration_forOpacity_leftover = sameDuration_forOpacity_leftover + 1.
+
+                for j in northRow_notfull:
+                    #get spill-in column idxs (relative to idx of the pixel they're spilling into)
+                    spillin_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+                    #eliminate columns outside the bounds of the grid
+                    spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
+                    #print "spillin_j is {0}".format(spillin_j)
+
+                    extra_spillin_j = np.arange(j-(int(np.floor(sameDuration_forOpacity_int/2))), j+(int(np.floor(sameDuration_forOpacity_int/2))) + 1)
+                    extra_spillin_j = extra_spillin_j[(extra_spillin_j >= 0.) &  (extra_spillin_j < M)]
+                    extra_spillin_j = extra_spillin_j[np.where(np.in1d(extra_spillin_j, spillin_j, invert=True))[0]]
+                    #print "extra_spillin_j is {0}".format(extra_spillin_j)
+
+                    #let outermost opacities flow in, where the distribution of where the opacities come from is proportional to
+                    # the pixel's "contribution" to the transit duration
+                    amtToFill = fillop - northRow[j]
+
+                    directOverflowWeight = (fillop/sameDuration_forOpacity)
+                    edgeOverflowWeight = (sameDuration_forOpacity_leftover/(2./fillop))
+
+                    for col in spillin_j: 
+                        if ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)) >= 0.) & (proptau[row,j] + directOverflowWeight*amtToFill <= fillop):
+                            proptau[row, j] += directOverflowWeight*amtToFill
+                            proptau[outerRow,col] -= (directOverflowWeight*amtToFill)
+                        elif (proptau[outerRow,col] - (directOverflowWeight*amtToFill) < 0.):
+                            proptau[row, j] += proptau[outerRow,col]
+                            proptau[outerRow, col] = 0.
+                        elif (proptau[row,j] + directOverflowWeight*amtToFill > fillop):
+                            excess = fillop - proptau[row, j]
+                            proptau[row, j] = fillop
+                            proptau[outerRow, col] -= excess
+
+                        leftCol = j - int(np.floor(sameDuration_int/2)) - 1
+                        rightCol = j + int(np.floor(sameDuration_int/2)) + 1
+
+                        while leftCol < 0:
+                            leftCol = leftCol + 1
+                        while rightCol > M-1:
+                            rightCol = rightCol - 1
+
+                        if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= fillop) :
+                            proptau[row, j] += edgeOverflowWeight*amtToFill
+                            proptau[outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)    
+                        elif (proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill) < 0.):
+                            proptau[row, j] += proptau[outerRow,leftCol]
+                            proptau[outerRow,leftCol] = 0.
+                        elif (proptau[row, j] + edgeOverflowWeight*amtToFill > fillop):
+                            excess = fillop - proptau[row,j]
+                            proptau[row, j] = fillop
+                            proptau[outerRow,leftCol] -= excess
+
+                        if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= fillop) :
+                            proptau[row, j] += edgeOverflowWeight*amtToFill
+                            proptau[outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)    
+                        elif (proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill) < 0.):
+                            proptau[row, j] += proptau[outerRow,rightCol]
+                            proptau[outerRow,rightCol] = 0.
+                        elif (proptau[row, j] + edgeOverflowWeight*amtToFill > fillop):
+                            excess = fillop - proptau[row,j]
+                            proptau[row, j] = fillop
+                            proptau[outerRow,rightCol] -= excess
+
+                    for col in extra_spillin_j:
                         proptau[outerRow, col] = 0.
-                    elif (proptau[row,j] + directOverflowWeight*amtToFill > 0.5):
-                        excess = 0.5 - proptau[row, j]
-                        proptau[row, j] = 0.5
-                        proptau[outerRow, col] -= excess
-                        
-                    leftCol = j - int(np.floor(sameDuration_int/2)) - 1
-                    rightCol = j + int(np.floor(sameDuration_int/2)) + 1
-                    
-                    while leftCol < 0:
-                        leftCol = leftCol + 1
-                    while rightCol > M-1:
-                        rightCol = rightCol - 1
-                        
-                    if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= 0.5) :
-                        proptau[row, j] += edgeOverflowWeight*amtToFill
-                        proptau[outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)    
-                    elif (proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill) < 0.):
-                        proptau[row, j] += proptau[outerRow,leftCol]
-                        proptau[outerRow,leftCol] = 0.
-                    elif (proptau[row, j] + edgeOverflowWeight*amtToFill > 0.5):
-                        excess = 0.5 - proptau[row,j]
-                        proptau[row, j] = 0.5
-                        proptau[outerRow,leftCol] -= excess
-                            
-                    if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= 0.5) :
-                        proptau[row, j] += edgeOverflowWeight*amtToFill
-                        proptau[outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)    
-                    elif (proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill) < 0.):
-                        proptau[row, j] += proptau[outerRow,rightCol]
-                        proptau[outerRow,rightCol] = 0.
-                    elif (proptau[row, j] + edgeOverflowWeight*amtToFill > 0.5):
-                        excess = 0.5 - proptau[row,j]
-                        proptau[row, j] = 0.5
-                        proptau[outerRow,rightCol] -= excess
-            
-            
-                #propPrior += (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
-                #oldPrior += (1.-outer_b**2)**0.5 * (2.*w*len(spillin_j)*w) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
-            
+
+
+                    #propPrior += (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
+                    #oldPrior += (1.-outer_b**2)**0.5 * (2.*w*len(spillin_j)*w) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
+
         proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
         proptauLC = proptauLC[:,0]
         proptauCost = RMS(obsLC, proptauLC, temperature=1)
@@ -1399,110 +1446,135 @@ def wedgeOptimize(tau, obsLC, areas):
         #    newtauCost = proptauCost
         #    proptau = copy.copy(newtau)
         
-        newtau = proptau
+        newtau = copy.copy(proptau)
         newtauCost = proptauCost
         proptau = copy.copy(newtau)
-                
-    for row in southRows[:-1]: #no need to do it for the top row
-        #print "southRow is {0}".format(row)
-        southRow = proptau[row]
-        southRow_notfull = np.arange(0,M)[(southRow > 0.0) & (southRow < 0.5)]
-        #print northRow_notfull
     
-        #pull opacity from outermost row first
-        b = 1. - w/2. - row*w
-        
-        #print b
-        
-        #row that opacity is pulled from: loop from outermost to innermost rows
-        for outerRow in range(N-1, row, -1):
-            #print outerRow
-            #re-evaluate which pixels are full
+    for fillop in [0.5, 1.0]:
+        for row in southRows[:-1]: #no need to do it for the top row
+            #print "southRow is {0}".format(row)
             southRow = proptau[row]
-            southRow_notfull = np.arange(0,M)[(southRow > 0.0) & (southRow < 0.5)]
-            
-            outer_b = 1. - w/2. - (N-1-outerRow)*w
-            
-            #width of pixel block with same transit duration [units of PIXELS]
-            sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
-        
-            #prevent "same duration" block from becoming wider than the grid
-            while sameDuration > M:
-                sameDuration = sameDuration - 2.
-        
-            sameDuration_int = 0
-            sameDuration_leftover = sameDuration
-            while sameDuration_leftover > 1.:
-                sameDuration_int += 1
-                sameDuration_leftover -= 1
+            southRow_notfull = np.arange(0,M)[(southRow > (fillop-0.5)) & (southRow < fillop)]
+            #print northRow_notfull
 
-            if sameDuration_int%2 == 0:
-                sameDuration_int = sameDuration_int - 1
-                sameDuration_leftover = sameDuration_leftover + 1.
-        
-            for j in southRow_notfull:
-                #get spill-in column idxs (relative to idx of the pixel they're spilling into)
-                spillin_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
-                #print j
-                #print spillin_j
-                #eliminate columns outside the bounds of the grid
-                spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
-                #print spillin_j
-            
-                #let outermost opacities flow in, where the distribution of where the opacities come from is proportional to
-                # the pixel's "contribution" to the transit duration
-                amtToFill = 1. - southRow[j]
-            
-                #print "amtToFill is {0}".format(amtToFill)
-                
-                directOverflowWeight = (1./sameDuration)
-                edgeOverflowWeight = (sameDuration_leftover/2.)
-            
-                for col in spillin_j: #This only works if the input grid is symmetrical!!!!   
-                    if ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)) >= 0.) & (proptau[row,j] + directOverflowWeight*amtToFill <= 0.5):
-                        proptau[row, j] += directOverflowWeight*amtToFill
-                        proptau[outerRow,col] -= (directOverflowWeight*amtToFill)
-                    elif (proptau[outerRow,col] - (directOverflowWeight*amtToFill) < 0.):
-                        proptau[row, j] += proptau[outerRow,col]
+            #pull opacity from outermost row first
+            b = 1. - w/2. - row*w
+
+            #print b
+
+            #row that opacity is pulled from: loop from outermost to innermost rows
+            for outerRow in range(N-1, row, -1):
+                #print outerRow
+                #re-evaluate which pixels are full
+                southRow = proptau[row]
+                southRow_notfull = np.arange(0,M)[(southRow > (fillop-0.5)) & (southRow < fillop)]
+
+                outer_b = 1. - w/2. - (N-1-outerRow)*w
+
+                outer_x = (2.*np.sqrt(1.-outer_b**2))/w
+                #print "south row outer_x is {0}".format(outer_x)
+
+                #width of pixel block with same transit duration [units of PIXELS]
+                sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
+
+                sameDuration_forOpacity = copy.copy(sameDuration)
+                #prevent "same duration" block from becoming wider than the grid
+                while sameDuration > M:
+                    sameDuration = sameDuration - 2.
+
+                while sameDuration > outer_x:
+                    #print "south row too wide"
+                    sameDuration = sameDuration - 2.
+
+                sameDuration_int = 0
+                sameDuration_leftover = sameDuration
+                while sameDuration_leftover > 1.:
+                    sameDuration_int += 1
+                    sameDuration_leftover -= 1
+
+                if sameDuration_int%2 == 0:
+                    sameDuration_int = sameDuration_int - 1
+                    sameDuration_leftover = sameDuration_leftover + 1.
+
+                sameDuration_forOpacity_int = 0
+                sameDuration_forOpacity_leftover = copy.deepcopy(sameDuration_forOpacity)
+
+                while sameDuration_forOpacity_leftover > 1.:
+                    sameDuration_forOpacity_int += 1
+                    sameDuration_forOpacity_leftover -= 1
+
+                if sameDuration_forOpacity_int%2 == 0:
+                    sameDuration_forOpacity_int = sameDuration_forOpacity_int - 1
+                    sameDuration_forOpacity_leftover = sameDuration_forOpacity_leftover + 1.
+
+                for j in southRow_notfull:
+                    #get spill-in column idxs (relative to idx of the pixel they're spilling into)
+                    spillin_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+                    #print j
+                    #print spillin_j
+                    #eliminate columns outside the bounds of the grid
+                    spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
+                    #print spillin_j
+
+                    extra_spillin_j = np.arange(j-(int(np.floor(sameDuration_forOpacity_int/2))), j+(int(np.floor(sameDuration_forOpacity_int/2))) + 1)
+                    extra_spillin_j = extra_spillin_j[(extra_spillin_j >= 0.) &  (extra_spillin_j < M)]
+                    extra_spillin_j = extra_spillin_j[np.where(np.in1d(extra_spillin_j, spillin_j, invert=True))[0]]
+
+                    #let outermost opacities flow in, where the distribution of where the opacities come from is proportional to
+                    # the pixel's "contribution" to the transit duration
+                    amtToFill = fillop - southRow[j]
+
+                    #print "amtToFill is {0}".format(amtToFill)
+
+                    directOverflowWeight = (fillop/sameDuration_forOpacity)
+                    edgeOverflowWeight = (sameDuration_leftover/(2./fillop))
+
+                    for col in spillin_j: #This only works if the input grid is symmetrical!!!!   
+                        if ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)) >= 0.) & (proptau[row,j] + directOverflowWeight*amtToFill <= fillop):
+                            proptau[row, j] += directOverflowWeight*amtToFill
+                            proptau[outerRow,col] -= (directOverflowWeight*amtToFill)
+                        elif (proptau[outerRow,col] - (directOverflowWeight*amtToFill) < 0.):
+                            proptau[row, j] += proptau[outerRow,col]
+                            proptau[outerRow, col] = 0.
+                        elif (proptau[row,j] + directOverflowWeight*amtToFill > fillop):
+                            excess = fillop - proptau[row, j]
+                            proptau[row, j] = fillop
+                            proptau[outerRow, col] -= excess
+
+                        leftCol = j - int(np.floor(sameDuration_int/2)) - 1
+                        rightCol = j + int(np.floor(sameDuration_int/2)) + 1
+
+                        while leftCol < 0:
+                            leftCol = leftCol + 1
+                        while rightCol > M-1:
+                            rightCol = rightCol - 1
+
+                        if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= fillop) :
+                            proptau[row, j] += edgeOverflowWeight*amtToFill
+                            proptau[outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)    
+                        elif (proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill) < 0.):
+                            proptau[row, j] += proptau[outerRow,leftCol]
+                            proptau[outerRow,leftCol] = 0.
+                        elif (proptau[row, j] + edgeOverflowWeight*amtToFill > fillop):
+                            excess = fillop - proptau[row,j]
+                            proptau[row, j] = fillop
+                            proptau[outerRow,leftCol] -= excess
+
+                        if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= fillop) :
+                            proptau[row, j] += edgeOverflowWeight*amtToFill
+                            proptau[outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)    
+                        elif (proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill) < 0.):
+                            proptau[row, j] += proptau[outerRow,rightCol]
+                            proptau[outerRow,rightCol] = 0.
+                        elif (proptau[row, j] + edgeOverflowWeight*amtToFill > fillop):
+                            excess = fillop - proptau[row,j]
+                            proptau[row, j] = fillop
+                            proptau[outerRow,rightCol] -= excess
+
+                    for col in extra_spillin_j:
                         proptau[outerRow, col] = 0.
-                    elif (proptau[row,j] + directOverflowWeight*amtToFill > 0.5):
-                        excess = 0.5 - proptau[row, j]
-                        proptau[row, j] = 0.5
-                        proptau[outerRow, col] -= excess
-                    
-                    leftCol = j - int(np.floor(sameDuration_int/2)) - 1
-                    rightCol = j + int(np.floor(sameDuration_int/2)) + 1
-                    
-                    while leftCol < 0:
-                        leftCol = leftCol + 1
-                    while rightCol > M-1:
-                        rightCol = rightCol - 1
-                        
-                    if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= 0.5) :
-                        proptau[row, j] += edgeOverflowWeight*amtToFill
-                        proptau[outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)    
-                    elif (proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill) < 0.):
-                        proptau[row, j] += proptau[outerRow,leftCol]
-                        proptau[outerRow,leftCol] = 0.
-                    elif (proptau[row, j] + edgeOverflowWeight*amtToFill > 0.5):
-                        excess = 0.5 - proptau[row,j]
-                        proptau[row, j] = 0.5
-                        proptau[outerRow,leftCol] -= excess
-                            
-                    if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= 0.5) :
-                        proptau[row, j] += edgeOverflowWeight*amtToFill
-                        proptau[outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)    
-                    elif (proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill) < 0.):
-                        proptau[row, j] += proptau[outerRow,rightCol]
-                        proptau[outerRow,rightCol] = 0.
-                    elif (proptau[row, j] + edgeOverflowWeight*amtToFill > 0.5):
-                        excess = 0.5 - proptau[row,j]
-                        proptau[row, j] = 0.5
-                        proptau[outerRow,rightCol] -= excess
-            
-            
-                #propPrior += (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
-                #oldPrior += (1.-outer_b**2)**0.5 * (2.*w*len(spillin_j)*w) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
+                    #propPrior += (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
+                    #oldPrior += (1.-outer_b**2)**0.5 * (2.*w*len(spillin_j)*w) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
             
         proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
         proptauLC = proptauLC[:,0]
@@ -1514,7 +1586,7 @@ def wedgeOptimize(tau, obsLC, areas):
         #    newtau = proptau
         #    newtauCost = proptauCost
         #    proptau = copy.copy(newtau)
-        newtau = proptau
+        newtau = copy.copy(proptau)
         newtauCost = proptauCost
         proptau = copy.copy(newtau)
     

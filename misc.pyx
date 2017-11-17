@@ -2,7 +2,8 @@
 import numpy as np
 from scipy import stats
 
-__all__ = ['lowres_grid_ti','change_res_grid','sigmoid_opacities', 'continuous_opacities', 'RMS', 'RMS_penalty', 'toBinaryGrid', 'fromBinaryGrid']
+__all__ = ['lowres_grid_ti','change_res_grid','sigmoid_opacities', 'continuous_opacities', 
+'RMS', 'RMS_penalty', 'toBinaryGrid', 'fromBinaryGrid']
 
 def lowres_grid_ti(ti, nside, method='mode', rounding=True):
     """
