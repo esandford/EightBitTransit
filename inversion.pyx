@@ -1,6 +1,7 @@
 # cython: profile=True
 import numpy as np
 import copy
+import matplotlib.pyplot as plt
 from .cTransitingImage import *
 from .cGridFunctions import *
 from .misc import *
@@ -8,9 +9,10 @@ from .misc import *
 
 __all__ = ['ART','ART_normal','simultaneous_ART', 'neighborPermutations', 
 'AStarGeneticStep', 'LCfromSummedPixels', 'perimeter', 'compactness', 
-'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeRearrange', 'wedgeOptimize']
+'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeRearrange', 'wedgeOptimize', 'wedgeOptimize_sym',
+'foldOpacities','round_ART','invertLC']
 
-def ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6, reg=0.):
+cpdef ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6, reg=0., n_iter=0):
     """
     Use the algebraic reconstruction technique to solve the system A*tau = np.ones_like(obsLC) - obsLC.
     
@@ -24,6 +26,12 @@ def ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6, reg=0.):
     Outputs:
     tau = opacity vector
     """
+    cdef:
+        int N, M, q, RMSidx, rowidx
+        double RMSarr[10]
+        double RMSdiff, testRMS, dotp, denom, testRMSp1, RMSmean
+        list RMSmeans, tau_updates, taus
+
     tau = np.ravel(tau_init)
     N = np.shape(tau_init)[0]
     M = np.shape(tau_init)[1]
@@ -31,20 +39,27 @@ def ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6, reg=0.):
     
     RMSarr = np.ones((10,))
     RMSmean = np.mean(RMSarr)
+    RMSmeans = []
+    taus = []
+    taus.append(np.zeros_like(tau))
+    taus.append(tau)
+    tau_updates = []
+    tau_updates.append(np.zeros_like(tau))
     q = 0
     RMSidx = 0
     
-    testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(10*10,1)))
+    testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(N*M,1)))
     testRMS = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
     RMSdiff = 1.
 
     A = A + (reg * np.eye(N=np.shape(A)[1]))
     
     if mirrored is False:
-        while RMSmean > RMSstop:
-        #for q in range(0, n_iter):
-            if q % 10000 == 0:
-                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(10*10,1)))
+        #while RMSmean > RMSstop:
+        for q in range(0, n_iter):
+            if q % 100 == 0:
+                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(N*M,1)))
+                testLC = testLC[:,0]
                 testRMS = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
             
             rowidx = q % (np.shape(A)[0])
@@ -54,26 +69,41 @@ def ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6, reg=0.):
             denom = (np.linalg.norm(A[rowidx]))**2
         
             tau_update = ((RHS[rowidx] - dotp)/denom) * A[rowidx]
-        
+            
             tau = tau + tau_update
             
-            if q % 10000 == 0:
-                #print q
-                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(10*10,1)))
+
+            if q % 100 == 0:
+                tau_update_tracked = np.zeros_like(tau_update)
+                tau_tracked = copy.copy(tau)
+                for trackidx in range(0,len(tau)):
+                    rowidx = trackidx % (np.shape(A)[0])
+                    dotp = np.dot(A[rowidx], tau)
+                    denom = (np.linalg.norm(A[rowidx]))**2
+                    tau_update_tracked += ((RHS[rowidx] - dotp)/denom) * A[rowidx]
+                tau_tracked += tau_update_tracked
+                tau_updates.append(tau_update_tracked)
+                taus.append(tau_tracked)
+                testtau = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(np.reshape(tau,(N,M))),2)),2)),2)
+                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(testtau,(N*M,1)))
+                testLC = testLC[:,0]
                 testRMSp1 = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
                 RMSdiff = np.abs(testRMSp1 - testRMS)
-                RMSarr[RMSidx%10] = RMSdiff
+                #RMSarr[RMSidx%10] = RMSdiff
+                RMSarr[RMSidx%10] = testRMSp1
                 RMSmean = np.mean(RMSarr)
                 RMSidx = RMSidx + 1
+                RMSmeans.append(RMSmean)
                 
             
             q = q + 1
             
     else:
-        while RMSmean > RMSstop:
-        #for q in range(0, n_iter):
-            if q % 10000 == 0:
-                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(10*10,1)))
+        #while RMSmean > RMSstop:
+        for q in range(0, n_iter):
+            if q % 100 == 0:
+                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(N*M,1)))
+                testLC = testLC[:,0]
                 testRMS = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
                 
             rowidx = q % (np.shape(A)[0])
@@ -93,22 +123,72 @@ def ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6, reg=0.):
             
             tau = tau + tau_update
             
-            if q % 10000 == 0:
-                #print q
-                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(10*10,1)))
+
+            if q % 100 == 0:
+                tau_update_tracked = np.zeros_like(tau_update)
+                tau_tracked = copy.copy(tau)
+                for trackidx in range(0,len(tau)):
+                    rowidx = trackidx % (np.shape(A)[0])
+                    dotp = np.dot(A[rowidx], tau)
+                    denom = (np.linalg.norm(A[rowidx]))**2
+                    tau_update_tracked += ((RHS[rowidx] - dotp)/denom) * A[rowidx]
+                tau_tracked += tau_update_tracked
+                tau_updates.append(tau_update_tracked)
+                taus.append(tau_tracked)
+                testtau = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(np.reshape(tau,(N,M))),2)),2)),2)
+                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(testtau,(N*M,1)))
+                testLC = testLC[:,0]
                 testRMSp1 = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
                 RMSdiff = np.abs(testRMSp1 - testRMS)
-                RMSarr[RMSidx%10] = RMSdiff
+                #RMSarr[RMSidx%10] = RMSdiff
+                RMSarr[RMSidx%10] = testRMSp1
                 RMSmean = np.mean(RMSarr)
                 RMSidx = RMSidx + 1
+                RMSmeans.append(RMSmean)
                 
             q = q + 1
     
+    fig = plt.figure(figsize=(8,6))
+    plt.plot(RMSmeans)
+    plt.yscale('log')
+    plt.xscale('log')
+    plt.title("RMS",fontsize=14)
+    plt.show()
+
+    taus_arr = np.array(taus)
+    #print taus_arr[0]
+    tau_updates_arr = np.array(tau_updates)
+    #print np.shape(tau_updates_arr)
+
+    
+    fig = plt.figure(figsize=(8,6))
+    for tau_entry in range(0,np.shape(tau_updates_arr)[1]):
+    #for tau_entry in range(0,5):
+        #print np.max(np.abs(tau_updates_arr[:,tau_entry]))
+        #print np.min(np.abs(tau_updates_arr[:,tau_entry]))
+        plt.plot(np.abs(tau_updates_arr[:,tau_entry]),alpha=0.7)
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(0,np.shape(tau_updates_arr)[0])
+    plt.ylim(1.e-10,1.e0)
+    plt.title("Tau updates", fontsize=14)
+    plt.show()
+
+    fig = plt.figure(figsize=(8,6))
+    for tau_entry in range(0,np.shape(taus_arr)[1]):
+    #for tau_entry in range(0,5):
+        plt.plot(taus_arr[:,tau_entry],alpha=0.7)
+    plt.xscale('log')
+    plt.xlim(0,np.shape(tau_updates_arr)[0])
+    plt.ylim(-0.1,1.1)
+    plt.title("Taus", fontsize=14)
+    plt.show()
     #print q
+    #print RMSarr
     return tau
 
 
-def ART_normal(tau_init, A, obsLC, reg=0., mirrored=False, RMSstop=1.e-6):
+cpdef ART_normal(tau_init, A, obsLC, reg=0., mirrored=False, RMSstop=1.e-6):
     """
     Use the algebraic reconstruction technique to solve the system A.T * A * tau = A.T * (np.ones_like(obsLC) - obsLC).
     
@@ -124,6 +204,12 @@ def ART_normal(tau_init, A, obsLC, reg=0., mirrored=False, RMSstop=1.e-6):
     Outputs:
     tau = opacity vector
     """
+    cdef:
+        int N, M, q, RMSidx, rowidx
+        double RMSarr[10]
+        double RMSdiff, testRMS, dotp, denom, testRMSp1, RMSmean
+        list RMSmeans
+
     tau = np.ravel(tau_init)
     N = np.shape(tau_init)[0]
     M = np.shape(tau_init)[1]
@@ -137,17 +223,19 @@ def ART_normal(tau_init, A, obsLC, reg=0., mirrored=False, RMSstop=1.e-6):
     
     RMSarr = np.ones((10,))
     RMSmean = np.mean(RMSarr)
+    RMSmeans = []
     q = 0
     RMSidx = 0
     
-    testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(10*10,1)))
+    testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(N*M,1)))
     testRMS = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
     RMSdiff = 1.
     if mirrored is False:
         while RMSmean > RMSstop:
         #for q in range(0, n_iter):
             if q % 10000 == 0:
-                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(10*10,1)))
+                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(N*M,1)))
+                testLC = testLC[:,0]
                 testRMS = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
             
             rowidx = q % (np.shape(A)[0])
@@ -162,12 +250,17 @@ def ART_normal(tau_init, A, obsLC, reg=0., mirrored=False, RMSstop=1.e-6):
             
             if q % 10000 == 0:
                 #print q
-                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(10*10,1)))
+                testtau = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(np.reshape(tau,(N,M))),2)),2)),2)
+                
+                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(testtau,(N*M,1)))
+                testLC = testLC[:,0]
                 testRMSp1 = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
                 RMSdiff = np.abs(testRMSp1 - testRMS)
-                RMSarr[RMSidx%10] = RMSdiff
+                #RMSarr[RMSidx%10] = RMSdiff
+                RMSarr[RMSidx%10] = testRMSp1
                 RMSmean = np.mean(RMSarr)
                 RMSidx = RMSidx + 1
+                RMSmeans.append(RMSmean)
                 
             
             q = q + 1
@@ -176,7 +269,8 @@ def ART_normal(tau_init, A, obsLC, reg=0., mirrored=False, RMSstop=1.e-6):
         while RMSmean > RMSstop:
         #for q in range(0, n_iter):
             if q % 10000 == 0:
-                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(10*10,1)))
+                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(N*M,1)))
+                testLC = testLC[:,0]
                 testRMS = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
                 
             rowidx = q % (np.shape(A)[0])
@@ -195,22 +289,31 @@ def ART_normal(tau_init, A, obsLC, reg=0., mirrored=False, RMSstop=1.e-6):
             tau_update = tau_update.reshape(len(tau))
             
             tau = tau + tau_update
-            
+
             if q % 10000 == 0:
                 #print q
-                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(tau,(10*10,1)))
+                testtau = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(np.reshape(tau,(N,M))),2)),2)),2)
+                
+                testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(testtau,(N*M,1)))
+                testLC = testLC[:,0]
                 testRMSp1 = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
                 RMSdiff = np.abs(testRMSp1 - testRMS)
-                RMSarr[RMSidx%10] = RMSdiff
+                #RMSarr[RMSidx%10] = RMSdiff
+                RMSarr[RMSidx%10] = testRMSp1
                 RMSmean = np.mean(RMSarr)
                 RMSidx = RMSidx + 1
+                RMSmeans.append(RMSmean)
                 
             q = q + 1
     
+    fig = plt.figure(figsize=(8,6))
+    plt.plot(RMSmeans)
+    plt.yscale('log')
+    plt.show()
     #print q
     return tau
 
-def simultaneous_ART(n_iter, tau_init, A, obsLC):
+cpdef simultaneous_ART(n_iter, tau_init, A, obsLC):
     """
     Use the algebraic reconstruction technique to solve the system A*tau = np.ones_like(obsLC) - obsLC.
     
@@ -223,8 +326,22 @@ def simultaneous_ART(n_iter, tau_init, A, obsLC):
     Outputs:
     tau = opacity vector
     """
-    tau = tau_init
+    cdef:
+        int q, N, M
+        double outer_numerator, outer_denominator, inner_numerator, inner_denominator, testRMS
+        list RMSs, taus, tau_updates
+
+    tau = np.ravel(tau_init)
+    N = np.shape(tau_init)[0]
+    M = np.shape(tau_init)[1]
     RHS = np.ones_like(obsLC) - obsLC
+
+    RMSs = []
+    taus = []
+    taus.append(np.zeros_like(tau))
+    taus.append(tau)
+    tau_updates = []
+    tau_updates.append(np.zeros_like(tau))
     
     for q in range(0, n_iter):
         tau_update = np.zeros_like(tau, dtype=float)
@@ -239,9 +356,56 @@ def simultaneous_ART(n_iter, tau_init, A, obsLC):
                 outer_numerator = outer_numerator + (inner_numerator/inner_denominator)
             
             tau_update[j] = (outer_numerator/outer_denominator)
+
+
             
         tau = tau + tau_update
         
+        testtau = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(np.reshape(tau,(N,M))),2)),2)),2)
+        testtau = np.round(wedgeRearrange(wedgeOptimize_sym(wedgeOptimize_sym(wedgeOptimize_sym(testtau, obsLC=obsLC, areas=A), obsLC=obsLC, areas=A), obsLC=obsLC, areas=A)),2)
+        
+        testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(testtau,(N*M,1)))
+        testLC = testLC[:,0]
+        testRMS = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
+        RMSs.append(testRMS)
+        taus.append(tau)
+        tau_updates.append(tau_update)
+    
+    fig = plt.figure(figsize=(8,6))
+    plt.plot(RMSs)
+    plt.yscale('log')
+    plt.xscale('log')
+    plt.title("RMS",fontsize=14)
+    plt.show()
+
+    taus_arr = np.array(taus)
+    #print taus_arr[0]
+    tau_updates_arr = np.array(tau_updates)
+    #print np.shape(tau_updates_arr)
+
+    fig = plt.figure(figsize=(8,6))
+    for tau_entry in range(0,np.shape(tau_updates_arr)[1]):
+    #for tau_entry in range(0,5):
+        #print np.max(np.abs(tau_updates_arr[:,tau_entry]))
+        #print np.min(np.abs(tau_updates_arr[:,tau_entry]))
+        plt.plot(np.abs(tau_updates_arr[:,tau_entry]),alpha=0.7)
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(0,np.shape(tau_updates_arr)[0])
+    plt.ylim(1.e-10,1.e0)
+    plt.title("Tau updates", fontsize=14)
+    plt.show()
+
+    fig = plt.figure(figsize=(8,6))
+    for tau_entry in range(0,np.shape(taus_arr)[1]):
+    #for tau_entry in range(0,5):
+        plt.plot(taus_arr[:,tau_entry],alpha=0.7)
+    plt.xscale('log')
+    plt.xlim(0,np.shape(tau_updates_arr)[0])
+    plt.ylim(-0.1,1.1)
+    plt.title("Taus", fontsize=14)
+    plt.show()
+
     return tau
 
 def neighborPermutations(grid,grid_i,grid_j,wraparound=False):
@@ -992,6 +1156,7 @@ def wedgeRearrange(tau):
         for j in middleRow_unphys:
             #get spillover column idxs
             spillover_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+            spillover_j = spillover_j[(spillover_j >= 0.) &  (spillover_j < M)]
             
             #let unphysical opacities overflow, where the distribution of overflows is proportional to
             # the pixel's "contribution" to the transit duration
@@ -1052,6 +1217,7 @@ def wedgeRearrange(tau):
         for j in northRow_unphys:
             #get spillover column idxs
             spillover_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+            spillover_j = spillover_j[(spillover_j >= 0.) &  (spillover_j < M)]
             
             #let unphysical opacities overflow, where the distribution of overflows is proportional to
             # the pixel's "contribution" to the transit duration
@@ -1084,6 +1250,7 @@ def wedgeRearrange(tau):
             #print j
             #get spillover column idxs
             spillover_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+            spillover_j = spillover_j[(spillover_j >= 0.) &  (spillover_j < M)]
             
             #let unphysical opacities overflow, where the distribution of overflows is proportional to
             # the pixel's "contribution" to the transit duration
@@ -1294,7 +1461,7 @@ def wedgeOptimize(tau, obsLC, areas):
 
                     #account for prior in deciding whether to accept
                     propPrior = (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
-                    oldPrior = (1.-outer_b**2)**0.5 * (2.*w*sameDuration_forOpacity*w) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
+                    oldPrior = 2*(1.-outer_b**2)**0.25 * (w**2 * sameDuration_forOpacity) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
             
                     proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
                     proptauLC = proptauLC[:,0]
@@ -1442,7 +1609,7 @@ def wedgeOptimize(tau, obsLC, areas):
                     
                     #account for prior in deciding whether to accept
                     propPrior = (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
-                    oldPrior = (1.-outer_b**2)**0.5 * (2.*w*sameDuration_forOpacity*w) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
+                    oldPrior = (1.-outer_b**2)**0.25 * (w**2 * sameDuration_forOpacity) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
             
                     proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
                     proptauLC = proptauLC[:,0]
@@ -1535,7 +1702,9 @@ def wedgeOptimize(tau, obsLC, areas):
                     #eliminate columns outside the bounds of the grid
                     spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
                     #print spillin_j
-
+                    
+                    
+                    #find pixels to pull opacity from and then set to 0 opacity
                     extra_spillin_j = np.arange(j-(int(np.floor(sameDuration_forOpacity_int/2))), j+(int(np.floor(sameDuration_forOpacity_int/2))) + 1)
                     extra_spillin_j = extra_spillin_j[(extra_spillin_j >= 0.) &  (extra_spillin_j < M)]
                     extra_spillin_j = extra_spillin_j[np.where(np.in1d(extra_spillin_j, spillin_j, invert=True))[0]]
@@ -1570,7 +1739,8 @@ def wedgeOptimize(tau, obsLC, areas):
                             leftCol = leftCol + 1
                         while rightCol > M-1:
                             rightCol = rightCol - 1
-
+                        
+                        
                         if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= fillop) :
                             proptau[row, j] += edgeOverflowWeight*amtToFill
                             proptau[outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)    
@@ -1581,7 +1751,8 @@ def wedgeOptimize(tau, obsLC, areas):
                             excess = fillop - proptau[row,j]
                             proptau[row, j] = fillop
                             proptau[outerRow,leftCol] -= excess
-
+                        
+                        
                         if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[row, j] + edgeOverflowWeight*amtToFill <= fillop) :
                             proptau[row, j] += edgeOverflowWeight*amtToFill
                             proptau[outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)    
@@ -1598,7 +1769,7 @@ def wedgeOptimize(tau, obsLC, areas):
                         
                     #account for prior in deciding whether to accept
                     propPrior = (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
-                    oldPrior = (1.-outer_b**2)**0.5 * (2.*w*sameDuration_forOpacity*w) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
+                    oldPrior = (1.-outer_b**2)**0.25 * (w**2 * sameDuration_forOpacity) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
                     
                     #print "newtauPrior is {0}".format(oldPrior)
                     #print "proptauPrior is {0}".format(propPrior)
@@ -1633,5 +1804,573 @@ def wedgeOptimize(tau, obsLC, areas):
         newtau = copy.copy(proptau)
         newtauCost = proptauCost
         proptau = copy.copy(newtau)"""
-    
+        
+        #get rid of extraneous "on" pixels
+        """onMask = np.ravel((newtau < 0.5))
+        
+        onIdxs = np.arange(0,len(np.ravel(newtau)))[onMask]
+        
+        for idx in onIdxs:
+            o_i = idx // N
+            o_j = idx % M
+            
+            proptau = copy.copy(newtau)
+            proptau[o_i, o_j] = 0.
+            
+            proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
+            proptauLC = proptauLC[:,0]
+            proptauCost = RMS(obsLC, proptauLC, temperature=1)
+            
+            if proptauCost < newtauCost:
+                print "rounding down better"
+                newtau = proptau
+                newtauCost = proptauCost
+                proptau = copy.copy(newtau)"""
+        
+        #handle situation where opacities fill to 0.5 but not beyond
+        """halfOpacitiesMask = np.ravel((newtau > 0.48) & (newtau < 0.55))
+        
+        halfOpacitiesIdxs = np.arange(0,len(np.ravel(newtau)))[halfOpacitiesMask]
+        
+        for idx in halfOpacitiesIdxs:
+            ho_i = idx // N
+            ho_j = idx % M
+            
+            proptau = copy.copy(newtau)
+            proptau[ho_i, ho_j] = 1.
+            
+            proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
+            proptauLC = proptauLC[:,0]
+            proptauCost = RMS(obsLC, proptauLC, temperature=1)
+            
+            if proptauCost < newtauCost:
+                print "rounding up better"
+                newtau = proptau
+                newtauCost = proptauCost
+                proptau = copy.copy(newtau)"""
+                
+        
     return proptau
+
+def wedgeOptimize_sym(tau, obsLC, areas):
+    """
+    Exploit the "wedge degeneracy" to shift opacity around. This is different from wedgeRearrange because here, we're
+    starting from a grid of physical opacities (0 <= tau <= 1).
+    
+    Strategy: Start from the middle, and pull opacity from the outermost row until the middle-most pixels are full or the outermost
+    pixels are empty. Then move outward to the next-middlemost row, pulling opacity from the outermost row and then the next-outermost row, etc.
+    
+    
+    RMS(LC_obs,LC_model,temperature=1)
+    """
+    
+    # Start at the middle of the grid
+    N = np.shape(tau)[0]
+    M = np.shape(tau)[1]
+    middleN = int(np.floor((N-1)/2.))
+    #print "middleN is {0}".format(middleN)
+    
+    w = 2./N
+    
+    newtau = copy.copy(tau)
+    newtauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(newtau,(N*M,1)))
+    newtauLC = newtauLC[:,0]
+    newtauCost = RMS(obsLC, newtauLC, temperature=1)
+    proptau = copy.copy(newtau)
+    
+    #N even
+    if N%2 == 0:
+        #print "even"
+        northRows = np.arange(middleN, -1, -1)
+        southRows = np.arange(N-1-middleN, N, 1)
+        b = w/2.
+        outermost_b = 1. - w/2.
+        
+    #N odd
+    else:
+        #print "odd"
+        northRows = np.arange(middleN-1, -1, -1)
+        southRows = np.arange(N-middleN, N, 1)
+        
+        #pull opacity from outer rows to central row
+        b = 0.
+        #propPrior = (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
+        
+        #row that opacity is pulled from: loop from outermost to innermost rows
+        for fillop in [1.0, 0.5]:
+            for outerRow in range(0, middleN):
+                #re-evaluate which pixels are full
+                middleRow = proptau[middleN]
+                #print middleRow
+                middleRow_notfull = np.arange(0,M)[(middleRow > (fillop-0.5)) & (middleRow < fillop)]
+
+                #print outerRow
+                #print N-1-outerRow
+
+                outer_b = 1. - w/2. - outerRow*w
+                #print outer_b
+
+                #get diameter of the star at that position in the limb
+                outer_x = (2.*np.sqrt(1.-outer_b**2))/w
+                #print "central row outer_x is {0}".format(outer_x)
+
+                #width of pixel block with same transit duration [units of PIXELS]
+                sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
+
+                sameDuration_forOpacity = copy.copy(sameDuration)
+                #prevent "same duration" block from becoming wider than the grid
+                while sameDuration > M:
+                    sameDuration = sameDuration - 2.
+
+                while sameDuration > outer_x:
+                    sameDuration = sameDuration - 2.
+
+                sameDuration_int = 0
+                sameDuration_leftover = copy.copy(sameDuration)
+                while sameDuration_leftover > 1.:
+                    sameDuration_int += 1
+                    sameDuration_leftover -= 1
+
+                if sameDuration_int%2 == 0:
+                    sameDuration_int = sameDuration_int - 1
+                    sameDuration_leftover = sameDuration_leftover + 1.
+
+                sameDuration_forOpacity_int = 0
+                sameDuration_forOpacity_leftover = copy.deepcopy(sameDuration_forOpacity)
+
+                while sameDuration_forOpacity_leftover > 1.:
+                    sameDuration_forOpacity_int += 1
+                    sameDuration_forOpacity_leftover -= 1
+
+                if sameDuration_forOpacity_int%2 == 0:
+                    sameDuration_forOpacity_int = sameDuration_forOpacity_int - 1
+                    sameDuration_forOpacity_leftover = sameDuration_forOpacity_leftover + 1.
+
+                for j in middleRow_notfull:
+                    #get spill-in column idxs (relative to idx of the pixel they're spilling into)
+                    spillin_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+                    #print j
+                    #print spillin_j
+                    #eliminate columns outside the bounds of the grid
+                    spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
+                    #print spillin_j
+                    extra_spillin_j = np.arange(j-(int(np.floor(sameDuration_forOpacity_int/2))), j+(int(np.floor(sameDuration_forOpacity_int/2))) + 1)
+                    extra_spillin_j = extra_spillin_j[(extra_spillin_j >= 0.) &  (extra_spillin_j < M)]
+                    extra_spillin_j = extra_spillin_j[np.where(np.in1d(extra_spillin_j, spillin_j, invert=True))[0]]
+
+                    #let outermost opacities flow in, where the distribution of where the opacities come from is proportional to
+                    # the pixel's "contribution" to the transit duration
+                    amtToFill = fillop - middleRow[j]
+
+                    #print "amtToFill is {0}".format(amtToFill)
+
+                    directOverflowWeight = (fillop/sameDuration_forOpacity)
+                    edgeOverflowWeight = (sameDuration_leftover/(2./fillop))
+
+                    for col in spillin_j: #This only works if the input grid is symmetrical!!!!
+                        if ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,col] - (directOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + directOverflowWeight*amtToFill <= fillop):
+                            proptau[middleN, j] += directOverflowWeight*amtToFill
+                            proptau[outerRow,col] -= (directOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
+                            proptau[N-1-outerRow,col] -= (directOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
+                        elif ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)/2.) < 0.) | (proptau[N-1-outerRow,col] - (directOverflowWeight*amtToFill)/2. < 0.):
+                            proptau[middleN, j] += proptau[outerRow,col]
+                            proptau[middleN, j] += proptau[N-1-outerRow,col]
+                            proptau[outerRow, col] = 0.
+                            proptau[N-1-outerRow, col] = 0.
+                        elif (proptau[middleN, j] + directOverflowWeight*amtToFill > fillop):
+                            excess = (fillop - proptau[middleN, j])/2.
+                            proptau[middleN, j] = fillop
+                            proptau[outerRow, col] -= excess
+                            proptau[N-1-outerRow, col] -= excess 
+
+
+                        leftCol = j - int(np.floor(sameDuration_int/2)) - 1
+                        rightCol = j + int(np.floor(sameDuration_int/2)) + 1
+
+                        while leftCol < 0:
+                            leftCol = leftCol + 1
+                        while rightCol > M-1:
+                            rightCol = rightCol - 1
+
+                        #left col
+                        if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill <= fillop):
+                            proptau[middleN, j] += edgeOverflowWeight*amtToFill
+                            proptau[outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
+                            proptau[N-1-outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
+                        elif ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2.) < 0.) | (proptau[N-1-outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2. < 0.):
+                            proptau[middleN, j] += proptau[outerRow,leftCol]
+                            proptau[middleN, j] += proptau[N-1-outerRow,leftCol]
+                            proptau[outerRow,leftCol] = 0.
+                            proptau[N-1-outerRow,leftCol] = 0.
+                        elif ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,leftCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill > fillop):
+                            excess = (fillop - proptau[middleN, j])/2.
+                            proptau[middleN, j] = fillop
+                            proptau[outerRow,leftCol] -= excess 
+                            proptau[N-1-outerRow,leftCol] -= excess
+
+                        #right col
+                        if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill <= fillop):
+                            proptau[middleN, j] += edgeOverflowWeight*amtToFill
+                            proptau[outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south
+                            proptau[N-1-outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)/2. #divide by 2 because middle row overflows both north and south       
+                        elif ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2.) < 0.) | (proptau[N-1-outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2. < 0.):
+                            proptau[middleN, j] += proptau[outerRow,rightCol]
+                            proptau[middleN, j] += proptau[N-1-outerRow,rightCol]
+                            proptau[outerRow,rightCol] = 0.
+                            proptau[N-1-outerRow,rightCol] = 0.
+                        elif ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2.) >= 0.) & (proptau[N-1-outerRow,rightCol] - (edgeOverflowWeight*amtToFill)/2. >= 0.) & (proptau[middleN, j] + edgeOverflowWeight*amtToFill > fillop):
+                            excess = (fillop - proptau[middleN, j])/2.
+                            proptau[middleN, j] = fillop
+                            proptau[outerRow,rightCol] -= excess 
+                            proptau[N-1-outerRow,rightCol] -= excess
+
+                    for col in extra_spillin_j:
+                        proptau[outerRow, col] = 0.
+
+                    #account for prior in deciding whether to accept
+                    propPrior = (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
+                    oldPrior = 2*(1.-outer_b**2)**0.25 * (w**2 * sameDuration_forOpacity) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
+            
+                    proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
+                    proptauLC = proptauLC[:,0]
+                    proptauCost = RMS(obsLC, proptauLC, temperature=1)
+                    
+                    deltaRMS = np.exp(-0.5*(proptauCost**2 - newtauCost**2))
+                    postRatio = deltaRMS * (propPrior/oldPrior)
+                    
+                    testProb = np.random.uniform(0.,1.)
+                    if testProb < postRatio:
+                        newtau = proptau
+                        newtauCost = proptauCost
+                        proptau = copy.copy(newtau)
+                    else:
+                        proptau = copy.copy(newtau)
+            
+        #do not account for prior in deciding whether to accept
+        """proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
+        proptauLC = proptauLC[:,0]
+        proptauCost = RMS(obsLC, proptauLC, temperature=1)
+        
+        newtau = copy.copy(proptau)
+        newtauCost = proptauCost
+        proptau = copy.copy(newtau)"""
+        
+    #do the same for the next-middlemost rows, out toward the top and bottom of the grid.
+    for fillop in [1.0, 0.5]:
+        for nrow in northRows[:-1][::-1]: #no need to do it for the top row
+            northRow = proptau[nrow]
+            northRow_notfull = np.arange(0,M)[(northRow > (fillop-0.5)) & (northRow < fillop)]
+
+            #pull opacity from outermost row first
+            b = 1. - w/2. - nrow*w
+
+            #print b
+
+            #row that opacity is pulled from: loop from outermost to innermost rows
+            for outerRow in range(0, nrow):
+                #re-evaluate which pixels are full
+                northRow = proptau[nrow]
+                northRow_notfull = np.arange(0,M)[(northRow > (fillop-0.5)) & (northRow < fillop)]
+
+                #get impact parameter of outer transiting row
+                outer_b = 1. - w/2. - outerRow*w
+
+                #get stellar diameter at that impact parameter
+                outer_x = (2.*np.sqrt(1.-outer_b**2))/w
+
+                #width of pixel block with same transit duration [units of PIXELS]
+                sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
+
+                sameDuration_forOpacity = copy.deepcopy(sameDuration)
+
+                #prevent "same duration" block from becoming wider than the grid
+                while sameDuration > M:
+                    sameDuration = sameDuration - 2.
+
+                while sameDuration > outer_x:
+                    sameDuration = sameDuration - 2.
+
+                sameDuration_int = 0
+                sameDuration_leftover = copy.deepcopy(sameDuration)
+                while sameDuration_leftover > 1.:
+                    sameDuration_int += 1
+                    sameDuration_leftover -= 1
+
+                if sameDuration_int%2 == 0:
+                    sameDuration_int = sameDuration_int - 1
+                    sameDuration_leftover = sameDuration_leftover + 1.
+
+                sameDuration_forOpacity_int = 0
+                sameDuration_forOpacity_leftover = copy.deepcopy(sameDuration_forOpacity)
+
+                while sameDuration_forOpacity_leftover > 1.:
+                    sameDuration_forOpacity_int += 1
+                    sameDuration_forOpacity_leftover -= 1
+
+                if sameDuration_forOpacity_int%2 == 0:
+                    sameDuration_forOpacity_int = sameDuration_forOpacity_int - 1
+                    sameDuration_forOpacity_leftover = sameDuration_forOpacity_leftover + 1.
+
+                for j in northRow_notfull:
+                    #get spill-in column idxs (relative to idx of the pixel they're spilling into)
+                    spillin_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+                    #eliminate columns outside the bounds of the grid
+                    spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
+                    #print "spillin_j is {0}".format(spillin_j)
+
+                    extra_spillin_j = np.arange(j-(int(np.floor(sameDuration_forOpacity_int/2))), j+(int(np.floor(sameDuration_forOpacity_int/2))) + 1)
+                    extra_spillin_j = extra_spillin_j[(extra_spillin_j >= 0.) &  (extra_spillin_j < M)]
+                    extra_spillin_j = extra_spillin_j[np.where(np.in1d(extra_spillin_j, spillin_j, invert=True))[0]]
+                    #print "extra_spillin_j is {0}".format(extra_spillin_j)
+
+                    #let outermost opacities flow in, where the distribution of where the opacities come from is proportional to
+                    # the pixel's "contribution" to the transit duration
+                    amtToFill = fillop - northRow[j]
+
+                    directOverflowWeight = (fillop/sameDuration_forOpacity)
+                    edgeOverflowWeight = (sameDuration_forOpacity_leftover/(2./fillop))
+
+                    for col in spillin_j: 
+                        if ((proptau[outerRow,col] - (directOverflowWeight*amtToFill)) >= 0.) & (proptau[nrow,j] + directOverflowWeight*amtToFill <= fillop):
+                            proptau[nrow, j] += directOverflowWeight*amtToFill
+                            proptau[outerRow,col] -= (directOverflowWeight*amtToFill)
+                        elif (proptau[outerRow,col] - (directOverflowWeight*amtToFill) < 0.):
+                            proptau[nrow, j] += proptau[outerRow,col]
+                            proptau[outerRow, col] = 0.
+                        elif (proptau[nrow,j] + directOverflowWeight*amtToFill > fillop):
+                            excess = fillop - proptau[nrow, j]
+                            proptau[nrow, j] = fillop
+                            proptau[outerRow, col] -= excess
+
+                        leftCol = j - int(np.floor(sameDuration_int/2)) - 1
+                        rightCol = j + int(np.floor(sameDuration_int/2)) + 1
+
+                        while leftCol < 0:
+                            leftCol = leftCol + 1
+                        while rightCol > M-1:
+                            rightCol = rightCol - 1
+
+                        if ((proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[nrow, j] + edgeOverflowWeight*amtToFill <= fillop) :
+                            proptau[nrow, j] += edgeOverflowWeight*amtToFill
+                            proptau[outerRow,leftCol] -= (edgeOverflowWeight*amtToFill)    
+                        elif (proptau[outerRow,leftCol] - (edgeOverflowWeight*amtToFill) < 0.):
+                            proptau[nrow, j] += proptau[outerRow,leftCol]
+                            proptau[outerRow,leftCol] = 0.
+                        elif (proptau[nrow, j] + edgeOverflowWeight*amtToFill > fillop):
+                            excess = fillop - proptau[nrow,j]
+                            proptau[nrow, j] = fillop
+                            proptau[outerRow,leftCol] -= excess
+
+                        if ((proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill)) >= 0.) & (proptau[nrow, j] + edgeOverflowWeight*amtToFill <= fillop) :
+                            proptau[nrow, j] += edgeOverflowWeight*amtToFill
+                            proptau[outerRow,rightCol] -= (edgeOverflowWeight*amtToFill)    
+                        elif (proptau[outerRow,rightCol] - (edgeOverflowWeight*amtToFill) < 0.):
+                            proptau[nrow, j] += proptau[outerRow,rightCol]
+                            proptau[outerRow,rightCol] = 0.
+                        elif (proptau[nrow, j] + edgeOverflowWeight*amtToFill > fillop):
+                            excess = fillop - proptau[nrow,j]
+                            proptau[nrow, j] = fillop
+                            proptau[outerRow,rightCol] -= excess
+
+                    for col in extra_spillin_j:
+                        proptau[outerRow, col] = 0.
+                        
+                    #make proposed tau grid symmetrical
+                    for srowidx, srow in enumerate(southRows):
+                        proptau[srow] = proptau[northRows[srowidx]]
+                    
+                    #account for prior in deciding whether to accept
+                    propPrior = (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
+                    oldPrior = 2.*(1.-outer_b**2)**0.25 * (w**2 * sameDuration_forOpacity) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
+            
+                    proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
+                    proptauLC = proptauLC[:,0]
+                    proptauCost = RMS(obsLC, proptauLC, temperature=1)
+                    
+                    deltaRMS = np.exp(-0.5*(proptauCost**2 - newtauCost**2))
+                    postRatio = deltaRMS * (propPrior/oldPrior)
+                    
+                    testProb = np.random.uniform(0.,1.)
+                    if testProb < postRatio:
+                        #print "north better"
+                        newtau = proptau
+                        newtauCost = proptauCost
+                        proptau = copy.copy(newtau)
+                    else:
+                        proptau = copy.copy(newtau)
+                
+        
+    return proptau
+
+def foldOpacities(tau):
+    """
+    Start with a 2D opacity grid and fold opacities over to northern hemisphere
+    """
+    tau = copy.copy(tau)
+    N = np.shape(tau)[0]
+    M = np.shape(tau)[1]
+    
+    for i in range(0, int(np.floor(N/2.))):
+        for j in range(0,M):
+            if tau[i,j] + tau[N-1-i, j] <= 1.:
+                tau[i,j] = tau[i,j] + tau[N-1-i, j]
+                tau[N-1-i,j] = 0
+                
+            else:
+                tau[i,j] = 1.
+                tau[N-1-i,j] = (tau[i,j] + tau[N-1-i, j]) - 1.
+
+            #if ((roundedtau[i,j]==0.5) & (roundedtau[N-1-i, j]==0.5)):
+            #    roundedtau[i,j]=1.
+            #    roundedtau[N-1-i,j] = 0.
+            
+            #if ((roundedtau[i,j]==0.) & (roundedtau[N-1-i, j]==1.)):
+            #    roundedtau[i,j]=1.
+            #    roundedtau[N-1-i,j] = 0.
+                
+    #roundedtau=np.abs(roundedtau)            
+    return tau
+
+def round_ART(ARTsoln):
+    """
+    Rounds each entry in best-fit ART opacity grid to 0, 0.5, or 1.
+    """
+    roundedtau = copy.copy(ARTsoln)
+    
+    N = np.shape(roundedtau)[0]
+    M = np.shape(roundedtau)[1]
+    
+    #for i in range(0,N):
+    #    for j in range(0,M):
+    #        if roundedtau[i,j] > 1.0:
+    #            roundedtau[N-1-i,j] = roundedtau[i,j]/2.
+    #            roundedtau[i,j] = roundedtau[i,j]/2.
+                
+    toobigmask = (roundedtau > 1.0)
+    roundedtau[toobigmask] = 1.0
+    
+    toosmallmask = (roundedtau < 0.0)
+    roundedtau[toosmallmask] = 0.0
+    
+    #0, 0.5, or 1.
+    """
+    nearzeromask = (roundedtau > 0.0) & (roundedtau <= (1./10.))
+    roundedtau[nearzeromask] = 0.0
+    
+    nearpt5mask = (roundedtau > (1./10.)) & (roundedtau <= (9./10.))
+    roundedtau[nearpt5mask] = 0.5
+    
+    nearonemask = (roundedtau > (9./10.)) & (roundedtau <= 1.0)
+    roundedtau[nearonemask] = 1.0
+    """
+    #0. or 1.
+    nearzeromask = (roundedtau > 0.0) & (roundedtau < 0.5)
+    roundedtau[nearzeromask] = 0.0
+    
+    nearonemask = (roundedtau >= 0.5) & (roundedtau <= 1.0)
+    roundedtau[nearonemask] = 1.0
+    
+    roundedtau=np.abs(roundedtau)
+    return roundedtau
+
+def invertLC(N, M, v, t_ref, t_arr, obsLC, nTrial,fac=0.001,RMSstop=1.e-6, n_iter=0, WR=True, WO=True, initstate="uniform"):
+    """
+    
+    
+    """
+    
+    ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw="uniform", v=v, t_ref=t_ref, t_arr=t_arr)
+    ti_LC = ti.gen_LC(t_arr)
+
+    raveledareas = np.zeros((np.shape(ti.areas)[0],np.shape(ti.areas)[1]*np.shape(ti.areas)[2])) 
+    #print np.shape(raveledareas)
+    for i in range(0,np.shape(ti.areas)[0]): #time axis
+        for j in range(0,np.shape(ti.areas)[1]): #N axis
+            raveledareas[i,N*j:(N*j + M)] = ti.areas[i,j,:]
+    
+    try:
+        if initstate=="uniform":
+            #raveledtau = ART(tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0., n_iter=n_iter)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC)
+        elif initstate=="random":
+            #raveledtau = ART(tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0., n_iter=n_iter)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC)
+        elif initstate=="lowrestriangle":
+            lowrestriangle_init = np.load("//Users/Emily/Documents/Columbia/lightcurve_imaging/lowrestriangle_init.npy")
+            #raveledtau = ART(tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0., n_iter=n_iter)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC)
+    except ValueError:
+        if initstate=="uniform":
+            #raveledtau = ART_normal(tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0.)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC)
+        elif initstate=="random":
+            #raveledtau = ART_normal(tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0.)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC)
+        elif initstate=="lowrestriangle":
+            lowrestriangle_init = np.load("//Users/Emily/Documents/Columbia/lightcurve_imaging/lowrestriangle_init.npy")
+            #raveledtau = ART(tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0., n_iter=n_iter)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC)
+        
+
+    raveledtau = np.reshape(raveledtau,(N,M))
+    raveledtau = np.round(raveledtau,2)
+                                             
+    bestWOCost = 100.
+    bestWOGrid = np.ones_like(wedgeRearrange(raveledtau))
+    
+    bestBinaryCost = 100.
+    bestBinaryGrid = np.ones_like(wedgeRearrange(raveledtau))
+                                             
+    for i in range(nTrial):
+        wo = raveledtau
+        if WR is True:
+            wo = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(raveledtau),2)),2)),2)
+        elif WO is True:
+            wo = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(raveledtau),2)),2)),2)
+            wo = np.round(wedgeRearrange(wedgeOptimize_sym(wedgeOptimize_sym(wedgeOptimize_sym(wo, obsLC=obsLC, areas=raveledareas), obsLC=obsLC, areas=raveledareas), obsLC=obsLC, areas=raveledareas)),2)
+        
+        woLC = np.atleast_2d(np.ones_like(t_arr)).T - np.dot(raveledareas,np.reshape(wo,(N*M,1)))
+        woLC = woLC[:,0]
+        
+        woCost = RMS(LC_obs=obsLC,LC_model=woLC,temperature=1)
+        print "woCost is {0}".format(woCost)
+        if woCost < bestWOCost:
+            bestWOCost = woCost
+            bestWOGrid = wo
+            bestWOLC = woLC
+        
+        foldedART = foldOpacities(wo)
+
+        roundedART = round_ART(foldedART)
+        
+        testLC = np.atleast_2d(np.ones_like(t_arr)).T - np.dot(raveledareas,np.reshape(roundedART,(N*M,1)))
+        testLC = testLC[:,0]
+    
+        cost = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
+                                             
+        if cost < bestBinaryCost:
+            #print "better"
+            bestBinaryCost = cost
+            bestBinaryGrid = roundedART
+            bestBinaryLC = testLC
+        
+        """bestAstar = np.zeros((10, 10))
+        bestCost = 100.
+        bestCostList = []
+
+        t0 = time.time()
+        for j in range(100):
+            bestAstar, bestAstarCost, bestAstarCostList, bestTested_i, bestTested_j = AStarGeneticStep_pixsum(currentgrid=roundedART, obsLC=obsLC, times=times, temperature=1., saveplots=False, perimeterFac=fac)
+            if bestAstarCost < bestCost:
+                print "better"
+                bestCost = bestAstarCost
+                bestAstar = foldOpacities(bestAstar)
+                bestCostList = bestAstarCostList
+
+        print (time.time() - t0)/60.
+        bestLC = np.atleast_2d(np.ones_like(t_arr)).T - np.dot(raveledareas,np.reshape(bestAstar,(10*10,1)))
+        bestLC = bestLC[:,0]
+        
+        bestGrid = bestAstar"""
+        
+        return bestWOGrid, bestWOLC, bestWOCost, bestBinaryGrid, bestBinaryLC, bestBinaryCost
