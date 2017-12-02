@@ -9,7 +9,8 @@ from .misc import *
 
 __all__ = ['ART','ART_normal','simultaneous_ART', 'neighborPermutations', 
 'AStarGeneticStep', 'LCfromSummedPixels', 'perimeter', 'compactness', 
-'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeRearrange', 'wedgeOptimize', 'wedgeOptimize_sym',
+'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeRearrange',
+'wedgeNegativeEdge', 'wedgeOptimize', 'wedgeOptimize_sym',
 'foldOpacities','round_ART','invertLC']
 
 cpdef ART(tau_init, A, obsLC, mirrored=False, RMSstop=1.e-6, reg=0., n_iter=0):
@@ -362,6 +363,8 @@ cpdef simultaneous_ART(n_iter, tau_init, A, obsLC):
         tau = tau + tau_update
         
         testtau = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(np.reshape(tau,(N,M))),2)),2)),2)
+        testtau = np.round(wedgeRearrange(wedgeOptimize_sym(wedgeOptimize_sym(wedgeOptimize_sym(testtau, obsLC=obsLC, areas=A), obsLC=obsLC, areas=A), obsLC=obsLC, areas=A)),2)
+        testtau = np.round(wedgeNegativeEdge(testtau),2)
         testtau = np.round(wedgeRearrange(wedgeOptimize_sym(wedgeOptimize_sym(wedgeOptimize_sym(testtau, obsLC=obsLC, areas=A), obsLC=obsLC, areas=A), obsLC=obsLC, areas=A)),2)
         
         testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(testtau,(N*M,1)))
@@ -1852,6 +1855,226 @@ def wedgeOptimize(tau, obsLC, areas):
         
     return proptau
 
+def wedgeNegativeEdge(tau):
+    """
+    Exploit the "wedge degeneracy" to shift opacity around, outside-in.
+    """
+    
+    # Start at the middle of the grid
+    N = np.shape(tau)[0]
+    M = np.shape(tau)[1]
+    middleN = int(np.floor((N-1)/2.))
+    #print "middleN is {0}".format(middleN)
+    
+    w = 2./N
+    
+    proptau = copy.copy(tau)
+    
+    #N even
+    if N%2 == 0:
+        #print "even"
+        northRows = np.arange(middleN, -1, -1)
+        southRows = np.arange(N-1-middleN, N, 1)
+        b = w/2.
+        outermost_b = 1. - w/2.
+        
+    #N odd
+    else:
+        #print "odd"
+        northRows = np.arange(middleN-1, -1, -1)
+        southRows = np.arange(N-middleN, N, 1)
+        
+        #pull opacity from outer rows to central row
+        b = 0.
+        #propPrior = (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
+        
+        #row that negative opacity is pulled from: loop from outermost to innermost rows
+        for fillop in [1.0]:
+            for outerRow in range(0, middleN):
+                #re-evaluate which pixels are full
+                middleRow = proptau[middleN]
+                #print middleRow
+                middleRow_notempty = np.arange(0,M)[middleRow > 0.]
+
+                #print outerRow
+                #print N-1-outerRow
+
+                outer_b = 1. - w/2. - outerRow*w
+                #print outer_b
+
+                #get diameter of the star at that position in the limb
+                outer_x = (2.*np.sqrt(1.-outer_b**2))/w
+                #print "central row outer_x is {0}".format(outer_x)
+
+                #width of pixel block with same transit duration [units of PIXELS]
+                sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
+
+                sameDuration_forOpacity = copy.copy(sameDuration)
+                #prevent "same duration" block from becoming wider than the grid
+                while sameDuration > M:
+                    sameDuration = sameDuration - 2.
+
+                while sameDuration > outer_x:
+                    sameDuration = sameDuration - 2.
+
+                sameDuration_int = 0
+                sameDuration_leftover = copy.copy(sameDuration)
+                while sameDuration_leftover > 1.:
+                    sameDuration_int += 1
+                    sameDuration_leftover -= 1
+
+                if sameDuration_int%2 == 0:
+                    sameDuration_int = sameDuration_int - 1
+                    sameDuration_leftover = sameDuration_leftover + 1.
+
+                sameDuration_forOpacity_int = 0
+                sameDuration_forOpacity_leftover = copy.deepcopy(sameDuration_forOpacity)
+
+                while sameDuration_forOpacity_leftover > 1.:
+                    sameDuration_forOpacity_int += 1
+                    sameDuration_forOpacity_leftover -= 1
+
+                if sameDuration_forOpacity_int%2 == 0:
+                    sameDuration_forOpacity_int = sameDuration_forOpacity_int - 1
+                    sameDuration_forOpacity_leftover = sameDuration_forOpacity_leftover + 1.
+
+                for j in middleRow_notempty:
+                    #get spill-in column idxs (relative to idx of the pixel they're spilling into)
+                    spillin_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+                    #print j
+                    #print spillin_j
+                    #eliminate columns outside the bounds of the grid
+                    spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
+                    #print spillin_j
+                    extra_spillin_j = np.arange(j-(int(np.floor(sameDuration_forOpacity_int/2))), j+(int(np.floor(sameDuration_forOpacity_int/2))) + 1)
+                    extra_spillin_j = extra_spillin_j[(extra_spillin_j >= 0.) &  (extra_spillin_j < M)]
+                    extra_spillin_j = extra_spillin_j[np.where(np.in1d(extra_spillin_j, spillin_j, invert=True))[0]]
+
+                    #let outermost negative opacities flow in, where the distribution of where the opacities come from is proportional to
+                    # the pixel's "contribution" to the transit duration
+                    amtToFill = middleRow[j]
+
+                    #print "amtToFill is {0}".format(amtToFill)
+
+                    directOverflowWeight = (1./sameDuration_forOpacity)
+                    edgeOverflowWeight = (sameDuration_leftover/2.)
+
+                    for col in spillin_j: #This only works if the input grid is symmetrical!!!!
+                        if ((proptau[outerRow, col] < 0.) & (proptau[N-1-outerRow,col] < 0.) & (proptau[middleN, j] + proptau[outerRow, col] + proptau[N-1-outerRow,col] >= 0.)):
+                            proptau[middleN, j] += (proptau[outerRow, col] + proptau[N-1-outerRow,col])
+                            proptau[outerRow, col] = 0.
+                            proptau[N-1-outerRow, col] = 0.
+
+                        elif ((proptau[outerRow, col] < 0.) & (proptau[N-1-outerRow,col] < 0.) & (proptau[middleN, j] + proptau[outerRow, col] + proptau[N-1-outerRow,col] < 0.)):
+                           excess = proptau[middleN, j] + proptau[outerRow, col] + proptau[N-1-outerRow,col]
+                           proptau[middleN, j] = 0.
+                           proptau[outerRow, col] -= excess/2.
+                           proptau[N-1-outerRow, col] -= excess/2.
+                    """
+                    for col in extra_spillin_j:
+                        if proptau[outerRow, col] < 0:
+                            proptau[outerRow, col] = 0.
+                    """
+        
+    #do the same for the next-middlemost rows, out toward the top and bottom of the grid.
+    for fillop in [1.0]:
+        for nrow in northRows[:-1][::-1]: #no need to do it for the top row
+            northRow = proptau[nrow]
+            northRow_notempty = np.arange(0,M)[(northRow > 0.)]
+
+            #pull opacity from outermost row first
+            b = 1. - w/2. - nrow*w
+
+            #print b
+
+            #row that opacity is pulled from: loop from outermost to innermost rows
+            for outerRow in range(0, nrow):
+                #re-evaluate which pixels are empty
+                northRow = proptau[nrow]
+                northRow_notempty = np.arange(0,M)[(northRow > 0.)]
+
+                #get impact parameter of outer transiting row
+                outer_b = 1. - w/2. - outerRow*w
+
+                #get stellar diameter at that impact parameter
+                outer_x = (2.*np.sqrt(1.-outer_b**2))/w
+
+                #width of pixel block with same transit duration [units of PIXELS]
+                sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-outer_b**2)) / w
+
+                sameDuration_forOpacity = copy.deepcopy(sameDuration)
+
+                #prevent "same duration" block from becoming wider than the grid
+                while sameDuration > M:
+                    sameDuration = sameDuration - 2.
+
+                while sameDuration > outer_x:
+                    sameDuration = sameDuration - 2.
+
+                sameDuration_int = 0
+                sameDuration_leftover = copy.deepcopy(sameDuration)
+                while sameDuration_leftover > 1.:
+                    sameDuration_int += 1
+                    sameDuration_leftover -= 1
+
+                if sameDuration_int%2 == 0:
+                    sameDuration_int = sameDuration_int - 1
+                    sameDuration_leftover = sameDuration_leftover + 1.
+
+                sameDuration_forOpacity_int = 0
+                sameDuration_forOpacity_leftover = copy.deepcopy(sameDuration_forOpacity)
+
+                while sameDuration_forOpacity_leftover > 1.:
+                    sameDuration_forOpacity_int += 1
+                    sameDuration_forOpacity_leftover -= 1
+
+                if sameDuration_forOpacity_int%2 == 0:
+                    sameDuration_forOpacity_int = sameDuration_forOpacity_int - 1
+                    sameDuration_forOpacity_leftover = sameDuration_forOpacity_leftover + 1.
+
+                for j in northRow_notempty:
+                    #get spill-in column idxs (relative to idx of the pixel they're spilling into)
+                    spillin_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
+                    #eliminate columns outside the bounds of the grid
+                    spillin_j = spillin_j[(spillin_j >= 0.) &  (spillin_j < M)]
+                    #print "spillin_j is {0}".format(spillin_j)
+
+                    extra_spillin_j = np.arange(j-(int(np.floor(sameDuration_forOpacity_int/2))), j+(int(np.floor(sameDuration_forOpacity_int/2))) + 1)
+                    extra_spillin_j = extra_spillin_j[(extra_spillin_j >= 0.) &  (extra_spillin_j < M)]
+                    extra_spillin_j = extra_spillin_j[np.where(np.in1d(extra_spillin_j, spillin_j, invert=True))[0]]
+                    #print "extra_spillin_j is {0}".format(extra_spillin_j)
+
+                    #let outermost opacities flow in, where the distribution of where the opacities come from is proportional to
+                    # the pixel's "contribution" to the transit duration
+                    amtToFill = northRow[j]
+
+                    directOverflowWeight = (fillop/sameDuration_forOpacity)
+                    edgeOverflowWeight = (sameDuration_forOpacity_leftover/(2./fillop))
+
+                    for col in spillin_j: #This only works if the input grid is symmetrical!!!!
+                        if ((proptau[outerRow, col] < 0.) & (proptau[nrow, j] + proptau[outerRow, col] >= 0.)):
+                            proptau[nrow, j] += proptau[outerRow, col]
+                            proptau[outerRow, col] = 0.
+
+                        elif ((proptau[outerRow, col] < 0.) & (proptau[nrow, j] + proptau[outerRow, col] < 0.)):
+                           excess = proptau[nrow, j] + proptau[outerRow, col]
+                           proptau[nrow, j] = 0.
+                           proptau[outerRow, col] -= excess
+
+                    
+                    """
+                    for col in extra_spillin_j:
+                        if proptau[outerRow, col] < 0:
+                            proptau[outerRow, col] = 0.
+                    """
+                        
+                    #make proposed tau grid symmetrical
+                    for srowidx, srow in enumerate(southRows):
+                        proptau[srow] = proptau[northRows[srowidx]]
+                
+        
+    return proptau
+
 def wedgeOptimize_sym(tau, obsLC, areas):
     """
     Exploit the "wedge degeneracy" to shift opacity around. This is different from wedgeRearrange because here, we're
@@ -2325,10 +2548,13 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, nTrial,fac=0.001,RMSstop=1.e-6, n_ite
         wo = raveledtau
         if WR is True:
             wo = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(raveledtau),2)),2)),2)
+            wo = np.round(wedgeNegativeEdge(wo),2)
         elif WO is True:
             wo = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(raveledtau),2)),2)),2)
             wo = np.round(wedgeRearrange(wedgeOptimize_sym(wedgeOptimize_sym(wedgeOptimize_sym(wo, obsLC=obsLC, areas=raveledareas), obsLC=obsLC, areas=raveledareas), obsLC=obsLC, areas=raveledareas)),2)
-        
+            wo = np.round(wedgeNegativeEdge(wo),2)
+            wo = np.round(wedgeRearrange(wedgeOptimize_sym(wedgeOptimize_sym(wedgeOptimize_sym(wo, obsLC=obsLC, areas=raveledareas), obsLC=obsLC, areas=raveledareas), obsLC=obsLC, areas=raveledareas)),2)
+
         woLC = np.atleast_2d(np.ones_like(t_arr)).T - np.dot(raveledareas,np.reshape(wo,(N*M,1)))
         woLC = woLC[:,0]
         
