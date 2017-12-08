@@ -1,4 +1,5 @@
 # cython: profile=True
+from __future__ import division
 import numpy as np
 import time
 import copy
@@ -146,15 +147,19 @@ class TransitingImage(object):
 		return fluxtot
 		
 	def plot_grid(self,save=False, filename=None):
-		nside = np.max(np.shape(self.opacitymat))
+		nside_y = np.shape(self.opacitymat)[0]
+		nside_x = np.shape(self.opacitymat)[1]
+		
+		#nside = np.max(np.shape(self.opacitymat))
 		fig = plt.figure(figsize=(8,8))
+		plt.aspect('equal')
 		
 		plt.imshow(self.opacitymat,cmap="Greys",aspect="equal",origin="upper",interpolation='none',vmin=0.,vmax=1.)
 		#plt.colorbar()
 		plt.xlabel("j",fontsize=16)
 		plt.ylabel("i",fontsize=16)
-		plt.xlim(-0.5,nside-0.5)
-		plt.ylim(nside-0.5,-0.5)
+		plt.xlim(-0.5,nside_x-0.5)
+		plt.ylim(nside_y-0.5,-0.5)
 		
 		if save is False:
 			plt.show()

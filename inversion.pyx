@@ -1,10 +1,13 @@
 # cython: profile=True
+from __future__ import division
 import numpy as np
+cimport numpy as np
 import copy
 import matplotlib.pyplot as plt
 from .cTransitingImage import *
 from .cGridFunctions import *
 from .misc import *
+
 
 
 __all__ = ['ART','ART_normal','simultaneous_ART', 'neighborPermutations', 
@@ -314,7 +317,7 @@ cpdef ART_normal(tau_init, A, obsLC, reg=0., mirrored=False, RMSstop=1.e-6):
     #print q
     return tau
 
-cpdef simultaneous_ART(n_iter, tau_init, A, obsLC):
+cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_init, np.ndarray[double, ndim=2] A, np.ndarray[double, ndim=1] obsLC, double reg):
     """
     Use the algebraic reconstruction technique to solve the system A*tau = np.ones_like(obsLC) - obsLC.
     
@@ -328,14 +331,31 @@ cpdef simultaneous_ART(n_iter, tau_init, A, obsLC):
     tau = opacity vector
     """
     cdef:
-        int q, N, M
+        np.ndarray[np.double_t, ndim=1] tau=np.ravel(tau_init)
+        np.ndarray[np.double_t, ndim=1] RHS
+        np.ndarray[np.double_t, ndim=1] tau_update=np.zeros_like(tau, dtype=float)
+        np.ndarray[np.double_t, ndim=2] testtau=np.zeros_like(tau_init)
+        np.ndarray[np.double_t, ndim=2] testLC=np.zeros_like(np.atleast_2d(obsLC))
+        np.ndarray[np.double_t, ndim=1] testLC1d=np.zeros_like(obsLC)
+        np.ndarray[np.double_t, ndim=2] Asquare=np.zeros((len(tau),len(tau)))
+        np.ndarray[np.double_t, ndim=1] origRHS=np.zeros(len(obsLC))
+        int q, N, M, tau_entry
         double outer_numerator, outer_denominator, inner_numerator, inner_denominator, testRMS
         list RMSs, taus, tau_updates
 
-    tau = np.ravel(tau_init)
+    #tau = np.ravel(tau_init)
     N = np.shape(tau_init)[0]
     M = np.shape(tau_init)[1]
-    RHS = np.ones_like(obsLC) - obsLC
+    #RHS = np.ones_like(obsLC) - obsLC
+
+    if ((np.shape(A)[0] == np.shape(A)[1]) & (reg==0.)):
+        RHS = np.ones_like(obsLC) - obsLC
+        Asquare = A
+        
+    else:
+        origRHS = np.ones_like(obsLC) - obsLC
+        RHS = np.dot(A.T, np.ones_like(obsLC) - obsLC)
+        Asquare = np.dot(A.T, A) + (reg * np.eye(N=np.shape(A)[1]))
 
     RMSs = []
     taus = []
@@ -347,18 +367,16 @@ cpdef simultaneous_ART(n_iter, tau_init, A, obsLC):
     for q in range(0, n_iter):
         tau_update = np.zeros_like(tau, dtype=float)
         
-        for j in range(0, np.shape(A)[0]):
+        for j in range(0, np.shape(Asquare)[0]):
             outer_numerator = 0. 
-            outer_denominator = np.sum(A[:,j])
+            outer_denominator = np.sum(Asquare[:,j])
 
-            for i in range(0, np.shape(A)[0]):
-                inner_denominator = np.sum(A[i])
-                inner_numerator = (RHS[i] - np.dot(A[i], tau)) * A[i,j]
+            for i in range(0, np.shape(Asquare)[0]):
+                inner_denominator = np.sum(Asquare[i])
+                inner_numerator = (RHS[i] - np.dot(Asquare[i], tau)) * Asquare[i,j]
                 outer_numerator = outer_numerator + (inner_numerator/inner_denominator)
             
             tau_update[j] = (outer_numerator/outer_denominator)
-
-
             
         tau = tau + tau_update
         
@@ -367,9 +385,9 @@ cpdef simultaneous_ART(n_iter, tau_init, A, obsLC):
         testtau = np.round(wedgeNegativeEdge(testtau),2)
         testtau = np.round(wedgeRearrange(wedgeOptimize_sym(wedgeOptimize_sym(wedgeOptimize_sym(testtau, obsLC=obsLC, areas=A), obsLC=obsLC, areas=A), obsLC=obsLC, areas=A)),2)
         
-        testLC = np.atleast_2d(np.ones_like(RHS)).T - np.dot(A,np.reshape(testtau,(N*M,1)))
-        testLC = testLC[:,0]
-        testRMS = RMS(LC_obs=obsLC,LC_model=testLC,temperature=1)
+        testLC = np.atleast_2d(np.ones_like(origRHS)).T - np.dot(A,np.reshape(testtau,(N*M,1)))
+        testLC1d = testLC[:,0]
+        testRMS = RMS(LC_obs=obsLC,LC_model=testLC1d,temperature=1)
         RMSs.append(testRMS)
         taus.append(tau)
         tau_updates.append(tau_update)
@@ -381,16 +399,13 @@ cpdef simultaneous_ART(n_iter, tau_init, A, obsLC):
     plt.title("RMS",fontsize=14)
     plt.show()
 
+
     taus_arr = np.array(taus)
-    #print taus_arr[0]
     tau_updates_arr = np.array(tau_updates)
-    #print np.shape(tau_updates_arr)
+
 
     fig = plt.figure(figsize=(8,6))
     for tau_entry in range(0,np.shape(tau_updates_arr)[1]):
-    #for tau_entry in range(0,5):
-        #print np.max(np.abs(tau_updates_arr[:,tau_entry]))
-        #print np.min(np.abs(tau_updates_arr[:,tau_entry]))
         plt.plot(np.abs(tau_updates_arr[:,tau_entry]),alpha=0.7)
     plt.xscale('log')
     plt.yscale('log')
@@ -401,7 +416,6 @@ cpdef simultaneous_ART(n_iter, tau_init, A, obsLC):
 
     fig = plt.figure(figsize=(8,6))
     for tau_entry in range(0,np.shape(taus_arr)[1]):
-    #for tau_entry in range(0,5):
         plt.plot(taus_arr[:,tau_entry],alpha=0.7)
     plt.xscale('log')
     plt.xlim(0,np.shape(tau_updates_arr)[0])
@@ -2496,7 +2510,7 @@ def round_ART(ARTsoln):
     roundedtau=np.abs(roundedtau)
     return roundedtau
 
-def invertLC(N, M, v, t_ref, t_arr, obsLC, nTrial,fac=0.001,RMSstop=1.e-6, n_iter=0, WR=True, WO=True, initstate="uniform"):
+def invertLC(N, M, v, t_ref, t_arr, obsLC, nTrial,fac=0.001,RMSstop=1.e-6, n_iter=0, WR=True, WO=True, initstate="uniform",reg=0.):
     """
     
     
@@ -2507,32 +2521,33 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, nTrial,fac=0.001,RMSstop=1.e-6, n_ite
 
     raveledareas = np.zeros((np.shape(ti.areas)[0],np.shape(ti.areas)[1]*np.shape(ti.areas)[2])) 
     #print np.shape(raveledareas)
+
     for i in range(0,np.shape(ti.areas)[0]): #time axis
         for j in range(0,np.shape(ti.areas)[1]): #N axis
-            raveledareas[i,N*j:(N*j + M)] = ti.areas[i,j,:]
+            raveledareas[i,M*j:M*(j+1)] = ti.areas[i,j,:]
     
     try:
         if initstate=="uniform":
             #raveledtau = ART(tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0., n_iter=n_iter)
-            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, reg=reg)
         elif initstate=="random":
             #raveledtau = ART(tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0., n_iter=n_iter)
-            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, reg=reg)
         elif initstate=="lowrestriangle":
             lowrestriangle_init = np.load("//Users/Emily/Documents/Columbia/lightcurve_imaging/lowrestriangle_init.npy")
             #raveledtau = ART(tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0., n_iter=n_iter)
-            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC, reg=reg)
     except ValueError:
         if initstate=="uniform":
             #raveledtau = ART_normal(tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0.)
-            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, reg=reg)
         elif initstate=="random":
             #raveledtau = ART_normal(tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0.)
-            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, reg=reg)
         elif initstate=="lowrestriangle":
             lowrestriangle_init = np.load("//Users/Emily/Documents/Columbia/lightcurve_imaging/lowrestriangle_init.npy")
             #raveledtau = ART(tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0., n_iter=n_iter)
-            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC)
+            raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC, reg=reg)
         
 
     raveledtau = np.reshape(raveledtau,(N,M))
@@ -2554,7 +2569,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, nTrial,fac=0.001,RMSstop=1.e-6, n_ite
             wo = np.round(wedgeRearrange(wedgeOptimize_sym(wedgeOptimize_sym(wedgeOptimize_sym(wo, obsLC=obsLC, areas=raveledareas), obsLC=obsLC, areas=raveledareas), obsLC=obsLC, areas=raveledareas)),2)
             wo = np.round(wedgeNegativeEdge(wo),2)
             wo = np.round(wedgeRearrange(wedgeOptimize_sym(wedgeOptimize_sym(wedgeOptimize_sym(wo, obsLC=obsLC, areas=raveledareas), obsLC=obsLC, areas=raveledareas), obsLC=obsLC, areas=raveledareas)),2)
-
+            wo = np.round(wedgeOptimize_sym(wo, obsLC=obsLC, areas=raveledareas),2)
         woLC = np.atleast_2d(np.ones_like(t_arr)).T - np.dot(raveledareas,np.reshape(wo,(N*M,1)))
         woLC = woLC[:,0]
         
@@ -2568,7 +2583,8 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, nTrial,fac=0.001,RMSstop=1.e-6, n_ite
         foldedART = foldOpacities(wo)
 
         roundedART = round_ART(foldedART)
-        
+        #roundedART = copy.copy(foldedART)
+
         testLC = np.atleast_2d(np.ones_like(t_arr)).T - np.dot(raveledareas,np.reshape(roundedART,(N*M,1)))
         testLC = testLC[:,0]
     
