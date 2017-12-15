@@ -151,15 +151,15 @@ class TransitingImage(object):
 		nside_x = np.shape(self.opacitymat)[1]
 		
 		#nside = np.max(np.shape(self.opacitymat))
-		fig = plt.figure(figsize=(8,8))
-		plt.aspect('equal')
+		fig, ax= plt.subplots(1,1,figsize=(8,8))
+		ax.set_aspect('equal')
 		
-		plt.imshow(self.opacitymat,cmap="Greys",aspect="equal",origin="upper",interpolation='none',vmin=0.,vmax=1.)
+		ax.imshow(self.opacitymat,cmap="Greys",aspect="equal",origin="upper",interpolation='none',vmin=0.,vmax=1.)
 		#plt.colorbar()
-		plt.xlabel("j",fontsize=16)
-		plt.ylabel("i",fontsize=16)
-		plt.xlim(-0.5,nside_x-0.5)
-		plt.ylim(nside_y-0.5,-0.5)
+		ax.set_xlabel("j",fontsize=16)
+		ax.set_ylabel("i",fontsize=16)
+		ax.set_xlim(-0.5,nside_x-0.5)
+		ax.set_ylim(nside_y-0.5,-0.5)
 		
 		if save is False:
 			plt.show()

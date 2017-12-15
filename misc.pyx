@@ -237,22 +237,24 @@ def continuous_opacities(tau):
 
     return np.ravel(q)
 
-def RMS(LC_obs,LC_model,temperature):
+def RMS(LC_obs,LC_obs_err,LC_model):
     """
-    Calculates RMS error of model light curve.
+    Calculates chi-squared of model light curve.
     
     Inputs:
     LC_obs = observed light curve
+    LC_obs_err = uncertainty on each observed light curve data point (to calculate RMS, make this a vector of ones!)
     LC_model = model light curve (same shape as LC_obs)
     
     Outputs:
     RMS = RMS error
+    chisquared = same as RMS in the case where LC_obs_err is a vector of ones.
     """
-    N = len(LC_obs)
+    #N = len(LC_obs)
     
-    RMS = (1./np.sqrt(N)) * np.sqrt(np.sum((LC_model - LC_obs)**2)/temperature**2)
-    
-    return RMS
+    chisquared = np.sum((LC_model - LC_obs)**2/LC_obs_err**2)
+
+    return chisquared
 
 
 def RMS_penalty(grid,LC_obs,LC_model,temperature):
