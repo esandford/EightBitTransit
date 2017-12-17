@@ -513,12 +513,6 @@ cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, d
 	r = w/(pi**0.5) #set r such that area = w^2= pi*r^2 => r = w/sqrt(pi), i.e. r is the radius of the circle with area w**2
 	
 	n = len(t)
-
-	#S = np.zeros(n)
-	#am = np.zeros(n)
-	#bm = np.zeros(n)
-	#amR = np.zeros(n)
-	#bmR = np.zeros(n)
 	
 	#Ar_ann = np.zeros(n) #area of annulus
 	#Fl_ann = np.zeros(n) #flux within annulus
@@ -526,18 +520,11 @@ cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, d
 	
 	for i in range(0,n):
 		S = (x[i]**2 + y[i]**2)**0.5 #distance from stellar center
-		am = (S - r)**2 #inner part of annulus
-		bm = (S + r)**2 #outer part of annulus
+		am = (S - r)**2 #inner part of annulus, centered at stellar center, which contains this pixel
+		bm = (S + r)**2 #outer part of annulus, centered at stellar center, which contains this pixel
 
 		amR = (1. - am)**0.25
 		bmR = (1. - bm)**0.25
-		
-		#S[i] = np.sqrt(x[i]**2 + y[i]**2) #distance from stellar center
-		#am[i] = (S[i] - r)**2 #inner part of annulus
-		#bm[i] = (S[i] + r)**2 #outer part of annulus
-
-		#amR[i] = np.sqrt(np.sqrt(1. - am[i]))
-		#bmR[i] = np.sqrt(np.sqrt(1. - bm[i]))
 		
 		if S > (1. + r): #case I: pixel is outside of stellar disk
 			Ar_ann = 0.
@@ -548,20 +535,15 @@ cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, d
 			Ar_ann = pi*(bm - am)
 			Fl_ann = (am - bm)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 + (4./7.)*c3*amR**7 + 0.5*c4*amR**8 - 0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 -(4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
-		
+			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux at center)
+			# I think this is the "effective area" of the pixel for the purposes of inversion with non-uniform LD
 		elif (S < r): #case IV: pixel is very close to stellar center
-			#if np.isnan(bmR[i]):
-				#print "case IV problem! bmR is nan"
-
 			Ar_ann = pi*bm		
 			Fl_ann = -1.*bm*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1 + (2./3.)*c2 + (4./7.)*c3 + 0.5*c4 -0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 - (4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
 			
 		
 		else: #if S[i] > (1.-r) and S[i] < (1.+r), case II: pixel overlaps edge of stellar disk
-			#if np.isnan(amR[i]):
-				#print "case II problem! amR is nan"
-
 			Ar_ann = pi*(1.-am)
 			Fl_ann = (am - 1.)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 +(4./7.)*c3*amR**7 + 0.5*c4*amR**8
 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)

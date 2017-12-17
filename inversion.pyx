@@ -13,7 +13,9 @@ from .misc import *
 __all__ = ['simultaneous_ART', 'wedgeRearrange','wedgeNegativeEdge', 'wedgeOptimize_sym',
 'foldOpacities','round_ART','invertLC']
 
-cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_init, np.ndarray[double, ndim=2] A, np.ndarray[double, ndim=1] obsLC, np.ndarray[double, ndim=1] obsLCerr, double reg, bint threshold):
+cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_init, 
+    np.ndarray[double, ndim=2] A, np.ndarray[double, ndim=1] obsLC, np.ndarray[double, ndim=1] obsLCerr, 
+    double reg, bint threshold, str filename):
     """
     Use the algebraic reconstruction technique to solve the system A*tau = np.ones_like(obsLC) - obsLC.
     
@@ -98,12 +100,15 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     plt.yscale('log')
     plt.xscale('log')
     plt.title("RMS",fontsize=14)
-    plt.show()
-
+    #plt.show()
+    plt.savefig("{0}_chiSquareds.png".format(filename),fmt="png")
 
     taus_arr = np.array(taus)
     tau_updates_arr = np.array(tau_updates)
 
+    np.savetxt("{0}_chiSquareds.txt".format(filename), RMSs)
+    np.savetxt("{0}_taus.txt".format(filename), taus)
+    np.savetxt("{0}_tauUpdates.txt".format(filename), tau_updates)
 
     fig = plt.figure(figsize=(8,6))
     for tau_entry in range(0,np.shape(tau_updates_arr)[1]):
@@ -113,7 +118,8 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     plt.xlim(0,np.shape(tau_updates_arr)[0])
     plt.ylim(1.e-10,1.e0)
     plt.title("Tau updates", fontsize=14)
-    plt.show()
+    #plt.show()
+    plt.savefig("{0}_tauUpdates.png".format(filename),fmt="png")
 
     fig = plt.figure(figsize=(8,6))
     for tau_entry in range(0,np.shape(taus_arr)[1]):
@@ -122,7 +128,8 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     plt.xlim(0,np.shape(tau_updates_arr)[0])
     plt.ylim(-0.1,1.1)
     plt.title("Taus", fontsize=14)
-    plt.show()
+    #plt.show()
+    plt.savefig("{0}_taus.png".format(filename),fmt="png")
 
     return tau
 
@@ -945,7 +952,7 @@ def round_ART(ARTsoln):
     roundedtau=np.abs(roundedtau)
     return roundedtau
 
-def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial,fac=0.001,RMSstop=1.e-6, n_iter=0, WR=True, WO=True, initstate="uniform",reg=0.,threshold=False):
+def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial, filename, LDlaw="uniform",LDCs=[],fac=0.001,RMSstop=1.e-6, n_iter=0, WR=True, WO=True, initstate="uniform",reg=0.,threshold=False):
     """
     Run the following algorithms in sequence:
         - Simultaneous ART
@@ -959,14 +966,45 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial,fac=0.001,RMSstop=1.
     
     """
     
-    ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw="uniform", v=v, t_ref=t_ref, t_arr=t_arr)
-    ti_LC = ti.gen_LC(t_arr)
+    if LDlaw == "uniform":
+        ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw="uniform", v=v, t_ref=t_ref, t_arr=t_arr)
+        ti_LC = ti.gen_LC(t_arr)
 
-    raveledareas = np.zeros((np.shape(ti.areas)[0],np.shape(ti.areas)[1]*np.shape(ti.areas)[2])) 
+        raveledareas = np.zeros((np.shape(ti.areas)[0],np.shape(ti.areas)[1]*np.shape(ti.areas)[2])) 
 
-    for i in range(0,np.shape(ti.areas)[0]): #time axis
-        for j in range(0,np.shape(ti.areas)[1]): #N axis
-            raveledareas[i,M*j:M*(j+1)] = ti.areas[i,j,:]
+        for i in range(0,np.shape(ti.areas)[0]): #time axis
+            for j in range(0,np.shape(ti.areas)[1]): #N axis
+                raveledareas[i,M*j:M*(j+1)] = ti.areas[i,j,:]
+
+    elif LDlaw == "quadratic":
+        #the nonlinear case reduces to the quadratic case by the following equations:
+        c1 = 0.
+        c3 = 0.
+        
+        c2 = LDCs[0] + 2.*LDCs[1]
+        c4 = -1.*LDCs[1]
+
+        nonlinearLDCs = [c1,c2,c3,c4]
+
+        ti = TransitingImage(opacitymat=np.ones((N,M)), LDlaw="nonlinear", LDCs=nonlinearLDCs, v=v, t_ref=t_ref, t_arr=t_arr)
+        ti_LC = ti.gen_LC(t_arr)
+
+        raveledareas = np.zeros((np.shape(ti.LD)[0],np.shape(ti.LD)[1]*np.shape(ti.LD)[2])) 
+
+        for i in range(0,np.shape(ti.LD)[0]): #time axis
+            for j in range(0,np.shape(ti.LD)[1]): #N axis
+                raveledareas[i,M*j:M*(j+1)] = ti.LD[i,j,:]
+
+    elif LDlaw == "nonlinear":
+        ti = TransitingImage(opacitymat=np.ones((N,M)), LDlaw="nonlinear", LDCs=LDCs, v=v, t_ref=t_ref, t_arr=t_arr)
+        ti_LC = ti.gen_LC(t_arr)
+
+        raveledareas = np.zeros((np.shape(ti.LD)[0],np.shape(ti.LD)[1]*np.shape(ti.LD)[2])) 
+
+        for i in range(0,np.shape(ti.LD)[0]): #time axis
+            for j in range(0,np.shape(ti.LD)[1]): #N axis
+                raveledareas[i,M*j:M*(j+1)] = ti.LD[i,j,:]
+        
     
     # previously:
     # try:
@@ -977,38 +1015,44 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial,fac=0.001,RMSstop=1.
     
     # Run simultaneous ART according to user's choice of initial grid.
     if initstate=="uniform":  
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
     elif initstate=="random":
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
     elif initstate=="lowrestriangle":
         lowrestriangle_init = np.load("//Users/Emily/Documents/Columbia/lightcurve_imaging/lowrestriangle_init.npy")
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
     else: #allow for user to input an initial state matrix
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=initstate, A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=initstate, A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
 
     raveledtau = np.reshape(raveledtau,(N,M))
     raveledtau = np.round(raveledtau,2)
                                              
-    bestWOCost = 100.
+    bestWOCost = np.inf
     bestWOGrid = np.ones_like(wedgeRearrange(raveledtau))
     
-    bestBinaryCost = 100.
+    bestBinaryCost = np.inf
     bestBinaryGrid = np.ones_like(wedgeRearrange(raveledtau))
                                              
     for i in range(nTrial):
         wo = raveledtau
+        wo = np.round(wedgeNegativeEdge(wo),2)
+        np.save("{0}_SARTfinal.npy".format(filename),wo)
 
         if threshold is False:
             if WR is True:
                 wo = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(raveledtau),2)),2)),2)
                 wo = np.round(wedgeNegativeEdge(wo),2)
+                wo = np.round(wedgeRearrange(wo),2)
+                wo = np.round(wedgeNegativeEdge(wo),2)
+                np.save("{0}_WR.npy".format(filename),wo)
             elif WO is True:
                 wo = np.round(wedgeRearrange(np.round(wedgeRearrange(np.round(wedgeRearrange(raveledtau),2)),2)),2)
                 wo = np.round(wedgeRearrange(wedgeOptimize_sym(wedgeOptimize_sym(wedgeOptimize_sym(wo, obsLC=obsLC, obsLCerr=obsLCerr, areas=raveledareas), obsLC=obsLC, obsLCerr=obsLCerr, areas=raveledareas), obsLC=obsLC, obsLCerr=obsLCerr, areas=raveledareas)),2)
                 wo = np.round(wedgeNegativeEdge(wo),2)
                 wo = np.round(wedgeRearrange(wedgeOptimize_sym(wedgeOptimize_sym(wedgeOptimize_sym(wo, obsLC=obsLC, obsLCerr=obsLCerr, areas=raveledareas), obsLC=obsLC, obsLCerr=obsLCerr, areas=raveledareas), obsLC=obsLC, obsLCerr=obsLCerr, areas=raveledareas)),2)
                 wo = np.round(wedgeOptimize_sym(wo, obsLC=obsLC, obsLCerr=obsLCerr, areas=raveledareas),2)
-        
+                np.save("{0}_WRWO.npy".format(filename),wo)
+
         woLC = np.atleast_2d(np.ones_like(t_arr)).T - np.dot(raveledareas,np.reshape(wo,(N*M,1)))
         woLC = woLC[:,0]
         
@@ -1021,7 +1065,11 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial,fac=0.001,RMSstop=1.
         
         foldedART = foldOpacities(wo)
 
+        np.save("{0}_SARTfinal_fold.npy".format(filename),foldedART)
+
         roundedART = round_ART(foldedART)
+
+        np.save("{0}_SARTfinal_foldround.npy".format(filename),roundedART)
 
         testLC = np.atleast_2d(np.ones_like(t_arr)).T - np.dot(raveledareas,np.reshape(roundedART,(N*M,1)))
         testLC = testLC[:,0]

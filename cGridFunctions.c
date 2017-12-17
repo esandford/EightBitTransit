@@ -11998,24 +11998,24 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  * 
  * 	n = len(t)             # <<<<<<<<<<<<<<
  * 
- * 	#S = np.zeros(n)
+ * 	#Ar_ann = np.zeros(n) #area of annulus
  */
   __pyx_t_2 = PyObject_Length(__pyx_v_t); if (unlikely(__pyx_t_2 == -1)) __PYX_ERR(0, 515, __pyx_L1_error)
   __pyx_v_n = __pyx_t_2;
 
-  /* "EightBitTransit/cGridFunctions.pyx":525
+  /* "EightBitTransit/cGridFunctions.pyx":519
  * 	#Ar_ann = np.zeros(n) #area of annulus
  * 	#Fl_ann = np.zeros(n) #flux within annulus
  * 	I0 = np.zeros(n)             # <<<<<<<<<<<<<<
  * 
  * 	for i in range(0,n):
  */
-  __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 525, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 519, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_zeros); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 525, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_zeros); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 519, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_n); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 525, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_n); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 519, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __pyx_t_6 = NULL;
   if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_5))) {
@@ -12028,14 +12028,14 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     }
   }
   if (!__pyx_t_6) {
-    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 525, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 519, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_GOTREF(__pyx_t_3);
   } else {
     #if CYTHON_FAST_PYCALL
     if (PyFunction_Check(__pyx_t_5)) {
       PyObject *__pyx_temp[2] = {__pyx_t_6, __pyx_t_4};
-      __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 525, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 519, __pyx_L1_error)
       __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
@@ -12044,20 +12044,20 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     #if CYTHON_FAST_PYCCALL
     if (__Pyx_PyFastCFunction_Check(__pyx_t_5)) {
       PyObject *__pyx_temp[2] = {__pyx_t_6, __pyx_t_4};
-      __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 525, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 519, __pyx_L1_error)
       __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     } else
     #endif
     {
-      __pyx_t_7 = PyTuple_New(1+1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 525, __pyx_L1_error)
+      __pyx_t_7 = PyTuple_New(1+1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 519, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_GIVEREF(__pyx_t_6); PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_t_6); __pyx_t_6 = NULL;
       __Pyx_GIVEREF(__pyx_t_4);
       PyTuple_SET_ITEM(__pyx_t_7, 0+1, __pyx_t_4);
       __pyx_t_4 = 0;
-      __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_7, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 525, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_7, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 519, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     }
@@ -12066,65 +12066,65 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
   __pyx_v_I0 = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "EightBitTransit/cGridFunctions.pyx":527
+  /* "EightBitTransit/cGridFunctions.pyx":521
  * 	I0 = np.zeros(n)
  * 
  * 	for i in range(0,n):             # <<<<<<<<<<<<<<
  * 		S = (x[i]**2 + y[i]**2)**0.5 #distance from stellar center
- * 		am = (S - r)**2 #inner part of annulus
+ * 		am = (S - r)**2 #inner part of annulus, centered at stellar center, which contains this pixel
  */
   __pyx_t_8 = __pyx_v_n;
   for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
     __pyx_v_i = __pyx_t_9;
 
-    /* "EightBitTransit/cGridFunctions.pyx":528
+    /* "EightBitTransit/cGridFunctions.pyx":522
  * 
  * 	for i in range(0,n):
  * 		S = (x[i]**2 + y[i]**2)**0.5 #distance from stellar center             # <<<<<<<<<<<<<<
- * 		am = (S - r)**2 #inner part of annulus
- * 		bm = (S + r)**2 #outer part of annulus
+ * 		am = (S - r)**2 #inner part of annulus, centered at stellar center, which contains this pixel
+ * 		bm = (S + r)**2 #outer part of annulus, centered at stellar center, which contains this pixel
  */
-    __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_x, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 528, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_x, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 522, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_5 = PyNumber_Power(__pyx_t_3, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 528, __pyx_L1_error)
+    __pyx_t_5 = PyNumber_Power(__pyx_t_3, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 522, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_y, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 528, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_y, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 522, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_7 = PyNumber_Power(__pyx_t_3, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 528, __pyx_L1_error)
+    __pyx_t_7 = PyNumber_Power(__pyx_t_3, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 522, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_3 = PyNumber_Add(__pyx_t_5, __pyx_t_7); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 528, __pyx_L1_error)
+    __pyx_t_3 = PyNumber_Add(__pyx_t_5, __pyx_t_7); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 522, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-    __pyx_t_7 = PyNumber_Power(__pyx_t_3, __pyx_float_0_5, Py_None); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 528, __pyx_L1_error)
+    __pyx_t_7 = PyNumber_Power(__pyx_t_3, __pyx_float_0_5, Py_None); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 522, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_1 = __pyx_PyFloat_AsDouble(__pyx_t_7); if (unlikely((__pyx_t_1 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 528, __pyx_L1_error)
+    __pyx_t_1 = __pyx_PyFloat_AsDouble(__pyx_t_7); if (unlikely((__pyx_t_1 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 522, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     __pyx_v_S = __pyx_t_1;
 
-    /* "EightBitTransit/cGridFunctions.pyx":529
+    /* "EightBitTransit/cGridFunctions.pyx":523
  * 	for i in range(0,n):
  * 		S = (x[i]**2 + y[i]**2)**0.5 #distance from stellar center
- * 		am = (S - r)**2 #inner part of annulus             # <<<<<<<<<<<<<<
- * 		bm = (S + r)**2 #outer part of annulus
+ * 		am = (S - r)**2 #inner part of annulus, centered at stellar center, which contains this pixel             # <<<<<<<<<<<<<<
+ * 		bm = (S + r)**2 #outer part of annulus, centered at stellar center, which contains this pixel
  * 
  */
     __pyx_v_am = pow((__pyx_v_S - __pyx_v_r), 2.0);
 
-    /* "EightBitTransit/cGridFunctions.pyx":530
+    /* "EightBitTransit/cGridFunctions.pyx":524
  * 		S = (x[i]**2 + y[i]**2)**0.5 #distance from stellar center
- * 		am = (S - r)**2 #inner part of annulus
- * 		bm = (S + r)**2 #outer part of annulus             # <<<<<<<<<<<<<<
+ * 		am = (S - r)**2 #inner part of annulus, centered at stellar center, which contains this pixel
+ * 		bm = (S + r)**2 #outer part of annulus, centered at stellar center, which contains this pixel             # <<<<<<<<<<<<<<
  * 
  * 		amR = (1. - am)**0.25
  */
     __pyx_v_bm = pow((__pyx_v_S + __pyx_v_r), 2.0);
 
-    /* "EightBitTransit/cGridFunctions.pyx":532
- * 		bm = (S + r)**2 #outer part of annulus
+    /* "EightBitTransit/cGridFunctions.pyx":526
+ * 		bm = (S + r)**2 #outer part of annulus, centered at stellar center, which contains this pixel
  * 
  * 		amR = (1. - am)**0.25             # <<<<<<<<<<<<<<
  * 		bmR = (1. - bm)**0.25
@@ -12132,17 +12132,17 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
     __pyx_v_amR = pow((1. - __pyx_v_am), 0.25);
 
-    /* "EightBitTransit/cGridFunctions.pyx":533
+    /* "EightBitTransit/cGridFunctions.pyx":527
  * 
  * 		amR = (1. - am)**0.25
  * 		bmR = (1. - bm)**0.25             # <<<<<<<<<<<<<<
  * 
- * 		#S[i] = np.sqrt(x[i]**2 + y[i]**2) #distance from stellar center
+ * 		if S > (1. + r): #case I: pixel is outside of stellar disk
  */
     __pyx_v_bmR = pow((1. - __pyx_v_bm), 0.25);
 
-    /* "EightBitTransit/cGridFunctions.pyx":542
- * 		#bmR[i] = np.sqrt(np.sqrt(1. - bm[i]))
+    /* "EightBitTransit/cGridFunctions.pyx":529
+ * 		bmR = (1. - bm)**0.25
  * 
  * 		if S > (1. + r): #case I: pixel is outside of stellar disk             # <<<<<<<<<<<<<<
  * 			Ar_ann = 0.
@@ -12151,7 +12151,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     __pyx_t_10 = ((__pyx_v_S > (1. + __pyx_v_r)) != 0);
     if (__pyx_t_10) {
 
-      /* "EightBitTransit/cGridFunctions.pyx":543
+      /* "EightBitTransit/cGridFunctions.pyx":530
  * 
  * 		if S > (1. + r): #case I: pixel is outside of stellar disk
  * 			Ar_ann = 0.             # <<<<<<<<<<<<<<
@@ -12160,7 +12160,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Ar_ann = 0.;
 
-      /* "EightBitTransit/cGridFunctions.pyx":544
+      /* "EightBitTransit/cGridFunctions.pyx":531
  * 		if S > (1. + r): #case I: pixel is outside of stellar disk
  * 			Ar_ann = 0.
  * 			Fl_ann = 0.             # <<<<<<<<<<<<<<
@@ -12169,17 +12169,17 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Fl_ann = 0.;
 
-      /* "EightBitTransit/cGridFunctions.pyx":545
+      /* "EightBitTransit/cGridFunctions.pyx":532
  * 			Ar_ann = 0.
  * 			Fl_ann = 0.
  * 			I0[i] = 0.             # <<<<<<<<<<<<<<
  * 
  * 		elif (S > r) and (S < (1.-r)): #case III: pixel fully overlaps stellar disk
  */
-      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_float_0_, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 545, __pyx_L1_error)
+      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_float_0_, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 532, __pyx_L1_error)
 
-      /* "EightBitTransit/cGridFunctions.pyx":542
- * 		#bmR[i] = np.sqrt(np.sqrt(1. - bm[i]))
+      /* "EightBitTransit/cGridFunctions.pyx":529
+ * 		bmR = (1. - bm)**0.25
  * 
  * 		if S > (1. + r): #case I: pixel is outside of stellar disk             # <<<<<<<<<<<<<<
  * 			Ar_ann = 0.
@@ -12188,7 +12188,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
       goto __pyx_L5;
     }
 
-    /* "EightBitTransit/cGridFunctions.pyx":547
+    /* "EightBitTransit/cGridFunctions.pyx":534
  * 			I0[i] = 0.
  * 
  * 		elif (S > r) and (S < (1.-r)): #case III: pixel fully overlaps stellar disk             # <<<<<<<<<<<<<<
@@ -12206,7 +12206,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     __pyx_L6_bool_binop_done:;
     if (__pyx_t_10) {
 
-      /* "EightBitTransit/cGridFunctions.pyx":548
+      /* "EightBitTransit/cGridFunctions.pyx":535
  * 
  * 		elif (S > r) and (S < (1.-r)): #case III: pixel fully overlaps stellar disk
  * 			Ar_ann = pi*(bm - am)             # <<<<<<<<<<<<<<
@@ -12215,50 +12215,50 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Ar_ann = (__pyx_v_pi * (__pyx_v_bm - __pyx_v_am));
 
-      /* "EightBitTransit/cGridFunctions.pyx":549
+      /* "EightBitTransit/cGridFunctions.pyx":536
  * 		elif (S > r) and (S < (1.-r)): #case III: pixel fully overlaps stellar disk
  * 			Ar_ann = pi*(bm - am)
  * 			Fl_ann = (am - bm)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 + (4./7.)*c3*amR**7 + 0.5*c4*amR**8 - 0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 -(4./7.)*c3*bmR**7 - 0.5*c4*bmR**8             # <<<<<<<<<<<<<<
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
- * 
+ * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux at center)
  */
       __pyx_v_Fl_ann = ((((((((((__pyx_v_am - __pyx_v_bm) * ((((__pyx_v_c1 + __pyx_v_c2) + __pyx_v_c3) + __pyx_v_c4) - 1.)) + ((0.8 * __pyx_v_c1) * pow(__pyx_v_amR, 5.0))) + (((2. / 3.) * __pyx_v_c2) * pow(__pyx_v_amR, 6.0))) + (((4. / 7.) * __pyx_v_c3) * pow(__pyx_v_amR, 7.0))) + ((0.5 * __pyx_v_c4) * pow(__pyx_v_amR, 8.0))) - ((0.8 * __pyx_v_c1) * pow(__pyx_v_bmR, 5.0))) - (((2. / 3.) * __pyx_v_c2) * pow(__pyx_v_bmR, 6.0))) - (((4. / 7.) * __pyx_v_c3) * pow(__pyx_v_bmR, 7.0))) - ((0.5 * __pyx_v_c4) * pow(__pyx_v_bmR, 8.0)));
 
-      /* "EightBitTransit/cGridFunctions.pyx":550
+      /* "EightBitTransit/cGridFunctions.pyx":537
  * 			Ar_ann = pi*(bm - am)
  * 			Fl_ann = (am - bm)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 + (4./7.)*c3*amR**7 + 0.5*c4*amR**8 - 0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 -(4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)             # <<<<<<<<<<<<<<
- * 
- * 		elif (S < r): #case IV: pixel is very close to stellar center
+ * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux at center)
+ * 			# I think this is the "effective area" of the pixel for the purposes of inversion with non-uniform LD
  */
-      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 550, __pyx_L1_error)
+      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 537, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
-      __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 550, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 537, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 550, __pyx_L1_error)
+      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 537, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_4 = __Pyx_PyNumber_Divide(__pyx_t_3, __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 550, __pyx_L1_error)
+      __pyx_t_4 = __Pyx_PyNumber_Divide(__pyx_t_3, __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 537, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 550, __pyx_L1_error)
+      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 537, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       if (unlikely(__pyx_v_Ftot == 0)) {
         PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-        __PYX_ERR(0, 550, __pyx_L1_error)
+        __PYX_ERR(0, 537, __pyx_L1_error)
       }
-      __pyx_t_4 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 550, __pyx_L1_error)
+      __pyx_t_4 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 537, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 550, __pyx_L1_error)
+      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 537, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 550, __pyx_L1_error)
+      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 537, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-      /* "EightBitTransit/cGridFunctions.pyx":547
+      /* "EightBitTransit/cGridFunctions.pyx":534
  * 			I0[i] = 0.
  * 
  * 		elif (S > r) and (S < (1.-r)): #case III: pixel fully overlaps stellar disk             # <<<<<<<<<<<<<<
@@ -12268,27 +12268,27 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
       goto __pyx_L5;
     }
 
-    /* "EightBitTransit/cGridFunctions.pyx":552
- * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
- * 
+    /* "EightBitTransit/cGridFunctions.pyx":540
+ * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux at center)
+ * 			# I think this is the "effective area" of the pixel for the purposes of inversion with non-uniform LD
  * 		elif (S < r): #case IV: pixel is very close to stellar center             # <<<<<<<<<<<<<<
- * 			#if np.isnan(bmR[i]):
- * 				#print "case IV problem! bmR is nan"
+ * 			Ar_ann = pi*bm
+ * 			Fl_ann = -1.*bm*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1 + (2./3.)*c2 + (4./7.)*c3 + 0.5*c4 -0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 - (4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
  */
     __pyx_t_10 = ((__pyx_v_S < __pyx_v_r) != 0);
     if (__pyx_t_10) {
 
-      /* "EightBitTransit/cGridFunctions.pyx":556
- * 				#print "case IV problem! bmR is nan"
- * 
+      /* "EightBitTransit/cGridFunctions.pyx":541
+ * 			# I think this is the "effective area" of the pixel for the purposes of inversion with non-uniform LD
+ * 		elif (S < r): #case IV: pixel is very close to stellar center
  * 			Ar_ann = pi*bm             # <<<<<<<<<<<<<<
  * 			Fl_ann = -1.*bm*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1 + (2./3.)*c2 + (4./7.)*c3 + 0.5*c4 -0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 - (4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
  */
       __pyx_v_Ar_ann = (__pyx_v_pi * __pyx_v_bm);
 
-      /* "EightBitTransit/cGridFunctions.pyx":557
- * 
+      /* "EightBitTransit/cGridFunctions.pyx":542
+ * 		elif (S < r): #case IV: pixel is very close to stellar center
  * 			Ar_ann = pi*bm
  * 			Fl_ann = -1.*bm*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1 + (2./3.)*c2 + (4./7.)*c3 + 0.5*c4 -0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 - (4./7.)*c3*bmR**7 - 0.5*c4*bmR**8             # <<<<<<<<<<<<<<
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
@@ -12296,53 +12296,53 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Fl_ann = ((((((((((-1. * __pyx_v_bm) * ((((__pyx_v_c1 + __pyx_v_c2) + __pyx_v_c3) + __pyx_v_c4) - 1.)) + (0.8 * __pyx_v_c1)) + ((2. / 3.) * __pyx_v_c2)) + ((4. / 7.) * __pyx_v_c3)) + (0.5 * __pyx_v_c4)) - ((0.8 * __pyx_v_c1) * pow(__pyx_v_bmR, 5.0))) - (((2. / 3.) * __pyx_v_c2) * pow(__pyx_v_bmR, 6.0))) - (((4. / 7.) * __pyx_v_c3) * pow(__pyx_v_bmR, 7.0))) - ((0.5 * __pyx_v_c4) * pow(__pyx_v_bmR, 8.0)));
 
-      /* "EightBitTransit/cGridFunctions.pyx":558
+      /* "EightBitTransit/cGridFunctions.pyx":543
  * 			Ar_ann = pi*bm
  * 			Fl_ann = -1.*bm*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1 + (2./3.)*c2 + (4./7.)*c3 + 0.5*c4 -0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 - (4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)             # <<<<<<<<<<<<<<
  * 
  * 
  */
-      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 558, __pyx_L1_error)
+      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 543, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
-      __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 558, __pyx_L1_error)
+      __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 543, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 558, __pyx_L1_error)
+      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 543, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_3 = __Pyx_PyNumber_Divide(__pyx_t_4, __pyx_t_5); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 558, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyNumber_Divide(__pyx_t_4, __pyx_t_5); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 543, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 558, __pyx_L1_error)
+      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 543, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       if (unlikely(__pyx_v_Ftot == 0)) {
         PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-        __PYX_ERR(0, 558, __pyx_L1_error)
+        __PYX_ERR(0, 543, __pyx_L1_error)
       }
-      __pyx_t_3 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 558, __pyx_L1_error)
+      __pyx_t_3 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 543, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 558, __pyx_L1_error)
+      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 543, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 558, __pyx_L1_error)
+      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 543, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-      /* "EightBitTransit/cGridFunctions.pyx":552
- * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
- * 
+      /* "EightBitTransit/cGridFunctions.pyx":540
+ * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux at center)
+ * 			# I think this is the "effective area" of the pixel for the purposes of inversion with non-uniform LD
  * 		elif (S < r): #case IV: pixel is very close to stellar center             # <<<<<<<<<<<<<<
- * 			#if np.isnan(bmR[i]):
- * 				#print "case IV problem! bmR is nan"
+ * 			Ar_ann = pi*bm
+ * 			Fl_ann = -1.*bm*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1 + (2./3.)*c2 + (4./7.)*c3 + 0.5*c4 -0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 - (4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
  */
       goto __pyx_L5;
     }
 
-    /* "EightBitTransit/cGridFunctions.pyx":565
- * 				#print "case II problem! amR is nan"
+    /* "EightBitTransit/cGridFunctions.pyx":547
  * 
+ * 		else: #if S[i] > (1.-r) and S[i] < (1.+r), case II: pixel overlaps edge of stellar disk
  * 			Ar_ann = pi*(1.-am)             # <<<<<<<<<<<<<<
  * 			Fl_ann = (am - 1.)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 +(4./7.)*c3*amR**7 + 0.5*c4*amR**8
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
@@ -12350,8 +12350,8 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     /*else*/ {
       __pyx_v_Ar_ann = (__pyx_v_pi * (1. - __pyx_v_am));
 
-      /* "EightBitTransit/cGridFunctions.pyx":566
- * 
+      /* "EightBitTransit/cGridFunctions.pyx":548
+ * 		else: #if S[i] > (1.-r) and S[i] < (1.+r), case II: pixel overlaps edge of stellar disk
  * 			Ar_ann = pi*(1.-am)
  * 			Fl_ann = (am - 1.)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 +(4./7.)*c3*amR**7 + 0.5*c4*amR**8             # <<<<<<<<<<<<<<
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
@@ -12359,44 +12359,44 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  */
       __pyx_v_Fl_ann = ((((((__pyx_v_am - 1.) * ((((__pyx_v_c1 + __pyx_v_c2) + __pyx_v_c3) + __pyx_v_c4) - 1.)) + ((0.8 * __pyx_v_c1) * pow(__pyx_v_amR, 5.0))) + (((2. / 3.) * __pyx_v_c2) * pow(__pyx_v_amR, 6.0))) + (((4. / 7.) * __pyx_v_c3) * pow(__pyx_v_amR, 7.0))) + ((0.5 * __pyx_v_c4) * pow(__pyx_v_amR, 8.0)));
 
-      /* "EightBitTransit/cGridFunctions.pyx":567
+      /* "EightBitTransit/cGridFunctions.pyx":549
  * 			Ar_ann = pi*(1.-am)
  * 			Fl_ann = (am - 1.)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 +(4./7.)*c3*amR**7 + 0.5*c4*amR**8
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)             # <<<<<<<<<<<<<<
  * 
  * 
  */
-      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 567, __pyx_L1_error)
+      __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 549, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
-      __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 567, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_Ar_occ, __pyx_v_i, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 549, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 567, __pyx_L1_error)
+      __pyx_t_5 = PyFloat_FromDouble(__pyx_v_Ar_ann); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 549, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_4 = __Pyx_PyNumber_Divide(__pyx_t_3, __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 567, __pyx_L1_error)
+      __pyx_t_4 = __Pyx_PyNumber_Divide(__pyx_t_3, __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 549, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 567, __pyx_L1_error)
+      __pyx_t_5 = PyNumber_Multiply(__pyx_t_7, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 549, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       if (unlikely(__pyx_v_Ftot == 0)) {
         PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-        __PYX_ERR(0, 567, __pyx_L1_error)
+        __PYX_ERR(0, 549, __pyx_L1_error)
       }
-      __pyx_t_4 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 567, __pyx_L1_error)
+      __pyx_t_4 = PyFloat_FromDouble((__pyx_v_Fl_ann / __pyx_v_Ftot)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 549, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 567, __pyx_L1_error)
+      __pyx_t_7 = PyNumber_Multiply(__pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 549, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 567, __pyx_L1_error)
+      if (unlikely(__Pyx_SetItemInt(__pyx_v_I0, __pyx_v_i, __pyx_t_7, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) __PYX_ERR(0, 549, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     }
     __pyx_L5:;
   }
 
-  /* "EightBitTransit/cGridFunctions.pyx":570
+  /* "EightBitTransit/cGridFunctions.pyx":552
  * 
  * 
  * 	return I0             # <<<<<<<<<<<<<<
