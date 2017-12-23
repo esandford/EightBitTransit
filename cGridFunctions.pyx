@@ -66,7 +66,7 @@ def pixelate_image(imfile, nside, method='mode', rounding=False):
 	imgrid = imgrid[:,:,0:3]
 	if nside is None:
 		#print np.shape(imgrid[:,:,0])
-		tau = np.ones_like(imgrid[:,:,0]) - np.round(np.sqrt((np.sum((imgrid/256.)**2,axis=2))/3.))
+		tau = np.ones_like(imgrid[:,:,0]) - (np.sqrt((np.sum((imgrid/256.)**2,axis=2))/3.))
 		#return tau
 	else:
 		imshape = np.shape(imgrid[:,:,0])
@@ -89,7 +89,7 @@ def pixelate_image(imfile, nside, method='mode', rounding=False):
 		
 		mside = int(np.round((imshape[1]*nside)/float(imshape[0])))
 		
-		tau_orig = np.ones_like(imgrid[:,:,0]) - np.round(np.sqrt((np.sum((imgrid/256.)**2,axis=2))/3.))
+		tau_orig = np.ones_like(imgrid[:,:,0]) - (np.sqrt((np.sum((imgrid/256.)**2,axis=2))/3.))
 		tau_orig_pos = positions(n=imshape[0],m=imshape[1],t=np.atleast_1d(np.array((0))),tref=0,v=0)[0]
 		
 		w = 2./imshape[0]
