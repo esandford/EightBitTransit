@@ -12116,7 +12116,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  * 			Ar_ann = pi*(bm - am)
  * 			Fl_ann = (am - bm)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 + (4./7.)*c3*amR**7 + 0.5*c4*amR**8 - 0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 -(4./7.)*c3*bmR**7 - 0.5*c4*bmR**8             # <<<<<<<<<<<<<<
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
- * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux at center)
+ * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux of whole star)
  */
       __pyx_v_Fl_ann = ((((((((((__pyx_v_am - __pyx_v_bm) * ((((__pyx_v_c1 + __pyx_v_c2) + __pyx_v_c3) + __pyx_v_c4) - 1.)) + ((0.8 * __pyx_v_c1) * pow(__pyx_v_amR, 5.0))) + (((2. / 3.) * __pyx_v_c2) * pow(__pyx_v_amR, 6.0))) + (((4. / 7.) * __pyx_v_c3) * pow(__pyx_v_amR, 7.0))) + ((0.5 * __pyx_v_c4) * pow(__pyx_v_amR, 8.0))) - ((0.8 * __pyx_v_c1) * pow(__pyx_v_bmR, 5.0))) - (((2. / 3.) * __pyx_v_c2) * pow(__pyx_v_bmR, 6.0))) - (((4. / 7.) * __pyx_v_c3) * pow(__pyx_v_bmR, 7.0))) - ((0.5 * __pyx_v_c4) * pow(__pyx_v_bmR, 8.0)));
 
@@ -12124,7 +12124,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
  * 			Ar_ann = pi*(bm - am)
  * 			Fl_ann = (am - bm)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 + (4./7.)*c3*amR**7 + 0.5*c4*amR**8 - 0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 -(4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
  * 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)             # <<<<<<<<<<<<<<
- * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux at center)
+ * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux of whole star)
  * 			# I think this is the "effective area" of the pixel for the purposes of inversion with non-uniform LD
  */
       __pyx_t_7 = PyFloat_FromDouble(__pyx_v_pi); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 537, __pyx_L1_error)
@@ -12165,7 +12165,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
     }
 
     /* "EightBitTransit/cGridFunctions.pyx":540
- * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux at center)
+ * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux of whole star)
  * 			# I think this is the "effective area" of the pixel for the purposes of inversion with non-uniform LD
  * 		elif (S < r): #case IV: pixel is very close to stellar center             # <<<<<<<<<<<<<<
  * 			Ar_ann = pi*bm
@@ -12227,7 +12227,7 @@ static PyObject *__pyx_f_15EightBitTransit_14cGridFunctions_LDfluxsmall(PyObject
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
       /* "EightBitTransit/cGridFunctions.pyx":540
- * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux at center)
+ * 			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux of whole star)
  * 			# I think this is the "effective area" of the pixel for the purposes of inversion with non-uniform LD
  * 		elif (S < r): #case IV: pixel is very close to stellar center             # <<<<<<<<<<<<<<
  * 			Ar_ann = pi*bm

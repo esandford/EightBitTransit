@@ -1017,6 +1017,8 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial, filename, LDlaw="un
     # Run simultaneous ART according to user's choice of initial grid.
     if initstate=="uniform":  
         raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
+    elif initstate=="empty":
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.zeros((N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
     elif initstate=="random":
         raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
     elif initstate=="lowrestriangle":

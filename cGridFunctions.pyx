@@ -535,7 +535,7 @@ cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, d
 			Ar_ann = pi*(bm - am)
 			Fl_ann = (am - bm)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 + (4./7.)*c3*amR**7 + 0.5*c4*amR**8 - 0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 -(4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
-			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux at center)
+			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux of whole star)
 			# I think this is the "effective area" of the pixel for the purposes of inversion with non-uniform LD
 		elif (S < r): #case IV: pixel is very close to stellar center
 			Ar_ann = pi*bm		
