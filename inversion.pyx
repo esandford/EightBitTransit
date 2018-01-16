@@ -37,7 +37,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
         np.ndarray[np.double_t, ndim=1] testLC1d=np.zeros_like(obsLC)
         np.ndarray[np.double_t, ndim=2] Asquare=np.zeros((len(tau),len(tau)))
         np.ndarray[np.double_t, ndim=1] origRHS=np.zeros(len(obsLC))
-        np.ndarray[np.double_t, ndim=1] windowarr=np.ones_like(np.ravel(tau_init))
+        np.ndarray[np.double_t, ndim=1] windowarr=np.ones_like(tau, dtype=float)
         int q, N, M, tau_entry, entry_idx
         double outer_numerator, outer_denominator, inner_numerator, inner_denominator, testRMS
         list RMSs, taus, tau_updates
@@ -81,7 +81,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
 
             for i in range(0, np.shape(Asquare)[0]):
                 inner_denominator = np.sum(Asquare[i])
-                inner_numerator = (RHS[i] - np.dot(Asquare[i], tau)) * Asquare[i,j] * window[i]
+                inner_numerator = (RHS[i] - np.dot(Asquare[i], tau)) * Asquare[i,j] * windowarr[i]
                 outer_numerator = outer_numerator + (inner_numerator/inner_denominator)
             
             tau_update[j] = (outer_numerator/outer_denominator)
