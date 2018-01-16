@@ -15,7 +15,7 @@ __all__ = ['simultaneous_ART', 'wedgeRearrange','wedgeNegativeEdge', 'wedgeOptim
 
 cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_init, 
     np.ndarray[double, ndim=2] A, np.ndarray[double, ndim=1] obsLC, np.ndarray[double, ndim=1] obsLCerr, 
-    double reg, bint threshold, str filename):
+    double reg, bint threshold, str filename, str window):
     """
     Use the algebraic reconstruction technique to solve the system A*tau = np.ones_like(obsLC) - obsLC.
     
@@ -37,6 +37,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
         np.ndarray[np.double_t, ndim=1] testLC1d=np.zeros_like(obsLC)
         np.ndarray[np.double_t, ndim=2] Asquare=np.zeros((len(tau),len(tau)))
         np.ndarray[np.double_t, ndim=1] origRHS=np.zeros(len(obsLC))
+        np.ndarray[np.double_t, ndim=1] windowarr=np.ones_like(tau_init)
         int q, N, M, tau_entry, entry_idx
         double outer_numerator, outer_denominator, inner_numerator, inner_denominator, testRMS
         list RMSs, taus, tau_updates
@@ -61,6 +62,15 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     taus.append(tau)
     tau_updates = []
     tau_updates.append(np.zeros_like(tau))
+
+    if window=="none" or window=="None" or window is None:
+        pass
+    elif window=="hann":
+        for n in range(0,len(windowarr)):
+            windowarr[n] = 0.5*(1.-np.cos((2.*np.pi*n)/(len(windowarr)-1)))
+    elif window=="hamming":
+        for n in range(0,len(windowarr)):
+            windowarr[n] = 0.54 - 0.46*np.cos((2.*np.pi*n)/(len(windowarr)-1))
     
     for q in range(0, n_iter):
         tau_update = np.zeros_like(tau, dtype=float)
@@ -71,7 +81,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
 
             for i in range(0, np.shape(Asquare)[0]):
                 inner_denominator = np.sum(Asquare[i])
-                inner_numerator = (RHS[i] - np.dot(Asquare[i], tau)) * Asquare[i,j]
+                inner_numerator = (RHS[i] - np.dot(Asquare[i], tau)) * Asquare[i,j] * window[i]
                 outer_numerator = outer_numerator + (inner_numerator/inner_denominator)
             
             tau_update[j] = (outer_numerator/outer_denominator)
@@ -953,7 +963,7 @@ def round_ART(ARTsoln):
     roundedtau=np.abs(roundedtau)
     return roundedtau
 
-def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial, filename, LDlaw="uniform",LDCs=[],fac=0.001,RMSstop=1.e-6, n_iter=0, WR=True, WO=True, initstate="uniform",reg=0.,threshold=False):
+def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial, filename, window=None, LDlaw="uniform",LDCs=[],fac=0.001,RMSstop=1.e-6, n_iter=0, WR=True, WO=True, initstate="uniform",reg=0.,threshold=False):
     """
     Run the following algorithms in sequence:
         - Simultaneous ART
@@ -1016,16 +1026,16 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial, filename, LDlaw="un
     
     # Run simultaneous ART according to user's choice of initial grid.
     if initstate=="uniform":  
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
     elif initstate=="empty":
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.zeros((N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.zeros((N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
     elif initstate=="random":
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
     elif initstate=="lowrestriangle":
         lowrestriangle_init = np.load("//Users/Emily/Documents/Columbia/lightcurve_imaging/lowrestriangle_init.npy")
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
     else: #allow for user to input an initial state matrix
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=initstate, A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=initstate, A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
 
     raveledtau = np.reshape(raveledtau,(N,M))
     raveledtau = np.round(raveledtau,2)
