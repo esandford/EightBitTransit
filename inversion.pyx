@@ -64,7 +64,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     tau_updates.append(np.zeros_like(tau))
 
     if window=="none" or window=="None" or window is None:
-        pass
+        pass 
     elif window=="hann":
         for n in range(0,len(windowarr)):
             windowarr[n] = 0.5*(1.-np.cos((2.*np.pi*n)/(len(windowarr)-1)))
@@ -1024,20 +1024,44 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial, filename, window=No
     #     raveledtau = ART_normal(tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, mirrored=False, RMSstop=RMSstop, reg=0.)
             
     
+    #take only half of area matrix to avoid dealing with flip degeneracy
+    if (N>1) & (N%2 == 0):
+        Nhalf = int(N/2)
+    elif (N>1) & (N%2 != 0):
+        Nhalf = int((N-1)/2 + 1)
+    
+    halfAreas = raveledareas[:,0:(Nhalf*M)]
+    
     # Run simultaneous ART according to user's choice of initial grid.
     if initstate=="uniform":  
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((Nhalf,M)), A=halfAreas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
     elif initstate=="empty":
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.zeros((N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.zeros((Nhalf,M)), A=halfAreas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
     elif initstate=="random":
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(N,M)), A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
-    elif initstate=="lowrestriangle":
-        lowrestriangle_init = np.load("//Users/Emily/Documents/Columbia/lightcurve_imaging/lowrestriangle_init.npy")
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=lowrestriangle_init, A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=np.random.uniform(0.,1.,(Nhalf,M)), A=halfAreas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
     else: #allow for user to input an initial state matrix
-        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=initstate, A=raveledareas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
-
-    raveledtau = np.reshape(raveledtau,(N,M))
+        initstateHalf = copy.deepcopy(initstate)[0:Nhalf,:]
+        initstateHalf = np.ravel(initstateHalf)
+        raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=initstateHalf, A=halfAreas, obsLC=obsLC, obsLCerr=obsLCerr, reg=reg, threshold=threshold, filename=filename,window=window)
+    
+    
+    if (N>1) & (N%2 == 0): #N even
+        #raveledtau = top pixels only 
+        raveledtauHalf = np.reshape(copy.deepcopy(raveledtau), (N/2, M))
+        raveledtau = np.zeros((N, M))
+        raveledtau[0:int(N/2)] = raveledtauHalf
+        for rowIdx in np.arange(N-1, int(N/2), -1):
+            raveledtau[rowIdx] = raveledtauHalf[N - rowIdx]
+            
+    elif (N>1) & (N%2 != 0):
+        #raveledtau = top pixels + 1 row only 
+        raveledtauHalf = np.reshape(copy.deepcopy(raveledtau), (int((N-1)/2 + 1), M))
+        raveledtau = np.zeros((N, M))
+        raveledtau[0:int((N-1)/2 + 1)] = raveledtauHalf
+        for rowIdx in np.arange(N-1, int((N-1)/2), -1):
+            raveledtau[rowIdx] = raveledtauHalf[N - rowIdx]
+    
+    raveledtau = raveledtau/2.
     raveledtau = np.round(raveledtau,2)
                                              
     bestWOCost = np.inf
