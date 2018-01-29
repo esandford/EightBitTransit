@@ -1046,20 +1046,20 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial, filename, window=No
     
     
     if (N>1) & (N%2 == 0): #N even
-        #raveledtau = top pixels only 
-        raveledtauHalf = np.reshape(copy.deepcopy(raveledtau), (N/2, M))
+    #raveledtau = top pixels only 
+        raveledtauHalf = np.reshape(copy.deepcopy(tauArr[-1]), (int(N/2), M))
         raveledtau = np.zeros((N, M))
         raveledtau[0:int(N/2)] = raveledtauHalf
-        for rowIdx in np.arange(N-1, int(N/2), -1):
-            raveledtau[rowIdx] = raveledtauHalf[N - rowIdx]
+        for rowIdx in np.arange(N-1, int(N/2) - 1, -1):
+            raveledtau[rowIdx] = raveledtauHalf[N - rowIdx - 1]
             
     elif (N>1) & (N%2 != 0):
         #raveledtau = top pixels + 1 row only 
-        raveledtauHalf = np.reshape(copy.deepcopy(raveledtau), (int((N-1)/2 + 1), M))
+        raveledtauHalf = np.reshape(copy.deepcopy(tauArr[-1]), (int((N-1)/2 + 1), M))
         raveledtau = np.zeros((N, M))
         raveledtau[0:int((N-1)/2 + 1)] = raveledtauHalf
         for rowIdx in np.arange(N-1, int((N-1)/2), -1):
-            raveledtau[rowIdx] = raveledtauHalf[N - rowIdx]
+            raveledtau[rowIdx] = raveledtauHalf[N - rowIdx - 1]
     
     raveledtau = raveledtau/2.
     raveledtau = np.round(raveledtau,2)
