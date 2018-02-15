@@ -10,8 +10,30 @@ from .cTransitingImage import *
 from .cGridFunctions import *
 from .misc import *
 
-__all__ = ['simultaneous_ART', 'wedgeRearrange','wedgeNegativeEdge', 'wedgeOptimize_sym',
+__all__ = ['discreteFourierTransform_2D','inverseDiscreteFourierTransform_2D','Gaussian2D_PDF','simultaneous_ART', 'wedgeRearrange','wedgeNegativeEdge', 'wedgeOptimize_sym',
 'foldOpacities','round_ART','invertLC']
+#define 2D discrete fourier transform and 2D inverse discrete fourier transform
+
+def discreteFourierTransform_2D(matrix):
+    """
+    Return the 2D discrete Fourier transform of a matrix.
+    """
+    return np.fft.fft2(matrix)
+
+def inverseDiscreteFourierTransform_2D(matrix):
+    """
+    Return the inverse discrete Fourier transform of matrix in frequency space ("matrix").
+    """
+    return np.fft.ifft2(matrix)
+
+def Gaussian2D_PDF(xVec, muVec, sigmaMatrix):
+    """
+    Return the value of the PDF of the multivariate normal at the position vector xVec.
+    """
+    sigmaDet = np.linalg.det(sigmaMatrix)
+    sigmaInv = np.linalg.inv(sigmaMatrix)
+    
+    return np.exp(-0.5 * np.dot((xVec-muVec).T, np.dot(sigmaInv, (xVec - muVec))))/np.sqrt((2.*np.pi)**2 * sigmaDet)
 
 cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_init, 
     np.ndarray[double, ndim=2] A, np.ndarray[double, ndim=1] obsLC, np.ndarray[double, ndim=1] obsLCerr, 
@@ -29,7 +51,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     tau = opacity vector
     """
     cdef:
-        np.ndarray[np.double_t, ndim=1] tau=np.ravel(tau_init)
+        np.ndarray[np.double_t, ndim=1] tau=np.ravel(tau_init) #tau_init = (Nhalf, M)
         np.ndarray[np.double_t, ndim=1] RHS
         np.ndarray[np.double_t, ndim=1] tau_update=np.zeros_like(tau, dtype=float)
         np.ndarray[np.double_t, ndim=2] testtau=np.zeros_like(tau_init)
@@ -38,6 +60,11 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
         np.ndarray[np.double_t, ndim=2] Asquare=np.zeros((len(tau),len(tau)))
         np.ndarray[np.double_t, ndim=1] origRHS=np.zeros(len(obsLC))
         np.ndarray[np.double_t, ndim=1] windowarr=np.ones_like(tau, dtype=float)
+
+        np.ndarray[np.double_t, ndim=2] windowarr2D=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
+        np.ndarray[np.double_t, ndim=2] SART_zeropadded=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
+        np.ndarray[np.double_t, ndim=2] truth_zeropadded=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
+        
         int q, N, M, tau_entry, entry_idx
         double outer_numerator, outer_denominator, inner_numerator, inner_denominator, testRMS
         list RMSs, taus, tau_updates
@@ -72,6 +99,15 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
         for n in range(0,len(windowarr)):
             windowarr[n] = 0.54 - 0.46*np.cos((2.*np.pi*n)/(len(windowarr)-1))
     
+    elif window=="2DGaussian":
+        jmid = (M-1)/2.
+        w = 2./(2*N)
+        for i in range(0,N*4-1):
+            for j in range(0,M*2-1):
+                x = (j-jmid)*w
+                y = 1. - (w/2.) - i*w
+                windowarr2D[i,j] = 0.025*Gaussian2D_PDF(np.array((x,y)), np.array((0.,0.)), 0.1*np.eye(2))
+    
     for q in range(0, n_iter):
         tau_update = np.zeros_like(tau, dtype=float)
         
@@ -87,6 +123,14 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
             tau_update[j] = (outer_numerator/outer_denominator)
             
         tau = tau + tau_update
+        
+        if window == '2DGaussian':
+            Nquarter = 4*N / 4
+            Mquarter = 2*M / 4
+            SART_zeropadded[Nquarter:Nquarter+N,Mquarter:Mquarter+M] = tau.reshape(N,M)
+            SART_zeropadded[Nquarter+N:Nquarter+(2*N),Mquarter:Mquarter+M] = tau.reshape(N,M)[::-1,:]
+            truth_zeropadded = np.fft.fftshift(inverseDiscreteFourierTransform_2D(discreteFourierTransform_2D(SART_zeropadded)/discreteFourierTransform_2D(windowarr2D))).real
+            tau = np.ravel(truth_zeropadded[Nquarter:Nquarter+(N*2),Mquarter:Mquarter+M][0:N,:]) #cut in half again, then ravel
 
         if threshold is True:
             for entry_idx in range(0,len(tau)):
@@ -117,7 +161,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     taus_arr = np.array(taus)
     tau_updates_arr = np.array(tau_updates)
 
-    np.savetxt("{0}_chiSquareds.txt".format(filename), RMSs)
+    np.savetxt("{0}_chiSquareds.txt".format(filename), np.array(RMSs))
     np.savetxt("{0}_taus.txt".format(filename), taus)
     np.savetxt("{0}_tauUpdates.txt".format(filename), tau_updates)
 
