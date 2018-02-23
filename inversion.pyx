@@ -10,9 +10,141 @@ from .cTransitingImage import *
 from .cGridFunctions import *
 from .misc import *
 
-__all__ = ['discreteFourierTransform_2D','inverseDiscreteFourierTransform_2D','Gaussian2D_PDF','simultaneous_ART', 'wedgeRearrange','wedgeNegativeEdge', 'wedgeOptimize_sym',
+__all__ = ['whoAreMyArcNeighbors','arcRearrange','discreteFourierTransform_2D','inverseDiscreteFourierTransform_2D','Gaussian2D_PDF','simultaneous_ART', 'wedgeRearrange','wedgeNegativeEdge', 'wedgeOptimize_sym',
 'foldOpacities','round_ART','invertLC']
 #define 2D discrete fourier transform and 2D inverse discrete fourier transform
+
+def whoAreMyArcNeighbors(N,M,i,j):
+    """
+    Find the other pixels that also belong to the double-arc pattern centered at pixel i,j of grid of size N,M.
+    """
+    leftArcGrid = np.zeros((N,M))
+    rightArcGrid = np.zeros((N,M))
+    arcGrid_positions = positions(N, M, np.array((-0.1,0.,0.1)), tref=0., v=0.05)[1]
+    #print np.shape(arcGrid_positions)
+    r = 1. #radius of arcs, because star is radius unity
+    
+    w = 2./N
+    
+    x_int = arcGrid_positions[i,j,0] #x-coordinate of intersection point of the two arcs
+    y_int = arcGrid_positions[i,j,1] #y-coordinate of intersection point of the two arcs
+    
+    #print x_int, y_int
+    
+    xc1 = x_int - np.sqrt((r**2 - y_int**2))
+    xc2 = x_int + np.sqrt((r**2 - y_int**2))
+    
+    #equation of left-opening arc: (x - xc1)**2 + y**2 = r**2; x > xc1
+    #equation of right-opening arc: (x - xc2)**2 + y**2 = r**2; x < xc2
+    
+    #(if xc1 > -1, add negative opacity along this arc: (x - xc1)**2 + y**2 = r**2; x < xc1 ?)
+    #(if xc2 < 1, add negative opacity along this arc: (x - xc2)**2 + y**2 = r**2; x > xc2 ?)
+    
+    #print xc1, xc2
+    
+    leftArc_xs = xc1 + np.sqrt((r**2 - arcGrid_positions[:,:,1]**2))
+    leftArc_lb = leftArc_xs - (w/2.)*np.sqrt(2.)
+    leftArc_ub = leftArc_xs + (w/2.)*np.sqrt(2.)
+    
+    leftArc_mask = (arcGrid_positions[:,:,0] >= leftArc_lb) & (arcGrid_positions[:,:,0] < leftArc_ub) 
+    
+    
+    rightArc_xs = xc2 - np.sqrt((r**2 - arcGrid_positions[:,:,1]**2))
+    rightArc_lb = rightArc_xs - (w/2.)*np.sqrt(2.)
+    rightArc_ub = rightArc_xs + (w/2.)*np.sqrt(2.)
+    
+    rightArc_mask = (arcGrid_positions[:,:,0] >= rightArc_lb) & (arcGrid_positions[:,:,0] < rightArc_ub) 
+    
+    leftArcGrid[leftArc_mask] = 1.
+    rightArcGrid[rightArc_mask] = 1.
+    
+    return leftArcGrid.astype(bool), rightArcGrid.astype(bool)
+
+def arcRearrange(SART, times):
+    """
+    Rearrange opacity to remove unphysical pixels in the raw SART solution.
+    
+    We only want to deal with  pixels which are < 0. or > 1. 
+    """
+    
+    arcRearranged = copy.deepcopy(SART)
+    
+    ti = TransitingImage(opacitymat=SART, LDlaw="uniform", v=0.4, t_ref=0., t_arr=times)
+    ti.gen_LC(times)
+    
+    N = np.shape(SART)[0]
+    M = np.shape(SART)[1]
+
+    i_arr = (np.tile(np.arange(N),(M,1))).T
+    j_arr = (np.tile(np.arange(N),(M,1)))
+    
+    negativePixelMask = (SART < 0.)
+    negativePixel_is = i_arr[negativePixelMask]
+    negativePixel_js = j_arr[negativePixelMask]
+    print len(negativePixel_is)
+    
+    for n, op in enumerate(SART[negativePixelMask]):
+        i = negativePixel_is[n]
+        j = negativePixel_js[n]
+        
+        #print i,j
+        leftArcNeighborMask, rightArcNeighborMask = whoAreMyArcNeighbors(N,M,i,j)
+        #plt.imshow(arcNeighborMask.astype(int),cmap='Blues',interpolation='None',vmin=0.,vmax=1.,)
+        #plt.show()
+        
+        leftArcOpacity = np.sum(SART[leftArcNeighborMask])
+        rightArcOpacity = np.sum(SART[rightArcNeighborMask])
+        
+        #set unphysical arcs at the edges equal to 0.
+        if (leftArcOpacity < 0.) & (j < M/2.):
+            arcRearranged[leftArcNeighborMask] = 0.
+        if (rightArcOpacity < 0.) & (j > M/2.):
+            arcRearranged[rightArcNeighborMask] = 0.
+            
+    negativePixelMask = (arcRearranged < 0.)
+    negativePixel_is = i_arr[negativePixelMask]
+    negativePixel_js = j_arr[negativePixelMask]
+    
+    for n, op in enumerate(SART[negativePixelMask]):
+        i = negativePixel_is[n]
+        j = negativePixel_js[n]
+        
+        #print i,j
+        leftArcNeighborMask, rightArcNeighborMask = whoAreMyArcNeighbors(N,M,i,j)
+        #plt.imshow(arcNeighborMask.astype(int),cmap='Blues',interpolation='None',vmin=0.,vmax=1.,)
+        #plt.show()
+        
+        leftArcOpacity = np.sum(SART[leftArcNeighborMask])
+        rightArcOpacity = np.sum(SART[rightArcNeighborMask])
+        
+        arcNeighborMask = (leftArcNeighborMask | rightArcNeighborMask)
+        
+        arcRearranged[i,j] = 0.
+        arcRearranged[arcNeighborMask] += op/len(arcRearranged[arcNeighborMask])
+        
+        
+    tooBigPixelMask = (SART > 1.)
+    tooBigPixel_is = i_arr[tooBigPixelMask]
+    tooBigPixel_js = j_arr[tooBigPixelMask]
+    
+    for n, op in enumerate(SART[tooBigPixelMask]):
+        i = tooBigPixel_is[n]
+        j = tooBigPixel_js[n]
+        
+        leftArcNeighborMask, rightArcNeighborMask = whoAreMyArcNeighbors(N,M,i,j)
+
+        leftArcOpacity = np.sum(SART[leftArcNeighborMask])
+        rightArcOpacity = np.sum(SART[rightArcNeighborMask])
+        
+        arcNeighborMask = (leftArcNeighborMask | rightArcNeighborMask)
+        
+        arcRearranged[i,j] = 1.
+        arcRearranged[arcNeighborMask] += (op - 1.)/len(arcRearranged[arcNeighborMask])
+    
+    
+    arcRearranged = (arcRearranged + arcRearranged[::-1,:])/2.
+    
+    return arcRearranged
 
 def discreteFourierTransform_2D(matrix):
     """
