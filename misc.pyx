@@ -2,9 +2,11 @@
 from __future__ import division
 import numpy as np
 from scipy import stats
+from .cTransitingImage import *
 
 __all__ = ['lowres_grid_ti','change_res_grid','sigmoid_opacities', 'continuous_opacities', 
-'RMS', 'RMS_penalty', 'toBinaryGrid', 'fromBinaryGrid']
+'RMS', 'RMS_penalty', 'toBinaryGrid', 'fromBinaryGrid', 'LCdecrements', 'ternary',
+'perimeter','compactness']
 
 def lowres_grid_ti(ti, nside, method='mode', rounding=True):
     """
@@ -301,11 +303,107 @@ def fromBinaryGrid(binarygrid):
     """
     
     binarygrid = np.ravel(binarygrid)[::-1]
-    base10number = ''.join(str(int(i)) for i in binarygrid).lstrip('0')
-    base10number = int(base10number,2)
+    try:
+        base10number = ''.join(str(int(i)) for i in binarygrid).lstrip('0')
+        base10number = int(base10number,2)
+    except ValueError:
+        base10number = 0
     
     return base10number
 
 
+def LCdecrements(N,M,times):
+    LCdecrements = np.zeros((N, M, len(times)))
+    
+    for i in range(N):
+        for j in range(M):
+            onepixgrid = np.zeros((N,M),dtype=int)
+            onepixgrid[i,j] = 1
+            onepix_ti = TransitingImage(opacitymat=onepixgrid, LDlaw="uniform", v=0.4, t_ref=0., t_arr=times)
+            onepix_LC = onepix_ti.gen_LC(times)
+        
+            LCdecrements[i,j,:] = np.ones_like(onepix_LC) - onepix_LC
+            
+    return LCdecrements
 
+def ternary(n, stringLength):
+    if n == 0:
+        return '0'.zfill(stringLength)
+    nums = []
+    while n:
+        n, r = divmod(n, 3)
+        nums.append(str(r))
+    return ''.join(reversed(nums)).zfill(stringLength)
+
+def perimeter(grid):
+    """
+    Calculate the perimeter of a grid arrangement.
+    """
+
+    Pc = 0.
+    
+    N = np.shape(grid)[0]
+    M = np.shape(grid)[1]
+
+    onmask = np.ravel((grid > 0.))
+    onidxs = np.arange(0,len(np.ravel(grid)))[onmask]
+    N_on = len(onidxs)
+    
+    #vertical
+    for i in range (N-1):
+        for j in range (M):
+            if grid[i,j] > 0. and grid[i+1,j] > 0.:
+                Pc += 1.
+    #horizontal
+    for i in range(N):
+        for j in range(M-1):
+            if grid[i,j] > 0. and grid[i,j+1] > 0.:
+                Pc += 1.
+
+    return ((4.*N_on) + (2.*Pc))
+
+
+def compactness(grid):
+    """
+    Inputs:
+    opacitymat = matrix of opacities, where >0 = on, 0 = off
+    
+    Outputs:
+    Cd = the compactness of this arrangement. 1 for most compact, 0 for least.
+    """
+    
+    # number of "on" pixels
+    p = np.sum(np.ceil(grid))
+    
+    if p == 0.:
+        return 1.
+
+    elif p == 1.:
+        return 1.
+    
+    # calculate the contact perimeter:
+    # first, step through the grid vertically, column by column, incrementing the contact perimeter every time there is a
+    # pixel with a vertical neighbor
+    # second, step through the grid horizontally, row by row, incrementing the contact perimeter every time there is a
+    # pixel with a horizontal neighbor
+    
+    Pc = 0.
+    
+    N = np.shape(grid)[0]
+    M = np.shape(grid)[1]
+    
+    #vertical
+    for i in range (N-1):
+        for j in range (M):
+            if grid[i,j] > 0. and grid[i+1,j] > 0.:
+                Pc += 1.
+    #horizontal
+    for i in range(N):
+        for j in range(M-1):
+            if grid[i,j] > 0. and grid[i,j+1] > 0.:
+                Pc += 1.
+                
+    Cd = (Pc/2.)/(p - np.sqrt(p))
+    
+    return Cd
 

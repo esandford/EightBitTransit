@@ -12,7 +12,7 @@ from .inversion import *
 
 
 __all__ = ['ART','ART_normal','neighborPermutations', 
-'AStarGeneticStep', 'LCfromSummedPixels', 'perimeter', 'compactness', 
+'AStarGeneticStep', 'LCfromSummedPixels', 
 'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeOptimize']
 
 cpdef ART(tau_init, A, obsLC, obsLCerr, mirrored=False, RMSstop=1.e-6, reg=0., n_iter=0):
@@ -433,8 +433,8 @@ def AStarGeneticStep(currentgrid, obsLC, obsLCerr, times, saveplots=False, filen
     M = np.shape(currentgrid)[1]
     #print N, M
     
-    currentti = TransitingImage(opacitymat=currentgrid, LDlaw="uniform", v=0.4, t_ref=0., t_arr=rt_times)
-    currentLC = currentti.gen_LC(rt_times)   
+    currentti = TransitingImage(opacitymat=currentgrid, LDlaw="uniform", v=0.4, t_ref=0., t_arr=times)
+    currentLC = currentti.gen_LC(times)   
     currentcost = RMS(obsLC, obsLCerr, currentLC)
     
     numfig=0
@@ -585,76 +585,6 @@ def LCfromSummedPixels(base10number, LCdecrements):
     
     LC = np.ones_like(onpixdecrements) - onpixdecrements
     return LC
-
-
-def perimeter(grid):
-    """
-    Calculate the perimeter of a grid arrangement.
-    """
-
-    Pc = 0.
-    
-    N = np.shape(grid)[0]
-    M = np.shape(grid)[1]
-
-    onmask = np.ravel((grid > 0.))
-    onidxs = np.arange(0,len(np.ravel(grid)))[onmask]
-    N_on = len(onidxs)
-    
-    #vertical
-    for i in range (N-1):
-        for j in range (M):
-            if grid[i,j] > 0. and grid[i+1,j] > 0.:
-                Pc += 1.
-    #horizontal
-    for i in range(N):
-        for j in range(M-1):
-            if grid[i,j] > 0. and grid[i,j+1] > 0.:
-                Pc += 1.
-
-    return ((4.*N_on) + (2.*Pc))
-
-
-def compactness(grid):
-    """
-    Inputs:
-    opacitymat = matrix of opacities, where >0 = on, 0 = off
-    
-    Outputs:
-    Cd = the compactness of this arrangement. 1 for most compact, 0 for least.
-    """
-    
-    # number of "on" pixels
-    p = np.sum(np.ceil(grid))
-    
-    if p == 1.:
-        return 1.
-    
-    # calculate the contact perimeter:
-    # first, step through the grid vertically, column by column, incrementing the contact perimeter every time there is a
-    # pixel with a vertical neighbor
-    # second, step through the grid horizontally, row by row, incrementing the contact perimeter every time there is a
-    # pixel with a horizontal neighbor
-    
-    Pc = 0.
-    
-    N = np.shape(grid)[0]
-    M = np.shape(grid)[1]
-    
-    #vertical
-    for i in range (N-1):
-        for j in range (M):
-            if grid[i,j] > 0. and grid[i+1,j] > 0.:
-                Pc += 1.
-    #horizontal
-    for i in range(N):
-        for j in range(M-1):
-            if grid[i,j] > 0. and grid[i,j+1] > 0.:
-                Pc += 1.
-                
-    Cd = (Pc/2.)/(p - np.sqrt(p))
-    
-    return Cd
 
 def AStarGeneticStep_pixsum(currentgrid, obsLC, obsLCerr, times, saveplots=False, filename="astrofestpetridish",costfloor=1.e-10,perimeterFac=0.1):
     """
