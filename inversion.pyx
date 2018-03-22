@@ -15,7 +15,6 @@ from .misc import *
 
 __all__ = ['nCr', 'makeArcBasis', 'whoAreMyArcNeighbors','arcRearrange','discreteFourierTransform_2D','inverseDiscreteFourierTransform_2D','Gaussian2D_PDF','simultaneous_ART', 'wedgeRearrange','wedgeNegativeEdge', 'wedgeOptimize_sym',
 'foldOpacities','round_ART','invertLC']
-#define 2D discrete fourier transform and 2D inverse discrete fourier transform
 
 cpdef int nCr(int n, int r):
     f = math.factorial
