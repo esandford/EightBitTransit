@@ -55,7 +55,7 @@ cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim
         #np.ndarray[np.double_t, ndim=1] trial_flux_points
         #np.ndarray[np.double_t, ndim=1] trial_delta_fluxes
 
-        int N=np.shape(SARTimage)[0], M=np.shape(SARTimage)[1], k=len(times), k_interval, Nmid, k_idx, nOpacityUnits, nLimbPixelSpaces, nCombinations, comboIdx, p, northern_i, southern_i, ii, jj, kk
+        int N, M, k, k_interval, Nmid, k_idx, nOpacityUnits, nLimbPixelSpaces, nCombinations, comboIdx, p, northern_i, southern_i, ii, jj, kk
         
         double t_interval, bestRMS, RMS_
 
@@ -179,10 +179,10 @@ cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim
                 for ii in range(0, N):
                     for jj in range(0, M):
                         if foldedGrid[ii,jj]==1.:
-                            for kk in range(0, k):
+                            for kk in range(0, len(times)):
                                 trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
 
-                for kk in range(0, k-1):
+                for kk in range(0, len(times)-1):
                     trial_delta_fluxes[kk] = trial_LC[kk+1]-trial_LC[kk]
                 #decrements = LCdecrements_C[foldedGrid.astype(bool)]
                 #decrements_1D = np.sum(decrements,axis=0)
@@ -223,10 +223,10 @@ cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim
         for ii in range(0, N):
             for jj in range(0, M):
                 if foldedGrid[ii,jj]==1.:
-                    for kk in range(0, k):
+                    for kk in range(0, len(times)):
                         trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
 
-        for kk in range(0, k-1):
+        for kk in range(0, len(times)-1):
             trial_delta_fluxes[kk] = trial_LC[kk+1]-trial_LC[kk]
 
         #fig,axes = plt.subplots(1,2,figsize=(12,6))
