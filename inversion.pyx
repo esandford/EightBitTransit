@@ -175,6 +175,8 @@ cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim
                 
                 foldedGrid = foldOpacities(grid)
 
+                trial_LC = np.ones_like(times)
+
                 for ii in range(0, N):
                     for jj in range(0, M):
                         if foldedGrid[ii,jj]==1.:
@@ -219,6 +221,8 @@ cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim
         #trial_flux_points[-1] = trial_LC[-1]
         #trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
         
+        trial_LC = np.ones_like(times)
+
         for ii in range(0, N):
             for jj in range(0, M):
                 if foldedGrid[ii,jj]==1.:
