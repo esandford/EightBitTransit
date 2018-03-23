@@ -240,5 +240,8 @@ cpdef callMakeArc(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim=
         tasks.append([SARTimage, times, LCdecrements, obsLC, obsLCerr, areas, delta_fluxes, k, k_idx, w])
 
     results = pool.map(makeArc, tasks)
+
+    recombined = results[0]
+    RMS = results[1]
     
-    return results
+    return recombined, RMS

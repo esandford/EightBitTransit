@@ -6493,6 +6493,8 @@ static PyObject *__pyx_f_15EightBitTransit_22inversion_parallelized_callMakeArc(
   PyObject *__pyx_v_pool = NULL;
   PyObject *__pyx_v_tasks = NULL;
   PyObject *__pyx_v_results = NULL;
+  PyObject *__pyx_v_recombined = NULL;
+  PyObject *__pyx_v_RMS = NULL;
   __Pyx_LocalBuf_ND __pyx_pybuffernd_LCdecrements;
   __Pyx_Buffer __pyx_pybuffer_LCdecrements;
   __Pyx_LocalBuf_ND __pyx_pybuffernd_SARTimage;
@@ -8639,7 +8641,7 @@ static PyObject *__pyx_f_15EightBitTransit_22inversion_parallelized_callMakeArc(
  * 
  *     results = pool.map(makeArc, tasks)             # <<<<<<<<<<<<<<
  * 
- *     return results
+ *     recombined = results[0]
  */
   __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_v_pool, __pyx_n_s_map); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 242, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_10);
@@ -8698,11 +8700,43 @@ static PyObject *__pyx_f_15EightBitTransit_22inversion_parallelized_callMakeArc(
   /* "EightBitTransit/inversion_parallelized.pyx":244
  *     results = pool.map(makeArc, tasks)
  * 
- *     return results             # <<<<<<<<<<<<<<
+ *     recombined = results[0]             # <<<<<<<<<<<<<<
+ *     RMS = results[1]
+ * 
+ */
+  __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_results, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 244, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_v_recombined = __pyx_t_3;
+  __pyx_t_3 = 0;
+
+  /* "EightBitTransit/inversion_parallelized.pyx":245
+ * 
+ *     recombined = results[0]
+ *     RMS = results[1]             # <<<<<<<<<<<<<<
+ * 
+ *     return recombined, RMS
+ */
+  __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_results, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 245, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_v_RMS = __pyx_t_3;
+  __pyx_t_3 = 0;
+
+  /* "EightBitTransit/inversion_parallelized.pyx":247
+ *     RMS = results[1]
+ * 
+ *     return recombined, RMS             # <<<<<<<<<<<<<<
  */
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(__pyx_v_results);
-  __pyx_r = __pyx_v_results;
+  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 247, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_INCREF(__pyx_v_recombined);
+  __Pyx_GIVEREF(__pyx_v_recombined);
+  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_recombined);
+  __Pyx_INCREF(__pyx_v_RMS);
+  __Pyx_GIVEREF(__pyx_v_RMS);
+  PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_RMS);
+  __pyx_r = __pyx_t_3;
+  __pyx_t_3 = 0;
   goto __pyx_L0;
 
   /* "EightBitTransit/inversion_parallelized.pyx":156
@@ -8783,6 +8817,8 @@ static PyObject *__pyx_f_15EightBitTransit_22inversion_parallelized_callMakeArc(
   __Pyx_XDECREF(__pyx_v_pool);
   __Pyx_XDECREF(__pyx_v_tasks);
   __Pyx_XDECREF(__pyx_v_results);
+  __Pyx_XDECREF(__pyx_v_recombined);
+  __Pyx_XDECREF(__pyx_v_RMS);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_TraceReturn(__pyx_r, 0);
   __Pyx_RefNannyFinishContext();
