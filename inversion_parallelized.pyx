@@ -33,7 +33,14 @@ cpdef makeArc(list arguments):
         np.ndarray[np.double_t, ndim=1] obsLCerr = arguments[4]
         np.ndarray[np.double_t, ndim=3] areas = arguments[5]
         np.ndarray[np.double_t, ndim=1] delta_fluxes = arguments[6]
-        np.ndarray[np.double_t, ndim=2] recombined 
+        np.ndarray[np.double_t, ndim=2] recombined
+        np.ndarray[np.int64_t, ndim=1] limbPixels_to_p05
+        np.ndarray[np.double_t, ndim=2] foldedGrid
+        np.ndarray[np.double_t, ndim=2] decrements
+        np.ndarray[np.double_t, ndim=1] decrements_1D
+        np.ndarray[np.double_t, ndim=1] trial_LC
+        np.ndarray[np.double_t, ndim=1] trial_flux_points
+        np.ndarray[np.double_t, ndim=1] trial_delta_fluxes 
         
         int k = arguments[7], k_idx = arguments[8]
         int N=np.shape(arguments[0])[0], M=np.shape(arguments[0])[1], k_interval, Nmid, nOpacityUnits, nLimbPixelSpaces, nCombinations, comboIdx, p, northern_i, southern_i, ii, jj, kk
@@ -41,10 +48,10 @@ cpdef makeArc(list arguments):
         double w = arguments[9]
         double t_interval, bestRMS, RMS_
 
-        double[:,:,:] LCdecrements_C = arguments[2]
-        double[:] decrements_1D = np.zeros_like(arguments[1])
-        double[:] trial_LC = np.ones_like(arguments[1])
-        double[:] trial_delta_fluxes = np.zeros((len(arguments[1])-1))
+        #double[:,:,:] LCdecrements_C = arguments[2]
+        #double[:] decrements_1D = np.zeros_like(arguments[1])
+        #double[:] trial_LC = np.ones_like(arguments[1])
+        #double[:] trial_delta_fluxes = np.zeros((len(arguments[1])-1))
 
 
     i_arr = (np.tile(np.arange(N),(M,1))).T
@@ -114,14 +121,24 @@ cpdef makeArc(list arguments):
                 
             foldedGrid = foldOpacities(grid)
 
-            for ii in range(0, N):
-                for jj in range(0, M):
-                    if foldedGrid[ii,jj] > 0.:
-                        for kk in range(0, len(times)):
-                            trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
+            #for ii in range(0, N):
+            #    for jj in range(0, M):
+            #        if foldedGrid[ii,jj] > 0.:
+            #            for kk in range(0, len(times)):
+            #                trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
 
-            for kk in range(0, len(times)-1):
-                trial_delta_fluxes[kk] = trial_LC[kk+1]-trial_LC[kk]
+            #for kk in range(0, len(times)-1):
+            #    trial_delta_fluxes[kk] = trial_LC[kk+1]-trial_LC[kk]
+            decrements = LCdecrements[foldedGrid.astype(bool)]
+            decrements_1D = np.sum(decrements,axis=0)
+
+            trial_LC = np.ones_like(decrements_1D) - decrements_1D
+
+            trial_flux_points = np.zeros((len(ks)+1))
+            trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
+            trial_flux_points[-1] = trial_LC[-1]
+
+            trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
             
             RMS_ = ((delta_fluxes[k_idx] - trial_delta_fluxes[k_idx])**2/obsLCerr[k]**2)
                 
@@ -141,14 +158,23 @@ cpdef makeArc(list arguments):
     
     foldedGrid = foldOpacities(recombined)
     
-    for ii in range(0, N):
-        for jj in range(0, M):
-            if foldedGrid[ii,jj] > 0.:
-                for kk in range(0, len(times)):
-                    trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
+    #for ii in range(0, N):
+    #    for jj in range(0, M):
+    #        if foldedGrid[ii,jj] > 0.:
+    #            for kk in range(0, len(times)):
+    #                trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
 
-    for kk in range(0, len(times)-1):
-        trial_delta_fluxes[kk] = trial_LC[kk+1]-trial_LC[kk]
+    #for kk in range(0, len(times)-1):
+    #    trial_delta_fluxes[kk] = trial_LC[kk+1]-trial_LC[kk]
+
+    foldedGrid = foldOpacities(recombined)
+    decrements = LCdecrements[foldedGrid.astype(bool)]
+    decrements_1D = np.sum(decrements,axis=0)
+    trial_LC = np.ones_like(decrements_1D) - decrements_1D
+    trial_flux_points = np.zeros((len(ks)+1))
+    trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
+    trial_flux_points[-1] = trial_LC[-1]
+    trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
 
     return (np.ravel(recombined), RMS(obsLC,obsLCerr,trial_LC))
 
