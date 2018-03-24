@@ -116,7 +116,7 @@ cpdef makeArc(list arguments):
 
             for ii in range(0, N):
                 for jj in range(0, M):
-                    if foldedGrid[ii,jj]==1.:
+                    if foldedGrid[ii,jj] > 0.:
                         for kk in range(0, len(times)):
                             trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
 
@@ -143,7 +143,7 @@ cpdef makeArc(list arguments):
     
     for ii in range(0, N):
         for jj in range(0, M):
-            if foldedGrid[ii,jj]==1.:
+            if foldedGrid[ii,jj] > 0.:
                 for kk in range(0, len(times)):
                     trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
 

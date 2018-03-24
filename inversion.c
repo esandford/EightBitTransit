@@ -7362,7 +7362,7 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasis(PyArrayObject
  * 
  *                 for ii in range(0, N):             # <<<<<<<<<<<<<<
  *                     for jj in range(0, M):
- *                         if foldedGrid[ii,jj]==1.:
+ *                         if foldedGrid[ii,jj] > 0.:
  */
         __pyx_t_50 = __pyx_v_N;
         for (__pyx_t_63 = 0; __pyx_t_63 < __pyx_t_50; __pyx_t_63+=1) {
@@ -7372,7 +7372,7 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasis(PyArrayObject
  * 
  *                 for ii in range(0, N):
  *                     for jj in range(0, M):             # <<<<<<<<<<<<<<
- *                         if foldedGrid[ii,jj]==1.:
+ *                         if foldedGrid[ii,jj] > 0.:
  *                             for kk in range(0, len(times)):
  */
           __pyx_t_64 = __pyx_v_M;
@@ -7382,7 +7382,7 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasis(PyArrayObject
             /* "EightBitTransit/inversion.pyx":182
  *                 for ii in range(0, N):
  *                     for jj in range(0, M):
- *                         if foldedGrid[ii,jj]==1.:             # <<<<<<<<<<<<<<
+ *                         if foldedGrid[ii,jj] > 0.:             # <<<<<<<<<<<<<<
  *                             for kk in range(0, len(times)):
  *                                 trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
  */
@@ -7401,12 +7401,12 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasis(PyArrayObject
               __Pyx_RaiseBufferIndexError(__pyx_t_68);
               __PYX_ERR(0, 182, __pyx_L1_error)
             }
-            __pyx_t_20 = (((*__Pyx_BufPtrStrided2d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_foldedGrid.rcbuffer->pybuffer.buf, __pyx_t_66, __pyx_pybuffernd_foldedGrid.diminfo[0].strides, __pyx_t_67, __pyx_pybuffernd_foldedGrid.diminfo[1].strides)) == 1.) != 0);
+            __pyx_t_20 = (((*__Pyx_BufPtrStrided2d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_foldedGrid.rcbuffer->pybuffer.buf, __pyx_t_66, __pyx_pybuffernd_foldedGrid.diminfo[0].strides, __pyx_t_67, __pyx_pybuffernd_foldedGrid.diminfo[1].strides)) > 0.) != 0);
             if (__pyx_t_20) {
 
               /* "EightBitTransit/inversion.pyx":183
  *                     for jj in range(0, M):
- *                         if foldedGrid[ii,jj]==1.:
+ *                         if foldedGrid[ii,jj] > 0.:
  *                             for kk in range(0, len(times)):             # <<<<<<<<<<<<<<
  *                                 trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
  * 
@@ -7416,7 +7416,7 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasis(PyArrayObject
                 __pyx_v_kk = __pyx_t_68;
 
                 /* "EightBitTransit/inversion.pyx":184
- *                         if foldedGrid[ii,jj]==1.:
+ *                         if foldedGrid[ii,jj] > 0.:
  *                             for kk in range(0, len(times)):
  *                                 trial_LC[kk] -= LCdecrements_C[ii][jj][kk]             # <<<<<<<<<<<<<<
  * 
@@ -7498,7 +7498,7 @@ __PYX_XDEC_MEMVIEW(&__pyx_t_69, 1);
               /* "EightBitTransit/inversion.pyx":182
  *                 for ii in range(0, N):
  *                     for jj in range(0, M):
- *                         if foldedGrid[ii,jj]==1.:             # <<<<<<<<<<<<<<
+ *                         if foldedGrid[ii,jj] > 0.:             # <<<<<<<<<<<<<<
  *                             for kk in range(0, len(times)):
  *                                 trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
  */
@@ -7974,7 +7974,7 @@ __PYX_XDEC_MEMVIEW(&__pyx_t_69, 1);
  * 
  *         for ii in range(0, N):             # <<<<<<<<<<<<<<
  *             for jj in range(0, M):
- *                 if foldedGrid[ii,jj]==1.:
+ *                 if foldedGrid[ii,jj] > 0.:
  */
     __pyx_t_34 = __pyx_v_N;
     for (__pyx_t_50 = 0; __pyx_t_50 < __pyx_t_34; __pyx_t_50+=1) {
@@ -7984,7 +7984,7 @@ __PYX_XDEC_MEMVIEW(&__pyx_t_69, 1);
  * 
  *         for ii in range(0, N):
  *             for jj in range(0, M):             # <<<<<<<<<<<<<<
- *                 if foldedGrid[ii,jj]==1.:
+ *                 if foldedGrid[ii,jj] > 0.:
  *                     for kk in range(0, len(times)):
  */
       __pyx_t_63 = __pyx_v_M;
@@ -7994,7 +7994,7 @@ __PYX_XDEC_MEMVIEW(&__pyx_t_69, 1);
         /* "EightBitTransit/inversion.pyx":228
  *         for ii in range(0, N):
  *             for jj in range(0, M):
- *                 if foldedGrid[ii,jj]==1.:             # <<<<<<<<<<<<<<
+ *                 if foldedGrid[ii,jj] > 0.:             # <<<<<<<<<<<<<<
  *                     for kk in range(0, len(times)):
  *                         trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
  */
@@ -8013,12 +8013,12 @@ __PYX_XDEC_MEMVIEW(&__pyx_t_69, 1);
           __Pyx_RaiseBufferIndexError(__pyx_t_65);
           __PYX_ERR(0, 228, __pyx_L1_error)
         }
-        __pyx_t_20 = (((*__Pyx_BufPtrStrided2d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_foldedGrid.rcbuffer->pybuffer.buf, __pyx_t_89, __pyx_pybuffernd_foldedGrid.diminfo[0].strides, __pyx_t_90, __pyx_pybuffernd_foldedGrid.diminfo[1].strides)) == 1.) != 0);
+        __pyx_t_20 = (((*__Pyx_BufPtrStrided2d(__pyx_t_5numpy_double_t *, __pyx_pybuffernd_foldedGrid.rcbuffer->pybuffer.buf, __pyx_t_89, __pyx_pybuffernd_foldedGrid.diminfo[0].strides, __pyx_t_90, __pyx_pybuffernd_foldedGrid.diminfo[1].strides)) > 0.) != 0);
         if (__pyx_t_20) {
 
           /* "EightBitTransit/inversion.pyx":229
  *             for jj in range(0, M):
- *                 if foldedGrid[ii,jj]==1.:
+ *                 if foldedGrid[ii,jj] > 0.:
  *                     for kk in range(0, len(times)):             # <<<<<<<<<<<<<<
  *                         trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
  * 
@@ -8028,7 +8028,7 @@ __PYX_XDEC_MEMVIEW(&__pyx_t_69, 1);
             __pyx_v_kk = __pyx_t_65;
 
             /* "EightBitTransit/inversion.pyx":230
- *                 if foldedGrid[ii,jj]==1.:
+ *                 if foldedGrid[ii,jj] > 0.:
  *                     for kk in range(0, len(times)):
  *                         trial_LC[kk] -= LCdecrements_C[ii][jj][kk]             # <<<<<<<<<<<<<<
  * 
@@ -8110,7 +8110,7 @@ __PYX_XDEC_MEMVIEW(&__pyx_t_69, 1);
           /* "EightBitTransit/inversion.pyx":228
  *         for ii in range(0, N):
  *             for jj in range(0, M):
- *                 if foldedGrid[ii,jj]==1.:             # <<<<<<<<<<<<<<
+ *                 if foldedGrid[ii,jj] > 0.:             # <<<<<<<<<<<<<<
  *                     for kk in range(0, len(times)):
  *                         trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
  */
