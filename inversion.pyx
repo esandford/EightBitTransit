@@ -49,19 +49,19 @@ cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim
         np.ndarray[np.int64_t, ndim=1] limbPixels_to_p05
         np.ndarray[np.double_t, ndim=2] foldedGrid
         np.ndarray[np.double_t, ndim=2] decrements
-        #np.ndarray[np.double_t, ndim=1] decrements_1D
-        #np.ndarray[np.double_t, ndim=1] trial_LC
-        #np.ndarray[np.double_t, ndim=1] trial_flux_points
-        #np.ndarray[np.double_t, ndim=1] trial_delta_fluxes
+        np.ndarray[np.double_t, ndim=1] decrements_1D
+        np.ndarray[np.double_t, ndim=1] trial_LC
+        np.ndarray[np.double_t, ndim=1] trial_flux_points
+        np.ndarray[np.double_t, ndim=1] trial_delta_fluxes
 
         int N, M, k, k_interval, Nmid, k_idx, nOpacityUnits, nLimbPixelSpaces, nCombinations, comboIdx, p, northern_i, southern_i, ii, jj, kk
         
         double t_interval, bestRMS, RMS_
 
-        double[:,:,:] LCdecrements_C = LCdecrements
-        double[:] decrements_1D = np.zeros_like(times)
-        double[:] trial_LC = np.ones_like(times)
-        double[:] trial_delta_fluxes = np.zeros((len(times)-1))
+        #double[:,:,:] LCdecrements_C = LCdecrements
+        #double[:] decrements_1D = np.zeros_like(times)
+        #double[:] trial_LC = np.ones_like(times)
+        #double[:] trial_delta_fluxes = np.zeros((len(times)-1))
    
     
     #print type(LCdecrements)    #np.ndarray
@@ -175,26 +175,27 @@ cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim
                 
                 foldedGrid = foldOpacities(grid)
 
-                trial_LC = np.ones_like(times)
+                #trial_LC = np.ones_like(times)
 
-                for ii in range(0, N):
-                    for jj in range(0, M):
-                        if foldedGrid[ii,jj] > 0.:
-                            for kk in range(0, len(times)):
-                                trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
+                #for ii in range(0, N):
+                #    for jj in range(0, M):
+                #        if float(foldedGrid[ii,jj]) > 0.:
+                #            for kk in range(0, len(times)):
+                #                trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
 
-                for kk in range(0, len(times)-1):
-                    trial_delta_fluxes[kk] = trial_LC[kk+1]-trial_LC[kk]
-                #decrements = LCdecrements_C[foldedGrid.astype(bool)]
-                #decrements_1D = np.sum(decrements,axis=0)
+                #for kk in range(0, len(times)-1):
+                #    trial_delta_fluxes[kk] = trial_LC[kk+1]-trial_LC[kk]
+                
+                decrements = LCdecrements[foldedGrid.astype(bool)]
+                decrements_1D = np.sum(decrements,axis=0)
 
-                #trial_LC = ones_decrements_1D - decrements_1D
+                trial_LC = np.ones_like(decrements_1D) - decrements_1D
 
-                #trial_flux_points = np.zeros((len(ks)+1))
-                #trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
-                #trial_flux_points[-1] = trial_LC[-1]
+                trial_flux_points = np.zeros((len(ks)+1))
+                trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
+                trial_flux_points[-1] = trial_LC[-1]
 
-                #trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
+                trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
 
                 RMS_ = ((delta_fluxes[k_idx] - trial_delta_fluxes[k_idx])**2/obsLCerr[k]**2)
                 
@@ -213,24 +214,24 @@ cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim
             
         #plot it
         foldedGrid = foldOpacities(recombined)
-        #decrements = LCdecrements[foldedGrid.astype(bool)]
-        #decrements_1D = np.sum(decrements,axis=0)
-        #trial_LC = np.ones_like(decrements_1D) - decrements_1D
-        #trial_flux_points = np.zeros((len(ks)+1))
-        #trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
-        #trial_flux_points[-1] = trial_LC[-1]
-        #trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
+        decrements = LCdecrements[foldedGrid.astype(bool)]
+        decrements_1D = np.sum(decrements,axis=0)
+        trial_LC = np.ones_like(decrements_1D) - decrements_1D
+        trial_flux_points = np.zeros((len(ks)+1))
+        trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
+        trial_flux_points[-1] = trial_LC[-1]
+        trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
         
-        trial_LC = np.ones_like(times)
+        #trial_LC = np.ones_like(times)
 
-        for ii in range(0, N):
-            for jj in range(0, M):
-                if foldedGrid[ii,jj] > 0.:
-                    for kk in range(0, len(times)):
-                        trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
+        #for ii in range(0, N):
+        #    for jj in range(0, M):
+        #        if foldedGrid[ii,jj] > 0.:
+        #            for kk in range(0, len(times)):
+        #                trial_LC[kk] -= LCdecrements_C[ii][jj][kk]
 
-        for kk in range(0, len(times)-1):
-            trial_delta_fluxes[kk] = trial_LC[kk+1]-trial_LC[kk]
+        #for kk in range(0, len(times)-1):
+        #    trial_delta_fluxes[kk] = trial_LC[kk+1]-trial_LC[kk]
 
         #fig,axes = plt.subplots(1,2,figsize=(12,6))
         #axes[0].imshow((recombined+recombined[::-1,:])/2.,cmap='bwr_r',interpolation='none',vmin=-1.,vmax=1.)
