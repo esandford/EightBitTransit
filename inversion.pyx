@@ -14,7 +14,7 @@ from .cGridFunctions import *
 from .misc import *
 
 __all__ = ['nCr', 'makeArcBasis', 'whoAreMyArcNeighbors','arcRearrange','discreteFourierTransform_2D','inverseDiscreteFourierTransform_2D','Gaussian2D_PDF','simultaneous_ART', 'wedgeRearrange','wedgeNegativeEdge', 'wedgeOptimize_sym',
-'foldOpacities','round_ART','invertLC']
+'foldOpacities','round_ART','petriDish','invertLC']
 
 cpdef int nCr(int n, int r):
     f = math.factorial
@@ -1367,6 +1367,127 @@ def round_ART(ARTsoln):
     
     roundedtau=np.abs(roundedtau)
     return roundedtau
+
+def petriDish(currentgrid, obsLC, obsLCerr, times, LCdecrements, compactnessFac=0.05):
+    """
+    Find the grid that best matches obsLC.
+    
+    Instead of recalculating the light curve from the grid every time, just sum up the light curves produced by individual
+    transiting pixels.
+    """
+    
+    N = np.shape(currentgrid)[0]
+    M = np.shape(currentgrid)[1]
+
+    #get array of flux decrements due to each individual pixel being "on"
+    
+    decrements = LCdecrements[currentgrid.astype(bool)]
+    decrements = np.sum(decrements,axis=0)
+    currentLC = np.ones_like(decrements, dtype=float) - decrements
+    
+    onmask = onmask = np.ravel((currentgrid == 1))
+    onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
+    
+    currentcost = RMS(obsLC, obsLCerr, currentLC) #- compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid) 
+    print "currentcost is: {0}".format(currentcost)
+    costList = [currentcost]
+    
+    for n in range(int(1e6)):
+        decrements = LCdecrements[currentgrid.astype(bool)]
+        decrements = np.sum(decrements,axis=0)
+        currentLC = np.ones_like(decrements) - decrements
+        currentcost = RMS(obsLC, obsLCerr, currentLC)
+        
+        #choose random "on" pixel
+        onmask = np.ravel((currentgrid == 1))
+        onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
+
+        randompix = np.random.choice(onidxs,1)[0]
+            
+        randompix_i = randompix // N
+        randompix_j = randompix % M
+        
+        leftNeighbor_j = (M + (randompix_j - 1)) % M
+        rightNeighbor_j = (randompix_j + 1) % M
+
+        topNeighbor_i = (N + (randompix_i - 1)) % N
+        bottomNeighbor_i = (randompix_i + 1) % N
+
+        pixStates = np.arange(2)
+        #pixStates = [1]
+        
+        for p in pixStates:
+            if ((currentgrid[randompix_i, leftNeighbor_j] == p) & 
+                (currentgrid[randompix_i, rightNeighbor_j] == p) & 
+                (currentgrid[topNeighbor_i, randompix_j] == p) & 
+                (currentgrid[bottomNeighbor_i, randompix_j] == p)):
+                #print "interior"
+                pass
+            else:
+                #left neighbor
+                if (currentgrid[randompix_i, leftNeighbor_j] == p):
+                    leftCost = currentcost
+                else:
+                    testLC = currentLC - p*LCdecrements[randompix_i, leftNeighbor_j] - (p-1)*LCdecrements[randompix_i, leftNeighbor_j]
+                    leftCost = RMS(obsLC, obsLCerr, testLC) #- compactnessFac*(1. - RMSmag)*compactness(testgrid) + compactnessFac*(1.-RMSmag)*b_penalty(testgrid) 
+
+                #right neighbor
+                if (currentgrid[randompix_i, rightNeighbor_j] == p):
+                    rightCost = currentcost
+                else:
+                    testLC = currentLC - p*LCdecrements[randompix_i, rightNeighbor_j] - (p-1)*LCdecrements[randompix_i, rightNeighbor_j]
+                    rightCost = RMS(obsLC, obsLCerr, testLC) #- compactnessFac*(1. - RMSmag)*compactness(testgrid) + compactnessFac*(1.-RMSmag)*b_penalty(testgrid) 
+
+                #top neighbor
+                if (currentgrid[topNeighbor_i, randompix_j] == p):
+                    topCost = currentcost
+                else:
+                    testLC = currentLC - p*LCdecrements[topNeighbor_i, randompix_j] - (p-1)*LCdecrements[topNeighbor_i, randompix_j]
+                    topCost = RMS(obsLC, obsLCerr, testLC) #- compactnessFac*(1. - RMSmag)*compactness(testgrid) + compactnessFac*(1.-RMSmag)*b_penalty(testgrid) 
+
+                #bottom neighbor
+                if (currentgrid[bottomNeighbor_i, randompix_j] == p):
+                    bottomCost = currentcost
+                else:
+                    testLC = currentLC - p*LCdecrements[bottomNeighbor_i, randompix_j] - (p-1)*LCdecrements[bottomNeighbor_i, randompix_j]
+                    bottomCost = RMS(obsLC, obsLCerr, testLC) #- compactnessFac*(1. - RMSmag)*compactness(testgrid) + compactnessFac*(1.-RMSmag)*b_penalty(testgrid) 
+
+                #pixel itself
+                if (currentgrid[randompix_i, randompix_j] == p):
+                    midCost = currentcost
+                else:
+                    testLC = currentLC - p*LCdecrements[randompix_i, randompix_j] - (p-1)*LCdecrements[randompix_i, randompix_j]
+                    midCost = RMS(obsLC, obsLCerr, testLC) #- compactnessFac*(1. - RMSmag)*compactness(testgrid) + compactnessFac*(1.-RMSmag)*b_penalty(testgrid) 
+
+                neighborCosts = np.array((leftCost, rightCost, topCost, bottomCost, midCost, currentcost))
+                #print neighborCosts
+                bestNeighbor_idx = np.argmin(neighborCosts)
+                #print bestNeighbor_idx  
+                if bestNeighbor_idx == 0:
+                    currentgrid[randompix_i, leftNeighbor_j] = int(p)#int((p + 1) % 2)
+                    currentcost = leftCost
+                elif bestNeighbor_idx == 1:
+                    currentgrid[randompix_i, rightNeighbor_j] = int(p)#int((p + 1) % 2)
+                    currentcost = rightCost
+                elif bestNeighbor_idx == 2:
+                    currentgrid[topNeighbor_i, randompix_j] = int(p)#int((p + 1) % 2)
+                    currentcost = topCost
+                elif bestNeighbor_idx == 3:
+                    currentgrid[bottomNeighbor_i, randompix_j] = int(p)#int((p + 1) % 2)
+                    currentcost = bottomCost
+                elif bestNeighbor_idx == 4:
+                    currentgrid[randompix_i, randompix_j] = int(p)#int((p + 1) % 2)
+                    currentcost = midCost
+
+                """if n % 100000 == 0:
+                    print n
+                    print (randompix_i, randompix_j)
+                    print bestNeighbor_idx"""
+
+                costList.append(currentcost)
+
+    return currentgrid, currentcost, costList
+
 
 def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial, filename, window=None, LDlaw="uniform",LDCs=[],fac=0.001,RMSstop=1.e-6, n_iter=0, WR=True, WO=True, initstate="uniform",reg=0.,threshold=False):
     """
