@@ -1388,12 +1388,13 @@ def petriDish(currentgrid, obsLC, obsLCerr, times, LCdecrements, costFloor, mutP
     onmask = onmask = np.ravel((currentgrid == 1))
     onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
     
-    currentcost = RMS(obsLC, obsLCerr, currentLC) #- compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid) 
+    RMSmag = RMS(obsLC, obsLCerr, currentLC)
+    currentcost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid) 
+    
     print "currentcost is: {0}".format(currentcost)
     costList = [currentcost]
     
     while currentcost > costFloor:
-        
         #allow for random mutation
         toFlip = np.random.binomial(n=1,p=mutProb,size=(N,M))
         currentgrid[toFlip.astype(bool)] = (currentgrid[toFlip.astype(bool)] + 1)%2
@@ -1434,64 +1435,84 @@ def petriDish(currentgrid, obsLC, obsLCerr, times, LCdecrements, costFloor, mutP
                     leftCost = currentcost
                 else:
                     testLC = currentLC - p*LCdecrements[randompix_i, leftNeighbor_j] - (p-1)*LCdecrements[randompix_i, leftNeighbor_j]
-                    leftCost = RMS(obsLC, obsLCerr, testLC) #- compactnessFac*(1. - RMSmag)*compactness(testgrid) + compactnessFac*(1.-RMSmag)*b_penalty(testgrid) 
+                    RMSmag = RMS(obsLC, obsLCerr, testLC)
+                    leftCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
 
                 #right neighbor
                 if (currentgrid[randompix_i, rightNeighbor_j] == p):
                     rightCost = currentcost
                 else:
                     testLC = currentLC - p*LCdecrements[randompix_i, rightNeighbor_j] - (p-1)*LCdecrements[randompix_i, rightNeighbor_j]
-                    rightCost = RMS(obsLC, obsLCerr, testLC) #- compactnessFac*(1. - RMSmag)*compactness(testgrid) + compactnessFac*(1.-RMSmag)*b_penalty(testgrid) 
+                    RMSmag = RMS(obsLC, obsLCerr, testLC)
+                    rightCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
 
                 #top neighbor
                 if (currentgrid[topNeighbor_i, randompix_j] == p):
                     topCost = currentcost
                 else:
                     testLC = currentLC - p*LCdecrements[topNeighbor_i, randompix_j] - (p-1)*LCdecrements[topNeighbor_i, randompix_j]
-                    topCost = RMS(obsLC, obsLCerr, testLC) #- compactnessFac*(1. - RMSmag)*compactness(testgrid) + compactnessFac*(1.-RMSmag)*b_penalty(testgrid) 
+                    RMSmag = RMS(obsLC, obsLCerr, testLC)
+                    topCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
 
                 #bottom neighbor
                 if (currentgrid[bottomNeighbor_i, randompix_j] == p):
                     bottomCost = currentcost
                 else:
                     testLC = currentLC - p*LCdecrements[bottomNeighbor_i, randompix_j] - (p-1)*LCdecrements[bottomNeighbor_i, randompix_j]
-                    bottomCost = RMS(obsLC, obsLCerr, testLC) #- compactnessFac*(1. - RMSmag)*compactness(testgrid) + compactnessFac*(1.-RMSmag)*b_penalty(testgrid) 
+                    RMSmag = RMS(obsLC, obsLCerr, testLC)
+                    bottomCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
 
                 #pixel itself
                 if (currentgrid[randompix_i, randompix_j] == p):
                     midCost = currentcost
                 else:
                     testLC = currentLC - p*LCdecrements[randompix_i, randompix_j] - (p-1)*LCdecrements[randompix_i, randompix_j]
-                    midCost = RMS(obsLC, obsLCerr, testLC) #- compactnessFac*(1. - RMSmag)*compactness(testgrid) + compactnessFac*(1.-RMSmag)*b_penalty(testgrid) 
+                    RMSmag = RMS(obsLC, obsLCerr, testLC)
+                    midCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
 
                 neighborCosts = np.array((leftCost, rightCost, topCost, bottomCost, midCost, currentcost))
                 #print neighborCosts
                 bestNeighbor_idx = np.argmin(neighborCosts)
                 #print bestNeighbor_idx  
                 if bestNeighbor_idx == 0:
-                    currentgrid[randompix_i, leftNeighbor_j] = int(p)#int((p + 1) % 2)
+                    currentgrid[randompix_i, leftNeighbor_j] = int(p)
                     currentcost = leftCost
                 elif bestNeighbor_idx == 1:
-                    currentgrid[randompix_i, rightNeighbor_j] = int(p)#int((p + 1) % 2)
+                    currentgrid[randompix_i, rightNeighbor_j] = int(p)
                     currentcost = rightCost
                 elif bestNeighbor_idx == 2:
-                    currentgrid[topNeighbor_i, randompix_j] = int(p)#int((p + 1) % 2)
+                    currentgrid[topNeighbor_i, randompix_j] = int(p)
                     currentcost = topCost
                 elif bestNeighbor_idx == 3:
-                    currentgrid[bottomNeighbor_i, randompix_j] = int(p)#int((p + 1) % 2)
+                    currentgrid[bottomNeighbor_i, randompix_j] = int(p)
                     currentcost = bottomCost
                 elif bestNeighbor_idx == 4:
-                    currentgrid[randompix_i, randompix_j] = int(p)#int((p + 1) % 2)
+                    currentgrid[randompix_i, randompix_j] = int(p)
                     currentcost = midCost
 
-                """if n % 100000 == 0:
-                    print n
-                    print (randompix_i, randompix_j)
-                    print bestNeighbor_idx"""
+        decrements = LCdecrements[currentgrid.astype(bool)]
+        decrements = np.sum(decrements,axis=0)
+        currentLC = np.ones_like(decrements) - decrements
+        currentcost = RMS(obsLC, obsLCerr, currentLC)
+                
+        #one pass through whole grid to see if flipping anything helps
+        for i in range(N):
+            for j in range(M):
+                p = int(currentgrid[i,j])
+                testLC = currentLC + p*LCdecrements[i,j] + (p-1)*LCdecrements[i,j]
+                RMSmag = RMS(obsLC, obsLCerr, testLC)
+                testCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
 
-                costList.append(currentcost)
+                if testCost < currentcost:
+                    currentgrid[i,j] = int((currentgrid[i,j] + 1) % 2)
+                    currentcost = testCost
+                
+        
+        costList.append(currentcost)
+                    
 
-    return currentgrid, currentcost, costList
+    return foldOpacities(currentgrid.astype(float)), currentcost, costList
+
 
 
 def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, nTrial, filename, window=None, LDlaw="uniform",LDCs=[],fac=0.001,RMSstop=1.e-6, n_iter=0, WR=True, WO=True, initstate="uniform",reg=0.,threshold=False):

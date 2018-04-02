@@ -5,7 +5,7 @@ from scipy import stats
 from .cTransitingImage import *
 
 __all__ = ['lowres_grid_ti','change_res_grid','sigmoid_opacities', 'continuous_opacities', 
-'RMS', 'RMS_penalty', 'toBinaryGrid', 'fromBinaryGrid', 'LCdecrements', 'ternary',
+'RMS', 'RMS_penalty', 'b_penalty', 'toBinaryGrid', 'fromBinaryGrid', 'LCdecrements', 'ternary',
 'perimeter','compactness']
 
 def lowres_grid_ti(ti, nside, method='mode', rounding=True):
@@ -278,6 +278,33 @@ def RMS_penalty(grid,LC_obs,LC_model,temperature):
     
     return RMS
 
+def b_penalty(grid):
+    """
+    Penalize pixels at high impact parameter.
+    """
+    N = np.shape(grid)[0]
+    M = np.shape(grid)[1]
+    w = 2./N
+    
+    i_arr = (np.tile(np.arange(N),(M,1))).T
+    j_arr = (np.tile(np.arange(N),(M,1)))
+    
+    onPixelMask = (grid > 0.)
+    onPixel_is = i_arr[onPixelMask]
+    onPixel_js = j_arr[onPixelMask]
+    
+    if (N>1) & (N%2 == 0): #N even
+        Nmid = int(N/2) 
+    elif (N>1) & (N%2 != 0): #N odd
+        Nmid = int((N-1)/2 + 1)
+        
+    b_penalty = np.sum(grid)
+    
+    for idx, i in enumerate(onPixel_is):
+        b = np.abs(i - Nmid) * w
+        b_penalty -= grid[onPixel_is[idx], onPixel_js[idx]]*(1. - b**2)**0.25
+        
+    return b_penalty
 
 def toBinaryGrid(base10number,N,M):
     """
