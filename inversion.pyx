@@ -1368,7 +1368,7 @@ def round_ART(ARTsoln):
     roundedtau=np.abs(roundedtau)
     return roundedtau
 
-def petriDish(currentgrid, obsLC, obsLCerr, times, LCdecrements, compactnessFac=0.05):
+def petriDish(currentgrid, obsLC, obsLCerr, times, LCdecrements, costFloor, mutProb = 0.001, compactnessFac=0.05):
     """
     Find the grid that best matches obsLC.
     
@@ -1392,7 +1392,12 @@ def petriDish(currentgrid, obsLC, obsLCerr, times, LCdecrements, compactnessFac=
     print "currentcost is: {0}".format(currentcost)
     costList = [currentcost]
     
-    for n in range(int(1e6)):
+    while currentcost > costFloor:
+        
+        #allow for random mutation
+        toFlip = np.random.binomial(n=1,p=mutProb,size=(N,M))
+        currentgrid[toFlip.astype(bool)] = (currentgrid[toFlip.astype(bool)] + 1)%2
+        
         decrements = LCdecrements[currentgrid.astype(bool)]
         decrements = np.sum(decrements,axis=0)
         currentLC = np.ones_like(decrements) - decrements
