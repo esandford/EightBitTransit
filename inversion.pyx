@@ -13,7 +13,7 @@ from .cTransitingImage import *
 from .cGridFunctions import *
 from .misc import *
 
-__all__ = ['nCr', 'makeArcBasis', 'makeArcBasisCombinatoric', 'whoAreMyArcNeighbors','arcRearrange','discreteFourierTransform_2D',
+__all__ = ['nCr', 'makeArcBasis', 'makeArcBasisAverage','makeArcBasisCombinatoric', 'whoAreMyArcNeighbors','arcRearrange','discreteFourierTransform_2D',
 'inverseDiscreteFourierTransform_2D','Gaussian2D_PDF','simultaneous_ART','wedgeRearrange','wedgeNegativeEdge', 'wedgeOptimize_sym',
 'foldOpacities','round_ART','petriDish','invertLC']
 
@@ -167,10 +167,13 @@ cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim
         
         #if there are limb pixels and dF/dt > 0.5 pixels' worth of opacity:
         
+        #the new way: try to find the most parsimonious solution, adding up tau*dA/dt to match dF/dt without exceeding it.
+        #account for egress by letting the grid remember the earlier arcs and assigning signs appropriately to the dA/dt.
+
         #using k_idx
         #if (len(limbPixel_is_half) > 0) & (np.abs(delta_fluxes[k_idx]) > ((ti.w)**2/(2.*np.pi))):
         if (len(limbPixel_is_half) > 0):# & (np.abs(delta_fluxes[k]) > ((ti.w)**2/(2.*np.pi))):
-            """
+            
             #dAdt = delta_areas[k_idx]
             dAdt = delta_areas[k]
             dAdt[~(limbPixelMask & onPixelMask)] = 0    #we do NOT want to mess with the non-limb pixels, 
@@ -247,7 +250,178 @@ cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim
                         recombined[max_area_mirror_i, max_area_j] = 0.5
 
                     #set this area equal to 0 so we don't re-use it
-                    dAdt_rav[max_area_idx] = 0."""
+                    dAdt_rav[max_area_idx] = 0.
+
+            
+        #plot it
+        foldedGrid = foldOpacities(recombined)
+        decrements = LCdecrements[foldedGrid.astype(bool)]
+        decrements_1D = np.sum(decrements,axis=0)
+        trial_LC = np.ones_like(decrements_1D) - decrements_1D
+        trial_flux_points = np.zeros((len(ks)+1))
+        trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
+        trial_flux_points[-1] = trial_LC[-1]
+        trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
+        
+        basis[k_idx] = np.ravel(recombined)/np.ravel(sines)
+        basisRMSs[k_idx] = RMS(obsLC,obsLCerr,trial_LC) #np.min(costs)
+    
+    #only concern ourselves with first fourth and last fourth of LC
+    #for idx in range(2*int(len(ks)/4), len(basis)):
+    #    basis[idx] = np.zeros_like(np.ravel(recombined))
+    #    basisRMSs[idx] = 0.
+    
+    return basis, basisRMSs
+    #return np.ravel(recombined)
+
+cpdef makeArcBasisAverage(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim=1] times, 
+    np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
+    np.ndarray[double, ndim=1] obsLCerr):
+    """
+    """
+    cdef:
+        np.ndarray[np.int64_t, ndim=2] i_arr
+        np.ndarray[np.int64_t, ndim=2] j_arr
+        np.ndarray[np.double_t, ndim=2] sines
+        np.ndarray[np.int64_t, ndim=1] ks
+        np.ndarray[np.int64_t, ndim=1] onPixel_is
+        np.ndarray[np.int64_t, ndim=1] onPixel_js
+        np.ndarray[np.int64_t, ndim=1] limbPixel_is
+        np.ndarray[np.int64_t, ndim=1] limbPixel_js
+        np.ndarray[np.int64_t, ndim=1] limbPixel_is_half
+        np.ndarray[np.int64_t, ndim=1] limbPixel_js_half
+        np.ndarray[np.double_t, ndim=1] time_points
+        np.ndarray[np.double_t, ndim=1] delta_times
+        np.ndarray[np.double_t, ndim=1] middle_times
+        np.ndarray[np.double_t, ndim=1] flux_points
+        np.ndarray[np.double_t, ndim=1] delta_fluxes
+        np.ndarray[np.double_t, ndim=2] basis
+        np.ndarray[np.double_t, ndim=1] basisRMSs
+        np.ndarray[np.int64_t, ndim=1] best_whichOn
+        np.ndarray[np.double_t, ndim=2] recombined
+        np.ndarray[np.double_t, ndim=2] grid
+        np.ndarray[np.int64_t, ndim=1] limbPixels_to_p05
+        np.ndarray[np.double_t, ndim=2] foldedGrid
+        np.ndarray[np.double_t, ndim=2] decrements
+        np.ndarray[np.double_t, ndim=1] decrements_1D
+        np.ndarray[np.double_t, ndim=1] trial_LC
+        np.ndarray[np.double_t, ndim=1] trial_flux_points
+        np.ndarray[np.double_t, ndim=1] trial_delta_fluxes
+        np.ndarray[np.double_t, ndim=3] delta_areas
+        np.ndarray[np.double_t, ndim=2] dAdt
+        np.ndarray[np.double_t, ndim=1] dAdt_rav
+
+        int N, M, k, k_interval, Nmid, k_idx, nOpacityUnits, nLimbPixelSpaces, nCombinations, comboIdx, p, northern_i, southern_i, ii, jj, kk, max_area_idx, max_area_i, max_area_mirror_i, max_area_j
+        
+        double t_interval, bestRMS, RMS_, trial_dFdt, dFdt, max_area, mirrorfac
+
+        #double[:,:,:] LCdecrements_C = LCdecrements
+        #double[:] decrements_1D = np.zeros_like(times)
+        #double[:] trial_LC = np.ones_like(times)
+        #double[:] trial_delta_fluxes = np.zeros((len(times)-1))
+   
+    
+    #print type(LCdecrements)    #np.ndarray
+    #print type(LCdecrements_C)  #EightBitTransit.inversion._memoryviewslice
+    N = np.shape(SARTimage)[0]
+    M = np.shape(SARTimage)[1]
+
+    ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw="uniform", v=0.4, t_ref=0., t_arr=times)
+    ti.gen_LC(times)
+    
+    #How long does it take for the grid to move laterally by a distance of w/2 (i.e., 1/2 pixel width)?
+    #t_interval = (ti.w)/(2.*ti.v)
+    t_interval = ti.w/ti.v
+
+    #What indices in the time array correspond to these time intervals?
+    #k_interval = int(t_interval/np.mean(times[1:] - times[0:-1]))
+    k_interval = 1
+
+    i_arr = (np.tile(np.arange(N),(M,1))).T
+    j_arr = (np.tile(np.arange(N),(M,1)))
+
+    onPixelMask = (SARTimage > 0.)
+    onPixel_is = i_arr[onPixelMask]
+    onPixel_js = j_arr[onPixelMask]
+    
+    if (N>1) & (N%2 == 0): #N even
+        Nmid = int(N/2) 
+        sines = (np.abs(i_arr + 0.5*np.ones_like(i_arr, dtype=float) - (Nmid*np.ones_like(i_arr,dtype=float))) + 0.5*np.ones_like(i_arr,dtype=float))/(N/2.)
+    elif (N>1) & (N%2 != 0): #N odd
+        Nmid = int((N-1)/2 + 1)
+        sines = (np.abs(i_arr + np.ones_like(i_arr,dtype=float) - (Nmid*np.ones_like(i_arr,dtype=float))) + 0.5*np.ones_like(i_arr,dtype=float))/(N/2.)
+
+    #Get delta(light curve), calculated between time points (2*t_interval) apart (i.e., when the grid has moved a distance of w)
+    ks = np.arange(0,np.shape(ti.areas)[0],k_interval)
+
+    """
+    kCopy = copy.deepcopy(ks)
+    try:
+        ks[0::2] = kCopy[0:int(len(kCopy)/2)]
+        ks[1::2] = kCopy[int(len(kCopy)/2):][::-1]
+    except ValueError:
+        ks[0::2] = kCopy[0:int(len(kCopy)/2)+1]
+        ks[1::2] = kCopy[int(len(kCopy)/2)+1:][::-1]
+    """
+
+    #only concern ourselves with first fourth and last fourth of LC
+    #ks[0:int(len(ks)/4)+1] = ks[0:int(len(ks)/4)+1][::-1]
+    #ks[int(len(ks)/4)+1:2*int(len(ks)/4)+1] = ks[-int(len(ks)/4):]
+
+    time_points = np.zeros((len(ks)+1))
+    time_points[0:-1] = times[np.arange(0,len(times),k_interval)]
+    time_points[-1] = times[-1]
+    delta_times = time_points[1:] - time_points[0:-1]
+    middle_times = time_points[0:-1] + (delta_times/2.)
+    
+    flux_points = np.zeros((len(ks)+1))
+    flux_points[0:-1] = obsLC[np.arange(0,len(obsLC),k_interval)]
+    flux_points[-1] = obsLC[-1]
+    
+    delta_fluxes = flux_points[1:] - flux_points[0:-1]
+    
+    area_points = np.zeros((len(ks)+1, np.shape(ti.areas)[1], np.shape(ti.areas)[2]))
+    area_points[0:-1] = ti.areas[np.arange(0,len(times),k_interval)]
+    area_points[-1] = ti.areas[-1]
+    delta_areas = np.zeros((len(middle_times), np.shape(ti.areas)[1], np.shape(ti.areas)[2]))
+
+    for i in range(len(middle_times)):
+        delta_areas[i,:,:] = area_points[i+1] - area_points[i]
+
+    #fig = plt.figure(figsize=(8,6))
+    #plt.plot(times,obsLC,'m-',lw=2)
+    #plt.plot(time_points,flux_points,'ko',ls='-',mec='None',lw=1)
+    #plt.bar(x=middle_times,height=delta_fluxes,width=0.2,bottom=1.,color='b',edgecolor='None',alpha=0.5)
+    #plt.ylim(0.8,1.06)
+    #plt.show()
+    
+    basis = np.zeros((len(ks),N*M))
+    basisRMSs = np.zeros((len(ks)))
+
+    #for the new dA/dt way
+    #recombined = np.zeros_like(SARTimage)
+
+    for k_idx,k in enumerate(ks): #at every interval during which the grid moves a distance of w
+        #start from an empty grid at every time step
+        #only do this for the averaged-arcs way or the old arc combinatorics way. do not do it for the new dA/dt way!
+        recombined = np.zeros_like(SARTimage)
+
+        #print k
+
+        #get indices, xy positions, and angular positions of "on" pixels that overlap the stellar limb
+        limbPixelMask = (delta_areas[k_idx] != 0.)#((ti.areas[k] > 0.) & (ti.areas[k] < ((ti.w)**2)/np.pi))
+
+        limbPixel_is = i_arr[limbPixelMask & onPixelMask]
+        limbPixel_js = j_arr[limbPixelMask & onPixelMask]
+
+        limbPixel_is_half = limbPixel_is[limbPixel_is < Nmid]
+        limbPixel_js_half = limbPixel_js[limbPixel_is < Nmid]
+        
+        #if there are limb pixels and dF/dt > 0.5 pixels' worth of opacity:
+        
+        #using k_idx
+        #if (len(limbPixel_is_half) > 0) & (np.abs(delta_fluxes[k_idx]) > ((ti.w)**2/(2.*np.pi))):
+        if (len(limbPixel_is_half) > 0):# & (np.abs(delta_fluxes[k]) > ((ti.w)**2/(2.*np.pi))):
 
             # to endow the entire arc with the *average* ingress opacity:
             
@@ -255,78 +429,6 @@ cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim
             
             for pixIdx in range(0, len(limbPixel_is)):
                 recombined[limbPixel_is[pixIdx], limbPixel_js[pixIdx]] += avg_opacity*ti.areas[k][limbPixel_is[pixIdx], limbPixel_js[pixIdx]]
-            
-
-            #the new way: try to find the most parsimonious solution, adding up tau*dA/dt to match dF/dt without exceeding it.
-            #account for egress by letting the grid remember the earlier arcs and assigning signs appropriately to the dA/dt.
-
-            #to do the old arc-combinatorics way, of distributing ingress opacity units without considering egress at all:
-            """nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask & onPixelMask]))) #number of "units" of 0.5 opacity that 
-                                                                                           #need to be distributed among the limb pixels.
-                                                                                           # = (delta_flux/avg_pixel_area) * 2 (because these are units of 0.5 opacity, not 1 opacity) / 2 (to accommodate flip degeneracy)
-            print "nOpacityUnits is {0}".format(nOpacityUnits)
-            nLimbPixelSpaces = len(limbPixel_is_half)*2 #available spaces that can hold a "unit" of 0.5 opacity
-            print "nLimbPixelSpaces is {0}".format(nLimbPixelSpaces)
-            
-            
-            nCombinations = nCr(nLimbPixelSpaces, nOpacityUnits)
-            #if nCombinations == 0:
-            #    nCombinations = int(1e6)
-            
-            print "nCombinations is {0}".format(nCombinations)
-            
-            combinations = itertools.combinations(iterable = np.arange(nLimbPixelSpaces), r = nOpacityUnits)
-
-            bestRMS = 1000000.0
-            best_whichOn = np.zeros((len(limbPixel_is_half)),dtype=int)
-            
-            #if there are too many combinations, just take a random subset
-            #if nCombinations > 1e5:
-            #    combinations = []
-
-            #    for nc in range(int(1e5)):
-            #        combo = tuple(np.sort(np.random.choice(np.arange(nLimbPixelSpaces), size=nOpacityUnits, replace=False)))
-            #        combinations.append(combo)
-
-            for comboIdx, combo in enumerate(combinations):
-                t0 = time.time()
-                grid = np.zeros_like(SARTimage)
-                
-                limbPixels_to_p05 = np.array(combo) % len(limbPixel_is_half)
-                
-                for p in limbPixels_to_p05:
-                    northern_i = limbPixel_is_half[p]
-                    southern_i = N - limbPixel_is_half[p] - 1
-                    grid[northern_i,limbPixel_js_half[p]] += 0.5
-                    grid[southern_i,limbPixel_js_half[p]] += 0.5
-                
-                foldedGrid = foldOpacities(grid)
-                
-                decrements = LCdecrements[foldedGrid.astype(bool)]
-                decrements_1D = np.sum(decrements,axis=0)
-
-                trial_LC = np.ones_like(decrements_1D) - decrements_1D
-
-                trial_flux_points = np.zeros((len(ks)+1))
-                trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
-                trial_flux_points[-1] = trial_LC[-1]
-
-                trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
-
-                RMS_ = ((delta_fluxes[k_idx] - trial_delta_fluxes[k_idx])**2/obsLCerr[k]**2)
-                
-                if RMS_ < bestRMS:
-                    bestRMS = RMS_
-                    best_whichOn = limbPixels_to_p05
-
-                t1 = time.time()
-                #print "1 combination test: {0} seconds".format(t1-t0)
-
-            for p in best_whichOn:
-                northern_i = limbPixel_is_half[p]
-                southern_i = N - limbPixel_is_half[p] - 1
-                recombined[northern_i,limbPixel_js_half[p]] += 0.5
-                recombined[southern_i,limbPixel_js_half[p]] += 0.5"""
             
         #plot it
         foldedGrid = foldOpacities(recombined)
@@ -404,14 +506,6 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw="uniform", v=0.4, t_ref=0., t_arr=times)
     ti.gen_LC(times)
-    
-    #How long does it take for the grid to move laterally by a distance of w/2 (i.e., 1/2 pixel width)?
-    #t_interval = (ti.w)/(2.*ti.v)
-    t_interval = ti.w/ti.v
-    
-    #What indices in the time array correspond to these time intervals?
-    #k_interval = int(t_interval/np.mean(times[1:] - times[0:-1]))
-    k_interval = 1
 
     i_arr = (np.tile(np.arange(N),(M,1))).T
     j_arr = (np.tile(np.arange(N),(M,1)))
@@ -427,77 +521,77 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
         Nmid = int((N-1)/2 + 1)
         sines = (np.abs(i_arr + np.ones_like(i_arr,dtype=float) - (Nmid*np.ones_like(i_arr,dtype=float))) + 0.5*np.ones_like(i_arr,dtype=float))/(N/2.)
 
-    #Get delta(light curve), calculated between time points (2*t_interval) apart (i.e., when the grid has moved a distance of w)
-    ks = np.arange(0,np.shape(ti.areas)[0],k_interval)
+    #Get delta(light curve), calculated between time points 
+    ks = np.arange(0, len(times) - 1)
 
-    """
-    kCopy = copy.deepcopy(ks)
-    try:
-        ks[0::2] = kCopy[0:int(len(kCopy)/2)]
-        ks[1::2] = kCopy[int(len(kCopy)/2):][::-1]
-    except ValueError:
-        ks[0::2] = kCopy[0:int(len(kCopy)/2)+1]
-        ks[1::2] = kCopy[int(len(kCopy)/2)+1:][::-1]
-    """
+    delta_times = times[1:] - times[0:-1]
+    middle_times = times[0:-1] + (delta_times/2.)
     
-    #only concern ourselves with first fourth and last fourth of LC
-    #ks[0:int(len(ks)/4)+1] = ks[0:int(len(ks)/4)+1][::-1]
-    #ks[int(len(ks)/4)+1:2*int(len(ks)/4)+1] = ks[-int(len(ks)/4):]
+    delta_fluxes = obsLC[1:] - obsLC[0:-1]
     
-    time_points = np.zeros((len(ks)+1))
-    time_points[0:-1] = times[np.arange(0,len(times),k_interval)]
-    time_points[-1] = times[-1]
-    delta_times = time_points[1:] - time_points[0:-1]
-    middle_times = time_points[0:-1] + (delta_times/2.)
-    
-    flux_points = np.zeros((len(ks)+1))
-    flux_points[0:-1] = obsLC[np.arange(0,len(obsLC),k_interval)]
-    flux_points[-1] = obsLC[-1]
-    
-    delta_fluxes = flux_points[1:] - flux_points[0:-1]
-    
-    area_points = np.zeros((len(ks)+1, np.shape(ti.areas)[1], np.shape(ti.areas)[2]))
-    area_points[0:-1] = ti.areas[np.arange(0,len(times),k_interval)]
-    area_points[-1] = ti.areas[-1]
-    delta_areas = np.zeros((len(middle_times), np.shape(ti.areas)[1], np.shape(ti.areas)[2]))
-
+    delta_areas = np.zeros((len(middle_times), N, M))
     for i in range(len(middle_times)):
-        delta_areas[i,:,:] = area_points[i+1] - area_points[i]
+        delta_areas[i,:,:] = ti.areas[i+1] - ti.areas[i]
 
     basis = np.zeros((len(ks),N*M))
     basisRMSs = np.zeros((len(ks)))
 
-    for k_idx,k in enumerate(ks): #at every interval during which the grid moves a distance of w
-        
+    #to properly account for which section of light curve is influenced by a particular arc
+    tI = times[obsLC < 1.][0]
+    tIV = times[obsLC < 1.][-1]
+
+    tEvent = tIV - tI
+    v = 4./tEvent
+
+    for k_idx,k in enumerate(ks): #at every time step     no longer true: #interval during which the grid moves a distance of w
+        print "time is {0}".format(middle_times[k_idx])
         #start from an empty grid at every time step
-        recombined = np.zeros_like(SARTimage)
+        recombined = np.zeros((N,M))
 
         #get indices, xy positions, and angular positions of "on" pixels that overlap the stellar limb
         limbPixelMask = (delta_areas[k_idx] != 0.)#((ti.areas[k] > 0.) & (ti.areas[k] < ((ti.w)**2)/np.pi))
+
+        ingressPixelMask = ti.positions[k, :, :, 0] <= 0.
+        egressPixelMask = ti.positions[k, :, :, 0] > 0.
 
         limbPixel_is = i_arr[limbPixelMask & onPixelMask]
         limbPixel_js = j_arr[limbPixelMask & onPixelMask]
 
         limbPixel_is_half = limbPixel_is[limbPixel_is < Nmid]
         limbPixel_js_half = limbPixel_js[limbPixel_is < Nmid]
-        
-        if (len(limbPixel_is_half) > 0):# & (np.abs(delta_fluxes[k]) > ((ti.w)**2/(2.*np.pi))):
+
+        ing_limbPixel_is = i_arr[limbPixelMask & onPixelMask & ingressPixelMask]
+        ing_limbPixel_js = j_arr[limbPixelMask & onPixelMask & ingressPixelMask]
+        ing_limbPixel_is_half = ing_limbPixel_is[ing_limbPixel_is < Nmid]
+        ing_limbPixel_js_half = ing_limbPixel_js[ing_limbPixel_is < Nmid]
+
+
+        eg_limbPixel_is = i_arr[limbPixelMask & onPixelMask & egressPixelMask]
+        eg_limbPixel_js = j_arr[limbPixelMask & onPixelMask & egressPixelMask]
+        eg_limbPixel_is_half = eg_limbPixel_is[eg_limbPixel_is < Nmid]
+        eg_limbPixel_js_half = eg_limbPixel_js[eg_limbPixel_is < Nmid]
+
+        if (delta_fluxes[k_idx] != 0.):# & (np.abs(delta_fluxes[k]) > ((ti.w)**2/(2.*np.pi))):
             #arc-combinatorics way: distribute ingress opacity units without considering egress at all
             #print np.abs(delta_fluxes[k_idx])
             #print np.mean(ti.areas[k][limbPixelMask & onPixelMask])
-            nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask & onPixelMask]))) #number of "units" of 0.5 opacity that 
-                                                                                           #need to be distributed among the limb pixels.
-                                                                                           # = (delta_flux/avg_pixel_area) * 2 (because these are units of 0.5 opacity, not 1 opacity) / 2 (to accommodate flip degeneracy)
-            #print "nOpacityUnits is {0}".format(nOpacityUnits)
-            nLimbPixelSpaces = len(limbPixel_is_half)*2 #available spaces that can hold a "unit" of 0.5 opacity
-            #print "nLimbPixelSpaces is {0}".format(nLimbPixelSpaces)
+
+            if delta_fluxes[k_idx] < 0.:
+                nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.sum(ti.areas[k][limbPixelMask & onPixelMask & ingressPixelMask])))
+                nLimbPixelSpaces = len(ing_limbPixel_is_half)*2 #available spaces that can hold a "unit" of 0.5 opacity
+
+            elif delta_fluxes[k_idx] > 0.:
+                nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.sum(ti.areas[k][limbPixelMask & onPixelMask & egressPixelMask])))
+                nLimbPixelSpaces = len(eg_limbPixel_is_half)*2
             
+            #nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.sum(ti.areas[k][limbPixelMask & onPixelMask]))) #number of "units" of 0.5 opacity that 
+                                                                                           #need to be distributed among the limb pixels.
+                                                                                           # = (delta_flux/total_pixel_area) * 2 (because these are units of 0.5 opacity, not 1 opacity) / 2 (to accommodate flip degeneracy)
+            print "nOpacityUnits is {0}".format(nOpacityUnits)
+            print "nLimbPixelSpaces is {0}".format(nLimbPixelSpaces)
             
             nCombinations = nCr(nLimbPixelSpaces, nOpacityUnits)
-            #if nCombinations == 0:
-            #    nCombinations = int(1e6)
-            
-            #print "nCombinations is {0}".format(nCombinations)
+            print "nCombinations is {0}".format(nCombinations)
             
             combinations = itertools.combinations(iterable = np.arange(nLimbPixelSpaces), r = nOpacityUnits)
 
@@ -514,32 +608,57 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
 
             for comboIdx, combo in enumerate(combinations):
                 t0 = time.time()
-                grid = np.zeros_like(SARTimage)
+                grid = np.zeros((N,M))
                 
-                limbPixels_to_p05 = np.array(combo, dtype=int) % len(limbPixel_is_half)
+                if delta_fluxes[k_idx] < 0.:
+                    limbPixels_to_p05 = np.array(combo, dtype=int) % len(ing_limbPixel_is_half)
                 
-                for p in limbPixels_to_p05:
-                    northern_i = limbPixel_is_half[p]
-                    southern_i = N - limbPixel_is_half[p] - 1
-                    grid[northern_i,limbPixel_js_half[p]] += 0.5
-                    grid[southern_i,limbPixel_js_half[p]] += 0.5
+                    for p in limbPixels_to_p05:
+                        northern_i = ing_limbPixel_is_half[p]
+                        southern_i = N - ing_limbPixel_is_half[p] - 1
+                        grid[northern_i,ing_limbPixel_js_half[p]] += 0.5
+                        grid[southern_i,ing_limbPixel_js_half[p]] += 0.5
                 
+                elif delta_fluxes[k_idx] > 0.:
+                    limbPixels_to_p05 = np.array(combo, dtype=int) % len(eg_limbPixel_is_half)
+                
+                    for p in limbPixels_to_p05:
+                        northern_i = eg_limbPixel_is_half[p]
+                        southern_i = N - eg_limbPixel_is_half[p] - 1
+                        grid[northern_i,eg_limbPixel_js_half[p]] += 0.5
+                        grid[southern_i,eg_limbPixel_js_half[p]] += 0.5
+
                 foldedGrid = foldOpacities(grid)
                 
                 decrements = LCdecrements[foldedGrid.astype(bool)]
                 decrements_1D = np.sum(decrements,axis=0)
 
                 trial_LC = np.ones_like(decrements_1D) - decrements_1D
+                trial_delta_fluxes = trial_LC[1:] - trial_LC[0:-1]
 
-                trial_flux_points = np.zeros((len(ks)+1))
-                trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
-                trial_flux_points[-1] = trial_LC[-1]
+                #we're interested in how well dF/dt at the ingress and egress of these pixels matches dF/dt observed.
+                if middle_times[k_idx] < (tI + (tEvent/4.)): #there are only ingressing pixels, no egressing (first fourth of light curve)
+                    delta_slice_mask = ((middle_times >= middle_times[k_idx]) & (middle_times <= middle_times[k_idx] + (tEvent/4.)))
+                    slice_mask = ((times >= middle_times[k_idx]) & (times <= middle_times[k_idx] + (tEvent/4.)))
+                    
+                elif middle_times[k_idx] > (tIV - (tEvent/4.)): #there are only egressing pixels, no ingressing (last fourth of light curve)
+                    delta_slice_mask = ((middle_times >= (middle_times[k_idx] - (tEvent/4.))) & (middle_times >= middle_times[k_idx]))
+                    slice_mask = ((times >= (middle_times[k_idx] - (tEvent/4.))) & (times >= middle_times[k_idx]))
 
-                trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
+                elif (middle_times[k_idx] >= (tI + (tEvent/4.))) & (middle_times[k_idx] < (tI + (tEvent/2.))): #there are pixels ingressing and pixels egressing; second fourth of light curve
+                    delta_slice_mask = ((middle_times >= (middle_times[k_idx] - (tEvent/4.))) & (middle_times <= middle_times[k_idx] + (tEvent/4.)))
+                    slice_mask = ((times >= (middle_times[k_idx] - (tEvent/4.))) & (times <= middle_times[k_idx] + (tEvent/4.)))
 
-                #perhaps this needs to change...we're interested in dF/dt over a range of times, not just in this one place.
-                RMS_ = ((delta_fluxes[k_idx] - trial_delta_fluxes[k_idx])**2/obsLCerr[k]**2)
+                else: #there are pixels ingressing and pixels egressing; third fourth of light curve
+                    delta_slice_mask = ((middle_times >= (middle_times[k_idx] - (tEvent/4.))) & (middle_times <= middle_times[k_idx] + (tEvent/4.)))
+                    slice_mask = ((times >= (middle_times[k_idx] - (tEvent/4.))) & (times <= middle_times[k_idx] + (tEvent/4.)))
+
+                #think about the denominator of the below...is that right?
+                RMS_ = np.sum((delta_fluxes[delta_slice_mask] - trial_delta_fluxes[delta_slice_mask])**2)#/np.sum(obsLCerr[slice_mask]**2)
                 
+                #RMS_ += 0.5*np.sum((trial_LC[slice_mask] - obsLC[slice_mask])**2/obsLCerr[slice_mask]**2)
+                
+
                 if RMS_ < bestRMS:
                     bestRMS = RMS_
                     best_whichOn = limbPixels_to_p05
@@ -548,28 +667,33 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
                 #print "1 combination test: {0} seconds".format(t1-t0)
 
             for p in best_whichOn:
-                northern_i = limbPixel_is_half[p]
-                southern_i = N - limbPixel_is_half[p] - 1
-                recombined[northern_i,limbPixel_js_half[p]] += 0.5
-                recombined[southern_i,limbPixel_js_half[p]] += 0.5
+                if delta_fluxes[k_idx] < 0.:
+                    northern_i = ing_limbPixel_is_half[p]
+                    southern_i = N - ing_limbPixel_is_half[p] - 1
+                    recombined[northern_i,ing_limbPixel_js_half[p]] += 0.5
+                    recombined[southern_i,ing_limbPixel_js_half[p]] += 0.5
+                
+                elif delta_fluxes[k_idx] > 0.:
+                    northern_i = eg_limbPixel_is_half[p]
+                    southern_i = N - eg_limbPixel_is_half[p] - 1
+                    recombined[northern_i,eg_limbPixel_js_half[p]] += 0.5
+                    recombined[southern_i,eg_limbPixel_js_half[p]] += 0.5
+
+                #northern_i = limbPixel_is_half[p]
+                #southern_i = N - limbPixel_is_half[p] - 1
+                #recombined[northern_i,limbPixel_js_half[p]] += 0.5
+                #recombined[southern_i,limbPixel_js_half[p]] += 0.5
             
         #plot it
         foldedGrid = foldOpacities(recombined)
         decrements = LCdecrements[foldedGrid.astype(bool)]
         decrements_1D = np.sum(decrements,axis=0)
         trial_LC = np.ones_like(decrements_1D) - decrements_1D
-        trial_flux_points = np.zeros((len(ks)+1))
-        trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
-        trial_flux_points[-1] = trial_LC[-1]
-        trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
         
-        basis[k_idx] = np.ravel(recombined)/np.ravel(sines)
-        basisRMSs[k_idx] = RMS(obsLC,obsLCerr,trial_LC) #np.min(costs)
-    
-    #only concern ourselves with first fourth and last fourth of LC
-    #for idx in range(2*int(len(ks)/4), len(basis)):
-    #    basis[idx] = np.zeros_like(np.ravel(recombined))
-    #    basisRMSs[idx] = 0.
+        trial_delta_fluxes = trial_LC[1:] - trial_LC[0:-1]
+
+        basis[k_idx] = np.ravel(recombined)#/np.ravel(sines)
+        basisRMSs[k_idx] = RMS(obsLC,obsLCerr,trial_LC) 
     
     return basis, basisRMSs
 
