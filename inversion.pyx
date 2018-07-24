@@ -451,7 +451,7 @@ cpdef makeArcBasisAverage(np.ndarray[double, ndim=2] SARTimage, np.ndarray[doubl
     return basis, basisRMSs
     #return np.ravel(recombined)
 
-cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim=1] times, 
+cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim=2] truth, np.ndarray[double, ndim=1] times, 
     np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
     np.ndarray[double, ndim=1] obsLCerr):
     """
@@ -542,6 +542,7 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
 
     tEvent = tIV - tI
     v = 4./tEvent
+    w = ti.w
 
     for k_idx,k in enumerate(ks): #at every time step     no longer true: #interval during which the grid moves a distance of w
         print "time is {0}".format(middle_times[k_idx])
@@ -551,8 +552,8 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
         #get indices, xy positions, and angular positions of "on" pixels that overlap the stellar limb
         limbPixelMask = (delta_areas[k_idx] != 0.)#((ti.areas[k] > 0.) & (ti.areas[k] < ((ti.w)**2)/np.pi))
 
-        ingressPixelMask = ti.positions[k, :, :, 0] <= 0.
-        egressPixelMask = ti.positions[k, :, :, 0] > 0.
+        ingressPixelMask = (delta_areas[k_idx] > 0.)
+        egressPixelMask = (delta_areas[k_idx] < 0.)
 
         limbPixel_is = i_arr[limbPixelMask & onPixelMask]
         limbPixel_js = j_arr[limbPixelMask & onPixelMask]
@@ -565,11 +566,13 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
         ing_limbPixel_is_half = ing_limbPixel_is[ing_limbPixel_is < Nmid]
         ing_limbPixel_js_half = ing_limbPixel_js[ing_limbPixel_is < Nmid]
 
-
         eg_limbPixel_is = i_arr[limbPixelMask & onPixelMask & egressPixelMask]
         eg_limbPixel_js = j_arr[limbPixelMask & onPixelMask & egressPixelMask]
         eg_limbPixel_is_half = eg_limbPixel_is[eg_limbPixel_is < Nmid]
         eg_limbPixel_js_half = eg_limbPixel_js[eg_limbPixel_is < Nmid]
+        
+        if (delta_fluxes[k_idx] == 0.):
+            combinedMask = (limbPixelMask & onPixelMask)
 
         if (delta_fluxes[k_idx] != 0.):# & (np.abs(delta_fluxes[k]) > ((ti.w)**2/(2.*np.pi))):
             #arc-combinatorics way: distribute ingress opacity units without considering egress at all
@@ -577,16 +580,37 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
             #print np.mean(ti.areas[k][limbPixelMask & onPixelMask])
 
             if delta_fluxes[k_idx] < 0.:
-                nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.sum(ti.areas[k][limbPixelMask & onPixelMask & ingressPixelMask])))
+                nOpacityUnits = int(np.ceil((np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask & onPixelMask & ingressPixelMask])) * 2. * (len(ing_limbPixel_is_half)/len(ing_limbPixel_is))))
                 nLimbPixelSpaces = len(ing_limbPixel_is_half)*2 #available spaces that can hold a "unit" of 0.5 opacity
 
             elif delta_fluxes[k_idx] > 0.:
-                nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.sum(ti.areas[k][limbPixelMask & onPixelMask & egressPixelMask])))
+                nOpacityUnits = int(np.ceil((np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask & onPixelMask & egressPixelMask])) * 2. * (len(eg_limbPixel_is_half)/len(eg_limbPixel_is))))
                 nLimbPixelSpaces = len(eg_limbPixel_is_half)*2
             
-            #nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.sum(ti.areas[k][limbPixelMask & onPixelMask]))) #number of "units" of 0.5 opacity that 
+            #nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask & onPixelMask]))) #number of "units" of 0.5 opacity that 
                                                                                            #need to be distributed among the limb pixels.
-                                                                                           # = (delta_flux/total_pixel_area) * 2 (because these are units of 0.5 opacity, not 1 opacity) / 2 (to accommodate flip degeneracy)
+                                                                                           # = (delta_flux/avg_relevant_pixel_area) * 2 (because these are units of 0.5 opacity, not 1 opacity) *(N_north_pixels/N_total_pixels)  (to accommodate flip degeneracy)
+            
+            print "delta_fluxes[k_idx] is {0}".format(delta_fluxes[k_idx])
+
+            fig = plt.figure(figsize=(4,4))
+            if delta_fluxes[k_idx] < 0.:
+                    combinedMask = (limbPixelMask & onPixelMask & ingressPixelMask)
+            elif delta_fluxes[k_idx] > 0.:
+                    combinedMask = (limbPixelMask & onPixelMask & egressPixelMask)
+            plt.imshow(combinedMask.astype(int), cmap='Greys',interpolation='nearest',vmin=0.,vmax=1.)
+            #plt.axis("off")
+            plt.title("combinedMask")
+            plt.show()
+
+            #truth comparison
+            foldedGrid = foldOpacities((truth.astype(bool) & combinedMask).astype(float))
+            decrements = LCdecrements[foldedGrid.astype(bool)]
+            decrements_1D = np.sum(decrements,axis=0)
+            trial_truth_LC = np.ones_like(decrements_1D) - decrements_1D
+
+            trial_truth_delta_fluxes = trial_truth_LC[1:] - trial_truth_LC[0:-1]
+
             print "nOpacityUnits is {0}".format(nOpacityUnits)
             print "nLimbPixelSpaces is {0}".format(nLimbPixelSpaces)
             
@@ -638,34 +662,47 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
 
                 #we're interested in how well dF/dt at the ingress and egress of these pixels matches dF/dt observed.
                 if middle_times[k_idx] < (tI + (tEvent/4.)): #there are only ingressing pixels, no egressing (first fourth of light curve)
-                    delta_slice_mask = ((middle_times >= middle_times[k_idx]) & (middle_times <= middle_times[k_idx] + (tEvent/4.)))
-                    slice_mask = ((times >= middle_times[k_idx]) & (times <= middle_times[k_idx] + (tEvent/4.)))
+                    delta_slice_mask = ((middle_times >= (middle_times[k_idx] - (w/(v)))) & (middle_times <= middle_times[k_idx] + (tEvent/4.) + (w/(v))))
+                    slice_mask = ((times >= middle_times[k_idx] - (w/(v))) & (times <= middle_times[k_idx] + (tEvent/4.) + (w/(v))))
                     
                 elif middle_times[k_idx] > (tIV - (tEvent/4.)): #there are only egressing pixels, no ingressing (last fourth of light curve)
-                    delta_slice_mask = ((middle_times >= (middle_times[k_idx] - (tEvent/4.))) & (middle_times >= middle_times[k_idx]))
-                    slice_mask = ((times >= (middle_times[k_idx] - (tEvent/4.))) & (times >= middle_times[k_idx]))
+                    delta_slice_mask = ((middle_times >= (middle_times[k_idx] - (tEvent/4.) - (w/(v)))) & (middle_times <= (middle_times[k_idx] + (w/(v)))))
+                    slice_mask = ((times >= (middle_times[k_idx] - (tEvent/4.) - (w/(v)))) & (times >= middle_times[k_idx] + (w/(v))))
 
                 elif (middle_times[k_idx] >= (tI + (tEvent/4.))) & (middle_times[k_idx] < (tI + (tEvent/2.))): #there are pixels ingressing and pixels egressing; second fourth of light curve
-                    delta_slice_mask = ((middle_times >= (middle_times[k_idx] - (tEvent/4.))) & (middle_times <= middle_times[k_idx] + (tEvent/4.)))
-                    slice_mask = ((times >= (middle_times[k_idx] - (tEvent/4.))) & (times <= middle_times[k_idx] + (tEvent/4.)))
+                    delta_slice_mask = ((middle_times >= (middle_times[k_idx] - (tEvent/4.) - (w/(v)))) & (middle_times <= middle_times[k_idx] + (tEvent/4.) + (w/(v))))
+                    slice_mask = ((times >= (middle_times[k_idx] - (tEvent/4.) - (w/(v)))) & (times <= middle_times[k_idx] + (tEvent/4.) + (w/(2.*v))))
 
                 else: #there are pixels ingressing and pixels egressing; third fourth of light curve
-                    delta_slice_mask = ((middle_times >= (middle_times[k_idx] - (tEvent/4.))) & (middle_times <= middle_times[k_idx] + (tEvent/4.)))
-                    slice_mask = ((times >= (middle_times[k_idx] - (tEvent/4.))) & (times <= middle_times[k_idx] + (tEvent/4.)))
+                    delta_slice_mask = ((middle_times >= (middle_times[k_idx] - (tEvent/4.) - (w/(v)))) & (middle_times <= middle_times[k_idx] + (tEvent/4.) + (w/(v))))
+                    slice_mask = ((times >= (middle_times[k_idx] - (tEvent/4.) - (w/(v)))) & (times <= middle_times[k_idx] + (tEvent/4.) + (w/(2.*v))))
 
                 #think about the denominator of the below...is that right?
-                RMS_ = np.sum((delta_fluxes[delta_slice_mask] - trial_delta_fluxes[delta_slice_mask])**2)#/np.sum(obsLCerr[slice_mask]**2)
+                #RMS_ = np.sum((delta_fluxes[delta_slice_mask] - trial_delta_fluxes[delta_slice_mask])**2)#/np.sum(obsLCerr[slice_mask]**2)
+                #truth_RMS_ = np.sum((delta_fluxes[delta_slice_mask] - trial_truth_delta_fluxes[delta_slice_mask])**2)#/np.sum(obsLCerr[slice_mask]**2)
                 
+                RMS_ = np.sum((delta_fluxes - trial_delta_fluxes)**2)#/np.sum(obsLCerr[slice_mask]**2)
+                truth_RMS_ = np.sum((delta_fluxes - trial_truth_delta_fluxes)**2)#/np.sum(obsLCerr[slice_mask]**2)
+                
+
                 #RMS_ += 0.5*np.sum((trial_LC[slice_mask] - obsLC[slice_mask])**2/obsLCerr[slice_mask]**2)
                 
 
                 if RMS_ < bestRMS:
+                    print "new best!"
+                    print RMS_
                     bestRMS = RMS_
                     best_whichOn = limbPixels_to_p05
+                    for p in limbPixels_to_p05:
+                        try:
+                            print (ing_limbPixel_is_half[p],ing_limbPixel_js_half[p])
+                        except IndexError:
+                            print (eg_limbPixel_is_half[p],eg_limbPixel_js_half[p])
 
                 t1 = time.time()
                 #print "1 combination test: {0} seconds".format(t1-t0)
 
+            print "truth_RMS is: {0}".format(truth_RMS_)
             for p in best_whichOn:
                 if delta_fluxes[k_idx] < 0.:
                     northern_i = ing_limbPixel_is_half[p]
@@ -694,6 +731,46 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
 
         basis[k_idx] = np.ravel(recombined)#/np.ravel(sines)
         basisRMSs[k_idx] = RMS(obsLC,obsLCerr,trial_LC) 
+
+        fig = plt.figure(figsize=(4,4))
+        plt.imshow(recombined, cmap='bwr_r',interpolation='nearest',vmin=-1.,vmax=1.)
+        #plt.axis("off")
+        plt.title("recombined")
+        plt.show()
+
+        foldedGrid = foldOpacities((truth.astype(bool) & combinedMask).astype(float))
+        decrements = LCdecrements[foldedGrid.astype(bool)]
+        decrements_1D = np.sum(decrements,axis=0)
+        trial_truth_LC = np.ones_like(decrements_1D) - decrements_1D
+
+        trial_truth_delta_fluxes = trial_truth_LC[1:] - trial_truth_LC[0:-1]
+
+        fig = plt.figure(figsize=(4,4))
+        plt.imshow((truth.astype(bool) & combinedMask).astype(int), cmap='bwr_r',interpolation='nearest',vmin=-1.,vmax=1.)
+        #plt.axis("off")
+        plt.title("truth[combinedMask]")
+        plt.show()
+
+        try:
+            fig = plt.figure(figsize=(4,3))
+            plt.plot(times, obsLC, 'k-', lw=2)
+            plt.plot(times, trial_LC, 'r-')
+            plt.plot(times, trial_truth_LC, 'b-')
+            plt.axvline(times[slice_mask][0],color='k')
+            plt.axvline(times[slice_mask][-1],color='k')
+            plt.ylim(0.7,1.025)
+            plt.show()
+
+
+            fig = plt.figure(figsize=(4,3))
+            plt.plot(middle_times, delta_fluxes, 'k-', lw=2)
+            plt.plot(middle_times, trial_delta_fluxes, 'r-')
+            plt.plot(middle_times, trial_truth_delta_fluxes, 'b-')
+            plt.axvline(times[slice_mask][0],color='k')
+            plt.axvline(times[slice_mask][-1],color='k')
+            plt.show()
+        except UnboundLocalError:
+            pass
     
     return basis, basisRMSs
 
