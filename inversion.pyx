@@ -13,15 +13,64 @@ from .cTransitingImage import *
 from .cGridFunctions import *
 from .misc import *
 
-__all__ = ['nCr', 'makeArcBasis', 'makeArcBasisAverage','makeArcBasisCombinatoric', 'whoAreMyArcNeighbors','arcRearrange','discreteFourierTransform_2D',
+__all__ = ['bruteForceSearch','nCr', 'makeArcBasisParsimony', 'makeArcBasisAverage','makeArcBasisCombinatoric', 'whoAreMyArcNeighbors','arcRearrange','discreteFourierTransform_2D',
 'inverseDiscreteFourierTransform_2D','Gaussian2D_PDF','simultaneous_ART','wedgeRearrange','wedgeNegativeEdge', 'wedgeOptimize_sym',
 'foldOpacities','round_ART','petriDish','invertLC']
+
+cpdef bruteForceSearch(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim=1] times, 
+    np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
+    np.ndarray[double, ndim=1] obsLCerr):
+    """
+    Full search of every grid permutation.
+    """
+    cdef:
+        np.ndarray[np.int64_t, ndim=2] bestGrid
+        np.ndarray[np.int64_t, ndim=2] binaryGrid
+        np.ndarray[np.double_t, ndim=2] decrements
+        np.ndarray[np.double_t, ndim=1] decrements_1D
+        np.ndarray[np.double_t, ndim=1] trial_LC
+
+        int N, M, nCombinations, n
+        
+        double bestRMS, RMS_
+
+    N = np.shape(SARTimage)[0]
+    M = np.shape(SARTimage)[1]
+
+    ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw="uniform", v=0.4, t_ref=0., t_arr=times)
+    trial_LC = ti.gen_LC(times)
+
+    bestRMS = RMS(obsLC,obsLCerr,trial_LC)
+
+    nCombinations = 2**(N * M)
+
+    for n in range(nCombinations):
+        #if n%100000 == 0:
+        #    print n
+        binary = str(bin(n))[2:].zfill(N*M)
+        binary = list(binary)
+        binary = [int(b) for b in binary]
+        binary = binary[::-1] #reverse it so that it starts from the upper left rather than lower right corner
+        binaryGrid = np.array(binary).reshape(N,M)
+
+        decrements = LCdecrements[binaryGrid.astype(bool)]
+        decrements_1D = np.sum(decrements,axis=0)
+
+        trial_LC = np.ones_like(decrements_1D) - decrements_1D
+
+        RMS_ = RMS(obsLC,obsLCerr,trial_LC)
+
+        if RMS_ < bestRMS:
+            bestRMS = RMS_
+            bestGrid = binaryGrid
+
+    return bestGrid, bestRMS
 
 cpdef int nCr(int n, int r):
     f = math.factorial
     return f(n) / f(r) / f(n-r)
 
-cpdef makeArcBasis(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim=1] times, 
+cpdef makeArcBasisParsimony(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim=1] times, 
     np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
     np.ndarray[double, ndim=1] obsLCerr):
     """
@@ -406,21 +455,44 @@ cpdef makeArcBasisAverage(np.ndarray[double, ndim=2] SARTimage, np.ndarray[doubl
         #only do this for the averaged-arcs way or the old arc combinatorics way. do not do it for the new dA/dt way!
         recombined = np.zeros_like(SARTimage)
 
-        #print k
-
         #get indices, xy positions, and angular positions of "on" pixels that overlap the stellar limb
         limbPixelMask = (delta_areas[k_idx] != 0.)#((ti.areas[k] > 0.) & (ti.areas[k] < ((ti.w)**2)/np.pi))
-
+        ingressPixelMask = (delta_areas[k_idx] > 0.)
+        egressPixelMask = (delta_areas[k_idx] < 0.)
+        
         limbPixel_is = i_arr[limbPixelMask & onPixelMask]
         limbPixel_js = j_arr[limbPixelMask & onPixelMask]
 
         limbPixel_is_half = limbPixel_is[limbPixel_is < Nmid]
         limbPixel_js_half = limbPixel_js[limbPixel_is < Nmid]
+
+        ing_limbPixel_is = i_arr[limbPixelMask & onPixelMask & ingressPixelMask]
+        ing_limbPixel_js = j_arr[limbPixelMask & onPixelMask & ingressPixelMask]
+        ing_limbPixel_is_half = ing_limbPixel_is[ing_limbPixel_is < Nmid]
+        ing_limbPixel_js_half = ing_limbPixel_js[ing_limbPixel_is < Nmid]
+
+        eg_limbPixel_is = i_arr[limbPixelMask & onPixelMask & egressPixelMask]
+        eg_limbPixel_js = j_arr[limbPixelMask & onPixelMask & egressPixelMask]
+        eg_limbPixel_is_half = eg_limbPixel_is[eg_limbPixel_is < Nmid]
+        eg_limbPixel_js_half = eg_limbPixel_js[eg_limbPixel_is < Nmid]
         
         #if there are limb pixels and dF/dt > 0.5 pixels' worth of opacity:
         
         #using k_idx
         #if (len(limbPixel_is_half) > 0) & (np.abs(delta_fluxes[k_idx]) > ((ti.w)**2/(2.*np.pi))):
+        """
+        if delta_fluxes[k_idx] < 0.:
+            avg_opacity = (np.abs(delta_fluxes[k_idx])/len(ing_limbPixel_is))/np.sum(ti.areas[k][onPixelMask & limbPixelMask & ingressPixelMask])
+            for pixIdx in range(0, len(ing_limbPixel_is)):
+                recombined[ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]] += avg_opacity*ti.areas[k][ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]]
+            
+
+        elif delta_fluxes[k_idx] > 0.:
+            avg_opacity = (np.abs(delta_fluxes[k_idx])/len(eg_limbPixel_is))/np.sum(ti.areas[k][onPixelMask & limbPixelMask & egressPixelMask])
+            for pixIdx in range(0, len(eg_limbPixel_is)):
+                recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]]
+        """    
+        
         if (len(limbPixel_is_half) > 0):# & (np.abs(delta_fluxes[k]) > ((ti.w)**2/(2.*np.pi))):
 
             # to endow the entire arc with the *average* ingress opacity:
@@ -429,7 +501,7 @@ cpdef makeArcBasisAverage(np.ndarray[double, ndim=2] SARTimage, np.ndarray[doubl
             
             for pixIdx in range(0, len(limbPixel_is)):
                 recombined[limbPixel_is[pixIdx], limbPixel_js[pixIdx]] += avg_opacity*ti.areas[k][limbPixel_is[pixIdx], limbPixel_js[pixIdx]]
-            
+         
         #plot it
         foldedGrid = foldOpacities(recombined)
         decrements = LCdecrements[foldedGrid.astype(bool)]
