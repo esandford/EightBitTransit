@@ -13,7 +13,7 @@ from .cTransitingImage import *
 from .cGridFunctions import *
 from .misc import *
 
-__all__ = ['bruteForceSearch','nCr', 'makeArcBasisParsimony', 'makeArcBasisAverage','makeArcBasisCombinatoric', 'whoAreMyArcNeighbors','arcRearrange','discreteFourierTransform_2D',
+__all__ = ['bruteForceSearch','nCr', 'makeArcBasisParsimony', 'makeArcBasisAverage','makeArcBasisCombinatoric','renormBasis', 'whoAreMyArcNeighbors','arcRearrange','discreteFourierTransform_2D',
 'inverseDiscreteFourierTransform_2D','Gaussian2D_PDF','simultaneous_ART','wedgeRearrange','wedgeNegativeEdge', 'wedgeOptimize_sym',
 'foldOpacities','round_ART','petriDish','invertLC']
 
@@ -523,7 +523,7 @@ cpdef makeArcBasisAverage(np.ndarray[double, ndim=2] SARTimage, np.ndarray[doubl
     return basis, basisRMSs
     #return np.ravel(recombined)
 
-cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim=2] truth, np.ndarray[double, ndim=1] times, 
+cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[double, ndim=1] times, 
     np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
     np.ndarray[double, ndim=1] obsLCerr):
     """
@@ -713,14 +713,14 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
             
 
             #truth comparison
-            foldedGrid = foldOpacities((truth.astype(bool) & combinedMask).astype(float))
-            decrements = LCdecrements[foldedGrid.astype(bool)]
-            decrements_1D = np.sum(decrements,axis=0)
-            trial_truth_LC = np.ones_like(decrements_1D) - decrements_1D
+            #foldedGrid = foldOpacities((truth.astype(bool) & combinedMask).astype(float))
+            #decrements = LCdecrements[foldedGrid.astype(bool)]
+            #decrements_1D = np.sum(decrements,axis=0)
+            #trial_truth_LC = np.ones_like(decrements_1D) - decrements_1D
 
-            trial_truth_delta_fluxes = trial_truth_LC[1:] - trial_truth_LC[0:-1]
+            #trial_truth_delta_fluxes = trial_truth_LC[1:] - trial_truth_LC[0:-1]
             #truth_RMS_ = np.sum((delta_fluxes[delta_slice_mask] - trial_truth_delta_fluxes[delta_slice_mask])**2)#/np.sum(obsLCerr[slice_mask]**2)
-            truth_RMS_ = np.sum((delta_fluxes - trial_truth_delta_fluxes)**2)#/np.sum(obsLCerr[slice_mask]**2)
+            #truth_RMS_ = np.sum((delta_fluxes - trial_truth_delta_fluxes)**2)#/np.sum(obsLCerr[slice_mask]**2)
             
             #print "truth_RMS is: {0}".format(truth_RMS_)
 
@@ -859,6 +859,23 @@ cpdef makeArcBasisCombinatoric(np.ndarray[double, ndim=2] SARTimage, np.ndarray[
         """
     
     return basis, basisRMSs
+
+def renormBasis(basis, basis_LC, truth_LC):
+    """
+    renormalize
+    """
+    
+    true_transit_depth = 1. - np.min(truth_LC)
+    
+    basis_transit_depth = 1. - np.min(basis_LC)
+    
+    normFactor = (true_transit_depth/basis_transit_depth)
+    
+    renormBasis = normFactor*basis
+    renormBasis[renormBasis > 1.] = 1.
+    renormBasis[renormBasis < 0.] = 0.
+    
+    return renormBasis
 
 def whoAreMyArcNeighbors(N,M,i,j):
     """
