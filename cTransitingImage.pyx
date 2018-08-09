@@ -43,6 +43,12 @@ class TransitingImage(object):
 		if not ("t_arr" in kwargs):
 			raise Exception("Must initialize TransitingImage object with time array t_arr")
 		
+		if self.LDlaw == "linear":
+			if not ("LDCs" in kwargs):
+				raise Exception("Must specify array of 1 limb-darkening coefficient for linear LD law")
+			elif len(self.LDCs) != 1:
+				raise Exception("Incorrect number of limb-darkening coefficients for linear LD law")
+
 		if self.LDlaw == "quadratic":
 			if not ("LDCs" in kwargs):
 				raise Exception("Must specify array of 2 limb-darkening coefficients for quadratic LD law")
@@ -55,8 +61,8 @@ class TransitingImage(object):
 			elif len(self.LDCs) != 4:
 				raise Exception("Incorrect number of limb-darkening coefficients for nonlinear LD law")
 		
-		if self.LDlaw not in ["nonlinear","uniform","quadratic"]:
-			raise Exception("Only uniform, quadratic, or 4-parameter nonlinear LD laws are supported")
+		if self.LDlaw not in ["nonlinear","linear","uniform","quadratic"]:
+			raise Exception("Only uniform, linear, quadratic, or 4-parameter nonlinear LD laws are supported")
 		#set opacity matrix if it's not passed in
 		if "imfile" in kwargs:
 			self.opacitymat = pixelate_image(imfile=self.imfile, nside=self.lowres, method=self.lowrestype, rounding=self.lowresround)
@@ -115,7 +121,7 @@ class TransitingImage(object):
 				#fluxtot[k] = 1. - np.sum(self.areas[k,:,:])
 				fluxtot[k] = 1. - np.sum(self.blockedflux[k,:,:])
 
-		elif (((self.LDlaw == "nonlinear") | (self.LDlaw == "quadratic")) & (self.w <= 0.2)):
+		elif (((self.LDlaw == "nonlinear") | (self.LDlaw == "linear") | (self.LDlaw == "quadratic")) & (self.w <= 0.2)):
 			self.areas = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
 			self.blockedflux = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
 			
@@ -139,6 +145,8 @@ class TransitingImage(object):
 						self.LD[:,i,j] = LDfluxsmall(x=self.positions[:,i,j,0], y=self.positions[:,i,j,1], t=self.t_arr, Ar_occ=self.blockedflux[:,i,j], c1=self.LDCs[0], c2=self.LDCs[1], c3=self.LDCs[2], c4=self.LDCs[3], w=self.w)
 					elif self.LDlaw == "quadratic":
 						self.LD[:,i,j] = LDfluxsmall(x=self.positions[:,i,j,0], y=self.positions[:,i,j,1], t=self.t_arr, Ar_occ=self.blockedflux[:,i,j], c1=0., c2=(self.LDCs[0] + 2.*self.LDCs[1]), c3=0., c4=(-1.*self.LDCs[1]), w=self.w)
+					elif self.LDlaw == "linear":
+						self.LD[:,i,j] = LDfluxsmall(x=self.positions[:,i,j,0], y=self.positions[:,i,j,1], t=self.t_arr, Ar_occ=self.blockedflux[:,i,j], c1=0., c2=self.LDCs[0], c3=0., c4=0., w=self.w)
 					
 			#t3 = time.time()
 			#print (t3-t2)
@@ -149,7 +157,7 @@ class TransitingImage(object):
 				#if np.isnan(fluxtot[k]):
 					#print self.t_arr[k]
 		
-		elif self.LDlaw == "nonlinear" and self.w > 0.2:
+		elif (((self.LDlaw == "nonlinear") | (self.LDlaw == "linear") | (self.LDlaw == "quadratic")) & (self.w > 0.2)):
 			raise Exception("Small-planet approximation for LD calculation is inappropriate. Choose higher resolution")
 			fluxtot = None
 

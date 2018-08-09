@@ -13,7 +13,8 @@ from .inversion import *
 
 __all__ = ['ART','ART_normal','neighborPermutations', 
 'AStarGeneticStep', 'LCfromSummedPixels', 
-'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeOptimize']
+'AStarGeneticStep_pixsum', 'AStarGeneticStep_pixsum_complete', 'wedgeOptimize',
+'discreteFourierTransform_2D','inverseDiscreteFourierTransform_2D','petriDish','round_ART']
 
 cpdef ART(tau_init, A, obsLC, obsLCerr, mirrored=False, RMSstop=1.e-6, reg=0., n_iter=0):
     """
@@ -470,7 +471,7 @@ def AStarGeneticStep(currentgrid, obsLC, obsLCerr, times, saveplots=False, filen
     randompix = np.random.choice(onidxs,1)[0]
     pixAlready = [randompix]
     
-    randompix_i = randompix // N
+    randompix_i = randompix // M
     randompix_j = randompix % M
     
     #print randompix_i, randompix_j
@@ -559,7 +560,7 @@ def AStarGeneticStep(currentgrid, obsLC, obsLCerr, times, saveplots=False, filen
         
         pixAlready.append(randompix)
     
-        randompix_i = randompix // N
+        randompix_i = randompix // M
         randompix_j = randompix % M
         #print randompix_i, randompix_j
         #update with permutations about this new pixel
@@ -656,7 +657,7 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, obsLCerr, times, saveplots=False
     randompix = np.random.choice(onidxs,1)[0]
     pixAlready = [randompix]
     
-    randompix_i = randompix // N
+    randompix_i = randompix // M
     randompix_j = randompix % M
     
     #print randompix_i, randompix_j
@@ -749,7 +750,7 @@ def AStarGeneticStep_pixsum(currentgrid, obsLC, obsLCerr, times, saveplots=False
         
         pixAlready.append(randompix)
     
-        randompix_i = randompix // N
+        randompix_i = randompix // M
         randompix_j = randompix % M
         #print randompix_i, randompix_j
         tested_i.append(randompix_i)
@@ -835,7 +836,7 @@ def AStarGeneticStep_pixsum_complete(currentgrid, obsLC, obsLCerr, times, temper
     notYetEvaluated = set()
     for onidx in onidxs:
         pixAlready.append(onidx)
-        onidx_i = onidx // N
+        onidx_i = onidx // M
         onidx_j = onidx % M
         tested_i.append(onidx_i)
         tested_j.append(onidx_j)
@@ -925,7 +926,7 @@ def AStarGeneticStep_pixsum_complete(currentgrid, obsLC, obsLCerr, times, temper
         
         pixAlready.append(randompix)
     
-        randompix_i = randompix // N
+        randompix_i = randompix // M
         randompix_j = randompix % M
         #print randompix_i, randompix_j
         tested_i.append(randompix_i)
@@ -1466,7 +1467,7 @@ def wedgeOptimize(tau, obsLC, obsLCerr, areas):
         onIdxs = np.arange(0,len(np.ravel(newtau)))[onMask]
         
         for idx in onIdxs:
-            o_i = idx // N
+            o_i = idx // M
             o_j = idx % M
             
             proptau = copy.copy(newtau)
@@ -1488,7 +1489,7 @@ def wedgeOptimize(tau, obsLC, obsLCerr, areas):
         halfOpacitiesIdxs = np.arange(0,len(np.ravel(newtau)))[halfOpacitiesMask]
         
         for idx in halfOpacitiesIdxs:
-            ho_i = idx // N
+            ho_i = idx // M
             ho_j = idx % M
             
             proptau = copy.copy(newtau)
@@ -1506,4 +1507,204 @@ def wedgeOptimize(tau, obsLC, obsLCerr, areas):
                 
         
     return proptau
+
+
+def discreteFourierTransform_2D(matrix):
+    """
+    Return the 2D discrete Fourier transform of a matrix.
+    """
+    return np.fft.fft2(matrix)
+
+def inverseDiscreteFourierTransform_2D(matrix):
+    """
+    Return the inverse discrete Fourier transform of matrix in frequency space ("matrix").
+    """
+    return np.fft.ifft2(matrix)
+
+def petriDish(currentgrid, obsLC, obsLCerr, times, LCdecrements, costFloor, mutProb = 0.001, compactnessFac=0.05):
+    """
+    Find the grid that best matches obsLC.
+    
+    Instead of recalculating the light curve from the grid every time, just sum up the light curves produced by individual
+    transiting pixels.
+    """
+    
+    N = np.shape(currentgrid)[0]
+    M = np.shape(currentgrid)[1]
+
+    #get array of flux decrements due to each individual pixel being "on"
+    
+    decrements = LCdecrements[currentgrid.astype(bool)]
+    decrements = np.sum(decrements,axis=0)
+    currentLC = np.ones_like(decrements, dtype=float) - decrements
+    
+    onmask = onmask = np.ravel((currentgrid == 1))
+    onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
+    
+    RMSmag = RMS(obsLC, obsLCerr, currentLC)
+    currentcost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid) 
+    
+    print "currentcost is: {0}".format(currentcost)
+    costList = [currentcost]
+    
+    while currentcost > costFloor:
+        #allow for random mutation
+        toFlip = np.random.binomial(n=1,p=mutProb,size=(N,M))
+        currentgrid[toFlip.astype(bool)] = (currentgrid[toFlip.astype(bool)] + 1)%2
+        
+        decrements = LCdecrements[currentgrid.astype(bool)]
+        decrements = np.sum(decrements,axis=0)
+        currentLC = np.ones_like(decrements) - decrements
+        currentcost = RMS(obsLC, obsLCerr, currentLC)
+        
+        #choose random "on" pixel
+        onmask = np.ravel((currentgrid == 1))
+        onidxs = np.arange(0,len(np.ravel(currentgrid)))[onmask]
+
+        randompix = np.random.choice(onidxs,1)[0]
+            
+        randompix_i = randompix // M
+        randompix_j = randompix % M
+        
+        leftNeighbor_j = (M + (randompix_j - 1)) % M
+        rightNeighbor_j = (randompix_j + 1) % M
+
+        topNeighbor_i = (N + (randompix_i - 1)) % N
+        bottomNeighbor_i = (randompix_i + 1) % N
+
+        pixStates = np.arange(2)
+        #pixStates = [1]
+        
+        for p in pixStates:
+            if ((currentgrid[randompix_i, leftNeighbor_j] == p) & 
+                (currentgrid[randompix_i, rightNeighbor_j] == p) & 
+                (currentgrid[topNeighbor_i, randompix_j] == p) & 
+                (currentgrid[bottomNeighbor_i, randompix_j] == p)):
+                #print "interior"
+                pass
+            else:
+                #left neighbor
+                if (currentgrid[randompix_i, leftNeighbor_j] == p):
+                    leftCost = currentcost
+                else:
+                    testLC = currentLC - p*LCdecrements[randompix_i, leftNeighbor_j] - (p-1)*LCdecrements[randompix_i, leftNeighbor_j]
+                    RMSmag = RMS(obsLC, obsLCerr, testLC)
+                    leftCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
+
+                #right neighbor
+                if (currentgrid[randompix_i, rightNeighbor_j] == p):
+                    rightCost = currentcost
+                else:
+                    testLC = currentLC - p*LCdecrements[randompix_i, rightNeighbor_j] - (p-1)*LCdecrements[randompix_i, rightNeighbor_j]
+                    RMSmag = RMS(obsLC, obsLCerr, testLC)
+                    rightCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
+
+                #top neighbor
+                if (currentgrid[topNeighbor_i, randompix_j] == p):
+                    topCost = currentcost
+                else:
+                    testLC = currentLC - p*LCdecrements[topNeighbor_i, randompix_j] - (p-1)*LCdecrements[topNeighbor_i, randompix_j]
+                    RMSmag = RMS(obsLC, obsLCerr, testLC)
+                    topCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
+
+                #bottom neighbor
+                if (currentgrid[bottomNeighbor_i, randompix_j] == p):
+                    bottomCost = currentcost
+                else:
+                    testLC = currentLC - p*LCdecrements[bottomNeighbor_i, randompix_j] - (p-1)*LCdecrements[bottomNeighbor_i, randompix_j]
+                    RMSmag = RMS(obsLC, obsLCerr, testLC)
+                    bottomCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
+
+                #pixel itself
+                if (currentgrid[randompix_i, randompix_j] == p):
+                    midCost = currentcost
+                else:
+                    testLC = currentLC - p*LCdecrements[randompix_i, randompix_j] - (p-1)*LCdecrements[randompix_i, randompix_j]
+                    RMSmag = RMS(obsLC, obsLCerr, testLC)
+                    midCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
+
+                neighborCosts = np.array((leftCost, rightCost, topCost, bottomCost, midCost, currentcost))
+                #print neighborCosts
+                bestNeighbor_idx = np.argmin(neighborCosts)
+                #print bestNeighbor_idx  
+                if bestNeighbor_idx == 0:
+                    currentgrid[randompix_i, leftNeighbor_j] = int(p)
+                    currentcost = leftCost
+                elif bestNeighbor_idx == 1:
+                    currentgrid[randompix_i, rightNeighbor_j] = int(p)
+                    currentcost = rightCost
+                elif bestNeighbor_idx == 2:
+                    currentgrid[topNeighbor_i, randompix_j] = int(p)
+                    currentcost = topCost
+                elif bestNeighbor_idx == 3:
+                    currentgrid[bottomNeighbor_i, randompix_j] = int(p)
+                    currentcost = bottomCost
+                elif bestNeighbor_idx == 4:
+                    currentgrid[randompix_i, randompix_j] = int(p)
+                    currentcost = midCost
+
+        decrements = LCdecrements[currentgrid.astype(bool)]
+        decrements = np.sum(decrements,axis=0)
+        currentLC = np.ones_like(decrements) - decrements
+        currentcost = RMS(obsLC, obsLCerr, currentLC)
+                
+        #one pass through whole grid to see if flipping anything helps
+        for i in range(N):
+            for j in range(M):
+                p = int(currentgrid[i,j])
+                testLC = currentLC + p*LCdecrements[i,j] + (p-1)*LCdecrements[i,j]
+                RMSmag = RMS(obsLC, obsLCerr, testLC)
+                testCost = RMSmag - compactnessFac*(1. - RMSmag)*compactness(currentgrid) + compactnessFac*(1.-RMSmag)*b_penalty(currentgrid)
+
+                if testCost < currentcost:
+                    currentgrid[i,j] = int((currentgrid[i,j] + 1) % 2)
+                    currentcost = testCost
+                
+        
+        costList.append(currentcost)
+                    
+
+    return foldOpacities(currentgrid.astype(float)), currentcost, costList
+
+def round_ART(ARTsoln):
+    """
+    Rounds each entry in best-fit ART opacity grid to 0, 0.5, or 1.
+    """
+    roundedtau = copy.copy(ARTsoln)
+    
+    N = np.shape(roundedtau)[0]
+    M = np.shape(roundedtau)[1]
+    
+    #for i in range(0,N):
+    #    for j in range(0,M):
+    #        if roundedtau[i,j] > 1.0:
+    #            roundedtau[N-1-i,j] = roundedtau[i,j]/2.
+    #            roundedtau[i,j] = roundedtau[i,j]/2.
+                
+    toobigmask = (roundedtau > 1.0)
+    roundedtau[toobigmask] = 1.0
+    
+    toosmallmask = (roundedtau < 0.0)
+    roundedtau[toosmallmask] = 0.0
+    
+    #0, 0.5, or 1.
+    """
+    nearzeromask = (roundedtau > 0.0) & (roundedtau <= (1./10.))
+    roundedtau[nearzeromask] = 0.0
+    
+    nearpt5mask = (roundedtau > (1./10.)) & (roundedtau <= (9./10.))
+    roundedtau[nearpt5mask] = 0.5
+    
+    nearonemask = (roundedtau > (9./10.)) & (roundedtau <= 1.0)
+    roundedtau[nearonemask] = 1.0
+    """
+    #0. or 1.
+    nearzeromask = (roundedtau > 0.0) & (roundedtau < 0.5)
+    roundedtau[nearzeromask] = 0.0
+    
+    nearonemask = (roundedtau >= 0.5) & (roundedtau <= 1.0)
+    roundedtau[nearonemask] = 1.0
+    
+    roundedtau=np.abs(roundedtau)
+    return roundedtau
 

@@ -5,7 +5,7 @@ from scipy import stats
 from .cTransitingImage import *
 
 __all__ = ['lowres_grid_ti','change_res_grid','sigmoid_opacities', 'continuous_opacities', 
-'RMS', 'RMS_penalty', 'b_penalty', 'toBinaryGrid', 'fromBinaryGrid', 'LCdecrements', 'ternary',
+'RMS', 'RMS_penalty', 'b_penalty', 'toBinaryGrid', 'fromBinaryGrid', 'calculateLCdecrements', 'ternary',
 'perimeter','compactness']
 
 def lowres_grid_ti(ti, nside, method='mode', rounding=True):
@@ -339,14 +339,14 @@ def fromBinaryGrid(binarygrid):
     return base10number
 
 
-def LCdecrements(N,M,times):
+def calculateLCdecrements(N,M,LDlaw, LDCs, v, t_ref, times):
     LCdecrements = np.zeros((N, M, len(times)))
     
     for i in range(N):
         for j in range(M):
             onepixgrid = np.zeros((N,M),dtype=int)
             onepixgrid[i,j] = 1
-            onepix_ti = TransitingImage(opacitymat=onepixgrid, LDlaw="uniform", v=0.4, t_ref=0., t_arr=times)
+            onepix_ti = TransitingImage(opacitymat=onepixgrid, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
             onepix_LC = onepix_ti.gen_LC(times)
         
             LCdecrements[i,j,:] = np.ones_like(onepix_LC) - onepix_LC
