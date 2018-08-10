@@ -386,7 +386,7 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
         eg_limbPixel_is_half = eg_limbPixel_is[eg_limbPixel_is < Nmid]
         eg_limbPixel_js_half = eg_limbPixel_js[eg_limbPixel_is < Nmid]
         
-        """
+        
         if delta_fluxes[k_idx] < 0.:
             avg_opacity = (np.abs(delta_fluxes[k_idx])/len(ing_limbPixel_is))/np.sum(ti.areas[k][limbPixelMask & ingressPixelMask])
             for pixIdx in range(0, len(ing_limbPixel_is)):
@@ -404,7 +404,7 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
             
             for pixIdx in range(0, len(limbPixel_is)):
                 recombined[limbPixel_is[pixIdx], limbPixel_js[pixIdx]] += avg_opacity*ti.areas[k][limbPixel_is[pixIdx], limbPixel_js[pixIdx]]
-         
+        """ 
         #plot it
         foldedGrid = foldOpacities(recombined)
         decrements = LCdecrements[foldedGrid.astype(bool)]
