@@ -36,7 +36,7 @@ cpdef bruteForceSearch(int N, int M, double t_ref, double v, str LDlaw, list LDC
         double bestRMS, RMS_
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
-    trial_LC = ti.gen_LC(times)
+    trial_LC, overlapTimes = ti.gen_LC(times)
 
     bestRMS = RMS(obsLC,obsLCerr,trial_LC)
 
@@ -108,7 +108,7 @@ cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, lis
         double t_interval, bestRMS, RMS_, trial_dFdt, dFdt, max_area, mirrorfac
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
-    ti.gen_LC(times)
+    trial_LC, overlapTimes = ti.gen_LC(times)
     
     #How long does it take for the grid to move laterally by a distance of w/2 (i.e., 1/2 pixel width)?
     #t_interval = (ti.w)/(2.*ti.v)
@@ -132,8 +132,8 @@ cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, lis
     ks = np.arange(0,np.shape(ti.areas)[0],k_interval)
 
     time_points = np.zeros((len(ks)+1))
-    time_points[0:-1] = times[np.arange(0,len(times),k_interval)]
-    time_points[-1] = times[-1]
+    time_points[0:-1] = overlapTimes[np.arange(0,len(overlapTimes),k_interval)]
+    time_points[-1] = overlapTimes[-1]
     delta_times = time_points[1:] - time_points[0:-1]
     middle_times = time_points[0:-1] + (delta_times/2.)
     
@@ -144,7 +144,7 @@ cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, lis
     delta_fluxes = flux_points[1:] - flux_points[0:-1]
     
     area_points = np.zeros((len(ks)+1, np.shape(ti.areas)[1], np.shape(ti.areas)[2]))
-    area_points[0:-1] = ti.areas[np.arange(0,len(times),k_interval)]
+    area_points[0:-1] = ti.areas[np.arange(0,len(overlapTimes),k_interval)]
     area_points[-1] = ti.areas[-1]
     delta_areas = np.zeros((len(middle_times), np.shape(ti.areas)[1], np.shape(ti.areas)[2]))
 
@@ -577,7 +577,7 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
                     nOpacityUnits = int(np.ceil((np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask & egressPixelMask])) * 2. * (float(len(eg_limbPixel_is_half))/float(len(eg_limbPixel_is)))))
                     nLimbPixelSpaces = len(eg_limbPixel_is_half)*2
             
-            except ZeroDivisionError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event
+            except ZeroDivisionError | OverflowError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event
                 nOpacityUnits = 0
                 nLimbPixelSpaces = 1
             #nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask]))) #number of "units" of 0.5 opacity that 
@@ -1885,7 +1885,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
             nonlinearLDCs = [c1,c2,c3,c4]
 
             ti = TransitingImage(opacitymat=np.ones((N,M)), LDlaw="nonlinear", LDCs=nonlinearLDCs, v=v, t_ref=t_ref, t_arr=t_arr)
-            ti_LC = ti.gen_LC(t_arr)
+            ti_LC, overlapTimes = ti.gen_LC(t_arr)
 
             raveledareas = np.zeros((np.shape(ti.LD)[0],np.shape(ti.LD)[1]*np.shape(ti.LD)[2])) 
 
@@ -1922,7 +1922,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
                 for j in range(0,np.shape(ti.LD)[1]): #N axis
                     raveledareas[i,M*j:M*(j+1)] = ti.LD[i,j,:]
 
-
+        print raveledareas[0]
         #take only half of area matrix to avoid dealing with flip degeneracy
         if (N>1) & (N%2 == 0):
             Nhalf = int(N/2)

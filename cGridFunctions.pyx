@@ -46,7 +46,15 @@ def positions(n, m, t, tref, v):
 		for j in range(1,m+1):
 			pos[k,:,j-1,0] = xref[j-1] + (t[k] - tref)*v
 	
-	return pos
+	tMin = tref - (2. + w*(M-1))/(2.*v)
+	tMax = tref + (2. + w*(M-1))/(2.*v)
+
+	overlappingTimesMask = (t > tMin) & (t < tMax)
+
+	overlappingTimes = t[overlappingTimesMask]
+	overlappingPos = pos[overlappingTimesMask]
+
+	return overlappingPos, overlappingTimes
 
 def pixelate_image(imfile, nside, method='mode', rounding=False):
 	"""

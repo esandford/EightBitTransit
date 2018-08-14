@@ -72,14 +72,14 @@ class TransitingImage(object):
 		gridshape = np.shape(self.opacitymat)
 		
 		if self.positions is None:
-			self.positions = positions(n=gridshape[0], m=gridshape[1], t=self.t_arr, tref=self.t_ref, v=self.v)
+			self.positions, self.t_arr = positions(n=gridshape[0], m=gridshape[1], t=self.t_arr, tref=self.t_ref, v=self.v)
 		
 		#if opacity matrix is passed in but the desired pixel resolution is smaller, lower the resolution
 		if (("opacitymat" in kwargs) and ("lowres" in kwargs)):
 			self.opacitymat = lowres_grid(opacitymat=self.opacitymat, positions=self.positions, nside=self.lowres, method=self.lowrestype, rounding=self.lowresround)
 			self.w = 2./(np.shape(self.opacitymat)[0])
 			gridshape = np.shape(self.opacitymat)
-			self.positions = positions(n=gridshape[0], m=gridshape[1], t=self.t_arr, tref=self.t_ref, v=self.v)
+			self.positions, self.t_arr = positions(n=gridshape[0], m=gridshape[1], t=self.t_arr, tref=self.t_ref, v=self.v)
 		
 	def gen_LC(self, t_arr):
 		cdef:
@@ -90,7 +90,7 @@ class TransitingImage(object):
 		if ~np.all(t_arr == self.t_arr):
 			#print "new times"
 			self.t_arr = t_arr
-			self.positions = positions(n=gridshape[0], m=gridshape[1], t=self.t_arr, tref=self.t_ref, v=self.v)
+			self.positions, self.t_arr = positions(n=gridshape[0], m=gridshape[1], t=self.t_arr, tref=self.t_ref, v=self.v)
 		
 		if self.LDlaw == "uniform":
 			if self.areas is None:
@@ -161,7 +161,7 @@ class TransitingImage(object):
 			raise Exception("Small-planet approximation for LD calculation is inappropriate. Choose higher resolution")
 			fluxtot = None
 
-		return fluxtot
+		return fluxtot, self.t_arr
 		
 	def plot_grid(self,save=False, filename=None):
 		nside_y = np.shape(self.opacitymat)[0]

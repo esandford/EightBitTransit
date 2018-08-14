@@ -1660,6 +1660,13 @@ static CYTHON_INLINE long __Pyx_pow_long(long, long);
 /* CIntToPy.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
 
+/* Print.proto */
+static int __Pyx_Print(PyObject*, PyObject *, int);
+#if CYTHON_COMPILING_IN_PYPY || PY_MAJOR_VERSION >= 3
+static PyObject* __pyx_print = 0;
+static PyObject* __pyx_print_kwargs = 0;
+#endif
+
 /* RealImag.proto */
 #if CYTHON_CCOMPLEX
   #ifdef __cplusplus
@@ -1767,6 +1774,9 @@ static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *);
 /* CIntFromPy.proto */
 static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *);
 
+/* PrintOne.proto */
+static int __Pyx_PrintOne(PyObject* stream, PyObject *o);
+
 /* CStringEquals.proto */
 static CYTHON_INLINE int __Pyx_StrEq(const char *, const char *);
 
@@ -1840,6 +1850,7 @@ static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_bin;
 static PyObject *__pyx_builtin_enumerate;
 static PyObject *__pyx_builtin_ZeroDivisionError;
+static PyObject *__pyx_builtin_OverflowError;
 static PyObject *__pyx_builtin_ValueError;
 static PyObject *__pyx_builtin_RuntimeError;
 static PyObject *__pyx_builtin_ImportError;
@@ -1873,6 +1884,7 @@ static const char __pyx_k_col[] = "col";
 static const char __pyx_k_cos[] = "cos";
 static const char __pyx_k_det[] = "det";
 static const char __pyx_k_dot[] = "dot";
+static const char __pyx_k_end[] = "end";
 static const char __pyx_k_exp[] = "exp";
 static const char __pyx_k_eye[] = "eye";
 static const char __pyx_k_fft[] = "fft";
@@ -1894,6 +1906,7 @@ static const char __pyx_k_axis[] = "axis";
 static const char __pyx_k_ceil[] = "ceil";
 static const char __pyx_k_comb[] = "comb";
 static const char __pyx_k_copy[] = "copy";
+static const char __pyx_k_file[] = "file";
 static const char __pyx_k_grid[] = "grid";
 static const char __pyx_k_hann[] = "hann";
 static const char __pyx_k_in1d[] = "in1d";
@@ -1926,6 +1939,7 @@ static const char __pyx_k_j_arr[] = "j_arr";
 static const char __pyx_k_muVec[] = "muVec";
 static const char __pyx_k_numpy[] = "numpy";
 static const char __pyx_k_obsLC[] = "obsLC";
+static const char __pyx_k_print[] = "print";
 static const char __pyx_k_range[] = "range";
 static const char __pyx_k_ravel[] = "ravel";
 static const char __pyx_k_round[] = "round";
@@ -2053,6 +2067,7 @@ static const char __pyx_k_leftArc_mask[] = "leftArc_mask";
 static const char __pyx_k_raveledareas[] = "raveledareas";
 static const char __pyx_k_rightArcGrid[] = "rightArcGrid";
 static const char __pyx_k_sameDuration[] = "sameDuration";
+static const char __pyx_k_OverflowError[] = "OverflowError";
 static const char __pyx_k_arcRearranged[] = "arcRearranged";
 static const char __pyx_k_bruteForceRMS[] = "bruteForceRMS";
 static const char __pyx_k_combBasis_RMS[] = "combBasis_RMS";
@@ -2145,6 +2160,7 @@ static PyObject *__pyx_n_s_N;
 static PyObject *__pyx_n_s_Nhalf;
 static PyObject *__pyx_kp_u_Non_native_byte_order_not_suppor;
 static PyObject *__pyx_n_s_None;
+static PyObject *__pyx_n_s_OverflowError;
 static PyObject *__pyx_n_s_RMS;
 static PyObject *__pyx_n_s_RuntimeError;
 static PyObject *__pyx_n_s_SART;
@@ -2212,6 +2228,7 @@ static PyObject *__pyx_n_s_dot;
 static PyObject *__pyx_n_s_dtype;
 static PyObject *__pyx_n_s_edgeOverflowWeight;
 static PyObject *__pyx_n_s_empty;
+static PyObject *__pyx_n_s_end;
 static PyObject *__pyx_n_s_enumerate;
 static PyObject *__pyx_n_s_excess;
 static PyObject *__pyx_n_s_exp;
@@ -2220,6 +2237,7 @@ static PyObject *__pyx_n_s_eye;
 static PyObject *__pyx_n_s_factorial;
 static PyObject *__pyx_n_s_fft;
 static PyObject *__pyx_n_s_fftshift;
+static PyObject *__pyx_n_s_file;
 static PyObject *__pyx_n_s_filename;
 static PyObject *__pyx_n_s_fillop;
 static PyObject *__pyx_n_s_floor;
@@ -2318,6 +2336,7 @@ static PyObject *__pyx_n_s_pi;
 static PyObject *__pyx_n_s_plt;
 static PyObject *__pyx_n_s_positions;
 static PyObject *__pyx_n_s_postRatio;
+static PyObject *__pyx_n_s_print;
 static PyObject *__pyx_n_s_propPrior;
 static PyObject *__pyx_n_s_proptau;
 static PyObject *__pyx_n_s_proptauCost;
@@ -17247,7 +17266,7 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasisCombinatoric(i
  *                     nOpacityUnits = int(np.ceil((np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask & egressPixelMask])) * 2. * (float(len(eg_limbPixel_is_half))/float(len(eg_limbPixel_is)))))
  *                     nLimbPixelSpaces = len(eg_limbPixel_is_half)*2             # <<<<<<<<<<<<<<
  * 
- *             except ZeroDivisionError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event
+ *             except ZeroDivisionError | OverflowError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event
  */
             __pyx_t_49 = PyObject_Length(__pyx_v_eg_limbPixel_is_half); if (unlikely(__pyx_t_49 == -1)) __PYX_ERR(0, 578, __pyx_L10_error)
             __pyx_v_nLimbPixelSpaces = (__pyx_t_49 * 2);
@@ -17288,11 +17307,14 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasisCombinatoric(i
         /* "EightBitTransit/inversion.pyx":580
  *                     nLimbPixelSpaces = len(eg_limbPixel_is_half)*2
  * 
- *             except ZeroDivisionError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event             # <<<<<<<<<<<<<<
+ *             except ZeroDivisionError | OverflowError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event             # <<<<<<<<<<<<<<
  *                 nOpacityUnits = 0
  *                 nLimbPixelSpaces = 1
  */
-        __pyx_t_27 = __Pyx_PyErr_ExceptionMatches(__pyx_builtin_ZeroDivisionError);
+        __pyx_t_4 = PyNumber_Or(__pyx_builtin_ZeroDivisionError, __pyx_builtin_OverflowError); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 580, __pyx_L12_except_error)
+        __Pyx_GOTREF(__pyx_t_4);
+        __pyx_t_27 = __Pyx_PyErr_ExceptionMatches(__pyx_t_4);
+        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
         if (__pyx_t_27) {
           __Pyx_AddTraceback("EightBitTransit.inversion.makeArcBasisCombinatoric", __pyx_clineno, __pyx_lineno, __pyx_filename);
           if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_7, &__pyx_t_2) < 0) __PYX_ERR(0, 580, __pyx_L12_except_error)
@@ -17302,7 +17324,7 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasisCombinatoric(i
 
           /* "EightBitTransit/inversion.pyx":581
  * 
- *             except ZeroDivisionError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event
+ *             except ZeroDivisionError | OverflowError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event
  *                 nOpacityUnits = 0             # <<<<<<<<<<<<<<
  *                 nLimbPixelSpaces = 1
  *             #nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask]))) #number of "units" of 0.5 opacity that
@@ -17310,7 +17332,7 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasisCombinatoric(i
           __pyx_v_nOpacityUnits = 0;
 
           /* "EightBitTransit/inversion.pyx":582
- *             except ZeroDivisionError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event
+ *             except ZeroDivisionError | OverflowError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event
  *                 nOpacityUnits = 0
  *                 nLimbPixelSpaces = 1             # <<<<<<<<<<<<<<
  *             #nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask]))) #number of "units" of 0.5 opacity that
@@ -50131,7 +50153,7 @@ static PyObject *__pyx_pf_15EightBitTransit_9inversion_28invertLC(CYTHON_UNUSED 
  *                 for j in range(0,np.shape(ti.LD)[1]): #N axis
  *                     raveledareas[i,M*j:M*(j+1)] = ti.LD[i,j,:]             # <<<<<<<<<<<<<<
  * 
- * 
+ *         print raveledareas[0]
  */
           __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_v_ti, __pyx_n_s_LD); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 1923, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_8);
@@ -50203,8 +50225,21 @@ static PyObject *__pyx_pf_15EightBitTransit_9inversion_28invertLC(CYTHON_UNUSED 
     }
     __pyx_L10:;
 
-    /* "EightBitTransit/inversion.pyx":1927
+    /* "EightBitTransit/inversion.pyx":1925
+ *                     raveledareas[i,M*j:M*(j+1)] = ti.LD[i,j,:]
  * 
+ *         print raveledareas[0]             # <<<<<<<<<<<<<<
+ *         #take only half of area matrix to avoid dealing with flip degeneracy
+ *         if (N>1) & (N%2 == 0):
+ */
+    if (unlikely(!__pyx_v_raveledareas)) { __Pyx_RaiseUnboundLocalError("raveledareas"); __PYX_ERR(0, 1925, __pyx_L1_error) }
+    __pyx_t_12 = __Pyx_GetItemInt(__pyx_v_raveledareas, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 1925, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_12);
+    if (__Pyx_PrintOne(0, __pyx_t_12) < 0) __PYX_ERR(0, 1925, __pyx_L1_error)
+    __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+
+    /* "EightBitTransit/inversion.pyx":1927
+ *         print raveledareas[0]
  *         #take only half of area matrix to avoid dealing with flip degeneracy
  *         if (N>1) & (N%2 == 0):             # <<<<<<<<<<<<<<
  *             Nhalf = int(N/2)
@@ -50240,7 +50275,7 @@ static PyObject *__pyx_pf_15EightBitTransit_9inversion_28invertLC(CYTHON_UNUSED 
       __pyx_t_5 = 0;
 
       /* "EightBitTransit/inversion.pyx":1927
- * 
+ *         print raveledareas[0]
  *         #take only half of area matrix to avoid dealing with flip degeneracy
  *         if (N>1) & (N%2 == 0):             # <<<<<<<<<<<<<<
  *             Nhalf = int(N/2)
@@ -56845,6 +56880,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_Nhalf, __pyx_k_Nhalf, sizeof(__pyx_k_Nhalf), 0, 0, 1, 1},
   {&__pyx_kp_u_Non_native_byte_order_not_suppor, __pyx_k_Non_native_byte_order_not_suppor, sizeof(__pyx_k_Non_native_byte_order_not_suppor), 0, 1, 0, 0},
   {&__pyx_n_s_None, __pyx_k_None, sizeof(__pyx_k_None), 0, 0, 1, 1},
+  {&__pyx_n_s_OverflowError, __pyx_k_OverflowError, sizeof(__pyx_k_OverflowError), 0, 0, 1, 1},
   {&__pyx_n_s_RMS, __pyx_k_RMS, sizeof(__pyx_k_RMS), 0, 0, 1, 1},
   {&__pyx_n_s_RuntimeError, __pyx_k_RuntimeError, sizeof(__pyx_k_RuntimeError), 0, 0, 1, 1},
   {&__pyx_n_s_SART, __pyx_k_SART, sizeof(__pyx_k_SART), 0, 0, 1, 1},
@@ -56912,6 +56948,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_dtype, __pyx_k_dtype, sizeof(__pyx_k_dtype), 0, 0, 1, 1},
   {&__pyx_n_s_edgeOverflowWeight, __pyx_k_edgeOverflowWeight, sizeof(__pyx_k_edgeOverflowWeight), 0, 0, 1, 1},
   {&__pyx_n_s_empty, __pyx_k_empty, sizeof(__pyx_k_empty), 0, 0, 1, 1},
+  {&__pyx_n_s_end, __pyx_k_end, sizeof(__pyx_k_end), 0, 0, 1, 1},
   {&__pyx_n_s_enumerate, __pyx_k_enumerate, sizeof(__pyx_k_enumerate), 0, 0, 1, 1},
   {&__pyx_n_s_excess, __pyx_k_excess, sizeof(__pyx_k_excess), 0, 0, 1, 1},
   {&__pyx_n_s_exp, __pyx_k_exp, sizeof(__pyx_k_exp), 0, 0, 1, 1},
@@ -56920,6 +56957,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_factorial, __pyx_k_factorial, sizeof(__pyx_k_factorial), 0, 0, 1, 1},
   {&__pyx_n_s_fft, __pyx_k_fft, sizeof(__pyx_k_fft), 0, 0, 1, 1},
   {&__pyx_n_s_fftshift, __pyx_k_fftshift, sizeof(__pyx_k_fftshift), 0, 0, 1, 1},
+  {&__pyx_n_s_file, __pyx_k_file, sizeof(__pyx_k_file), 0, 0, 1, 1},
   {&__pyx_n_s_filename, __pyx_k_filename, sizeof(__pyx_k_filename), 0, 0, 1, 1},
   {&__pyx_n_s_fillop, __pyx_k_fillop, sizeof(__pyx_k_fillop), 0, 0, 1, 1},
   {&__pyx_n_s_floor, __pyx_k_floor, sizeof(__pyx_k_floor), 0, 0, 1, 1},
@@ -57018,6 +57056,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_plt, __pyx_k_plt, sizeof(__pyx_k_plt), 0, 0, 1, 1},
   {&__pyx_n_s_positions, __pyx_k_positions, sizeof(__pyx_k_positions), 0, 0, 1, 1},
   {&__pyx_n_s_postRatio, __pyx_k_postRatio, sizeof(__pyx_k_postRatio), 0, 0, 1, 1},
+  {&__pyx_n_s_print, __pyx_k_print, sizeof(__pyx_k_print), 0, 0, 1, 1},
   {&__pyx_n_s_propPrior, __pyx_k_propPrior, sizeof(__pyx_k_propPrior), 0, 0, 1, 1},
   {&__pyx_n_s_proptau, __pyx_k_proptau, sizeof(__pyx_k_proptau), 0, 0, 1, 1},
   {&__pyx_n_s_proptauCost, __pyx_k_proptauCost, sizeof(__pyx_k_proptauCost), 0, 0, 1, 1},
@@ -57108,6 +57147,7 @@ static int __Pyx_InitCachedBuiltins(void) {
   __pyx_builtin_bin = __Pyx_GetBuiltinName(__pyx_n_s_bin); if (!__pyx_builtin_bin) __PYX_ERR(0, 48, __pyx_L1_error)
   __pyx_builtin_enumerate = __Pyx_GetBuiltinName(__pyx_n_s_enumerate); if (!__pyx_builtin_enumerate) __PYX_ERR(0, 158, __pyx_L1_error)
   __pyx_builtin_ZeroDivisionError = __Pyx_GetBuiltinName(__pyx_n_s_ZeroDivisionError); if (!__pyx_builtin_ZeroDivisionError) __PYX_ERR(0, 580, __pyx_L1_error)
+  __pyx_builtin_OverflowError = __Pyx_GetBuiltinName(__pyx_n_s_OverflowError); if (!__pyx_builtin_OverflowError) __PYX_ERR(0, 580, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(1, 218, __pyx_L1_error)
   __pyx_builtin_RuntimeError = __Pyx_GetBuiltinName(__pyx_n_s_RuntimeError); if (!__pyx_builtin_RuntimeError) __PYX_ERR(1, 799, __pyx_L1_error)
   __pyx_builtin_ImportError = __Pyx_GetBuiltinName(__pyx_n_s_ImportError); if (!__pyx_builtin_ImportError) __PYX_ERR(1, 989, __pyx_L1_error)
@@ -57894,7 +57934,7 @@ static int __Pyx_InitCachedConstants(void) {
  *                 for j in range(0,np.shape(ti.LD)[1]): #N axis
  *                     raveledareas[i,M*j:M*(j+1)] = ti.LD[i,j,:]             # <<<<<<<<<<<<<<
  * 
- * 
+ *         print raveledareas[0]
  */
   __pyx_slice__110 = PySlice_New(Py_None, Py_None, Py_None); if (unlikely(!__pyx_slice__110)) __PYX_ERR(0, 1923, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_slice__110);
@@ -61825,6 +61865,112 @@ static void __Pyx_ReleaseBuffer(Py_buffer *view) {
     }
 }
 
+/* Print */
+                      #if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION < 3
+static PyObject *__Pyx_GetStdout(void) {
+    PyObject *f = PySys_GetObject((char *)"stdout");
+    if (!f) {
+        PyErr_SetString(PyExc_RuntimeError, "lost sys.stdout");
+    }
+    return f;
+}
+static int __Pyx_Print(PyObject* f, PyObject *arg_tuple, int newline) {
+    int i;
+    if (!f) {
+        if (!(f = __Pyx_GetStdout()))
+            return -1;
+    }
+    Py_INCREF(f);
+    for (i=0; i < PyTuple_GET_SIZE(arg_tuple); i++) {
+        PyObject* v;
+        if (PyFile_SoftSpace(f, 1)) {
+            if (PyFile_WriteString(" ", f) < 0)
+                goto error;
+        }
+        v = PyTuple_GET_ITEM(arg_tuple, i);
+        if (PyFile_WriteObject(v, f, Py_PRINT_RAW) < 0)
+            goto error;
+        if (PyString_Check(v)) {
+            char *s = PyString_AsString(v);
+            Py_ssize_t len = PyString_Size(v);
+            if (len > 0) {
+                switch (s[len-1]) {
+                    case ' ': break;
+                    case '\f': case '\r': case '\n': case '\t': case '\v':
+                        PyFile_SoftSpace(f, 0);
+                        break;
+                    default:  break;
+                }
+            }
+        }
+    }
+    if (newline) {
+        if (PyFile_WriteString("\n", f) < 0)
+            goto error;
+        PyFile_SoftSpace(f, 0);
+    }
+    Py_DECREF(f);
+    return 0;
+error:
+    Py_DECREF(f);
+    return -1;
+}
+#else
+static int __Pyx_Print(PyObject* stream, PyObject *arg_tuple, int newline) {
+    PyObject* kwargs = 0;
+    PyObject* result = 0;
+    PyObject* end_string;
+    if (unlikely(!__pyx_print)) {
+        __pyx_print = PyObject_GetAttr(__pyx_b, __pyx_n_s_print);
+        if (!__pyx_print)
+            return -1;
+    }
+    if (stream) {
+        kwargs = PyDict_New();
+        if (unlikely(!kwargs))
+            return -1;
+        if (unlikely(PyDict_SetItem(kwargs, __pyx_n_s_file, stream) < 0))
+            goto bad;
+        if (!newline) {
+            end_string = PyUnicode_FromStringAndSize(" ", 1);
+            if (unlikely(!end_string))
+                goto bad;
+            if (PyDict_SetItem(kwargs, __pyx_n_s_end, end_string) < 0) {
+                Py_DECREF(end_string);
+                goto bad;
+            }
+            Py_DECREF(end_string);
+        }
+    } else if (!newline) {
+        if (unlikely(!__pyx_print_kwargs)) {
+            __pyx_print_kwargs = PyDict_New();
+            if (unlikely(!__pyx_print_kwargs))
+                return -1;
+            end_string = PyUnicode_FromStringAndSize(" ", 1);
+            if (unlikely(!end_string))
+                return -1;
+            if (PyDict_SetItem(__pyx_print_kwargs, __pyx_n_s_end, end_string) < 0) {
+                Py_DECREF(end_string);
+                return -1;
+            }
+            Py_DECREF(end_string);
+        }
+        kwargs = __pyx_print_kwargs;
+    }
+    result = PyObject_Call(__pyx_print, arg_tuple, kwargs);
+    if (unlikely(kwargs) && (kwargs != __pyx_print_kwargs))
+        Py_DECREF(kwargs);
+    if (!result)
+        return -1;
+    Py_DECREF(result);
+    return 0;
+bad:
+    if (kwargs != __pyx_print_kwargs)
+        Py_XDECREF(kwargs);
+    return -1;
+}
+#endif
+
 /* Declarations */
                       #if CYTHON_CCOMPLEX
   #ifdef __cplusplus
@@ -62543,6 +62689,43 @@ raise_neg_overflow:
         "can't convert negative value to long");
     return (long) -1;
 }
+
+/* PrintOne */
+                      #if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION < 3
+static int __Pyx_PrintOne(PyObject* f, PyObject *o) {
+    if (!f) {
+        if (!(f = __Pyx_GetStdout()))
+            return -1;
+    }
+    Py_INCREF(f);
+    if (PyFile_SoftSpace(f, 0)) {
+        if (PyFile_WriteString(" ", f) < 0)
+            goto error;
+    }
+    if (PyFile_WriteObject(o, f, Py_PRINT_RAW) < 0)
+        goto error;
+    if (PyFile_WriteString("\n", f) < 0)
+        goto error;
+    Py_DECREF(f);
+    return 0;
+error:
+    Py_DECREF(f);
+    return -1;
+    /* the line below is just to avoid C compiler
+     * warnings about unused functions */
+    return __Pyx_Print(f, NULL, 0);
+}
+#else
+static int __Pyx_PrintOne(PyObject* stream, PyObject *o) {
+    int res;
+    PyObject* arg_tuple = PyTuple_Pack(1, o);
+    if (unlikely(!arg_tuple))
+        return -1;
+    res = __Pyx_Print(stream, arg_tuple, 1);
+    Py_DECREF(arg_tuple);
+    return res;
+}
+#endif
 
 /* CStringEquals */
                       static CYTHON_INLINE int __Pyx_StrEq(const char *s1, const char *s2) {

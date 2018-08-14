@@ -347,7 +347,7 @@ def calculateLCdecrements(N,M,LDlaw, LDCs, v, t_ref, times):
             onepixgrid = np.zeros((N,M),dtype=int)
             onepixgrid[i,j] = 1
             onepix_ti = TransitingImage(opacitymat=onepixgrid, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
-            onepix_LC = onepix_ti.gen_LC(times)
+            onepix_LC, overlapTimes = onepix_ti.gen_LC(times)
         
             LCdecrements[i,j,:] = np.ones_like(onepix_LC) - onepix_LC
             
