@@ -46,8 +46,8 @@ def positions(n, m, t, tref, v):
 		for j in range(1,m+1):
 			pos[k,:,j-1,0] = xref[j-1] + (t[k] - tref)*v
 	
-	tMin = tref - (2. + w*(M-1))/(2.*v)
-	tMax = tref + (2. + w*(M-1))/(2.*v)
+	tMin = tref - (2. + w*(m-1))/(2.*v)
+	tMax = tref + (2. + w*(m-1))/(2.*v)
 
 	overlappingTimesMask = (t > tMin) & (t < tMax)
 

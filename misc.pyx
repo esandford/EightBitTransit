@@ -340,7 +340,10 @@ def fromBinaryGrid(binarygrid):
 
 
 def calculateLCdecrements(N,M,LDlaw, LDCs, v, t_ref, times):
-    LCdecrements = np.zeros((N, M, len(times)))
+    ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
+    ti_LC, overlapTimes = ti.gen_LC(times)
+
+    LCdecrements = np.zeros((N, M, len(overlapTimes)))
     
     for i in range(N):
         for j in range(M):

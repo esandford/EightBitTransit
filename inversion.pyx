@@ -38,6 +38,7 @@ cpdef bruteForceSearch(int N, int M, double t_ref, double v, str LDlaw, list LDC
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
     trial_LC, overlapTimes = ti.gen_LC(times)
 
+    #tktk this won't work when trial_LC is shorter than obsLC, i.e. when overlapTimes is shorter than times
     bestRMS = RMS(obsLC,obsLCerr,trial_LC)
 
     nCombinations = 2**(N * M)
@@ -138,7 +139,7 @@ cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, lis
     middle_times = time_points[0:-1] + (delta_times/2.)
     
     flux_points = np.zeros((len(ks)+1))
-    flux_points[0:-1] = obsLC[np.arange(0,len(obsLC),k_interval)]
+    flux_points[0:-1] = obsLC[np.arange(0,len(overlapTimes),k_interval)]
     flux_points[-1] = obsLC[-1]
     
     delta_fluxes = flux_points[1:] - flux_points[0:-1]
@@ -265,14 +266,14 @@ cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, lis
         decrements_1D = np.sum(decrements,axis=0)
         trial_LC = np.ones_like(decrements_1D) - decrements_1D
         trial_flux_points = np.zeros((len(ks)+1))
-        trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
+        trial_flux_points[0:-1] = trial_LC[np.arange(0,len(overlapTimes),k_interval)]
         trial_flux_points[-1] = trial_LC[-1]
         trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
         
         basis[k_idx] = np.ravel(recombined)#/np.ravel(sines)
-        basisRMSs[k_idx] = RMS(obsLC,obsLCerr,trial_LC)
+        #basisRMSs[k_idx] = RMS(obsLC[np.arange(0,len(overlapTimes),k_interval)],obsLCerr[np.arange(0,len(overlapTimes),k_interval)],trial_LC)
     
-    return basis, basisRMSs
+    return basis#, basisRMSs
 
 cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list LDCs, np.ndarray[double, ndim=1] times, 
     np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
@@ -314,7 +315,7 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
         double t_interval, RMS_
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
-    ti.gen_LC(times)
+    trial_LC, overlapTimes = ti.gen_LC(times)
     
     #How long does it take for the grid to move laterally by a distance of w/2 (i.e., 1/2 pixel width)?
     #t_interval = (ti.w)/(2.*ti.v)
@@ -338,19 +339,19 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
     ks = np.arange(0,np.shape(ti.areas)[0],k_interval)
 
     time_points = np.zeros((len(ks)+1))
-    time_points[0:-1] = times[np.arange(0,len(times),k_interval)]
-    time_points[-1] = times[-1]
+    time_points[0:-1] = overlapTimes[np.arange(0,len(overlapTimes),k_interval)]
+    time_points[-1] = overlapTimes[-1]
     delta_times = time_points[1:] - time_points[0:-1]
     middle_times = time_points[0:-1] + (delta_times/2.)
     
     flux_points = np.zeros((len(ks)+1))
-    flux_points[0:-1] = obsLC[np.arange(0,len(obsLC),k_interval)]
+    flux_points[0:-1] = obsLC[np.arange(0,len(overlapTimes),k_interval)]
     flux_points[-1] = obsLC[-1]
     
     delta_fluxes = flux_points[1:] - flux_points[0:-1]
     
     area_points = np.zeros((len(ks)+1, np.shape(ti.areas)[1], np.shape(ti.areas)[2]))
-    area_points[0:-1] = ti.areas[np.arange(0,len(times),k_interval)]
+    area_points[0:-1] = ti.areas[np.arange(0,len(overlapTimes),k_interval)]
     area_points[-1] = ti.areas[-1]
     delta_areas = np.zeros((len(middle_times), np.shape(ti.areas)[1], np.shape(ti.areas)[2]))
 
@@ -416,9 +417,9 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
         trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
         
         basis[k_idx] = np.ravel(recombined)#/np.ravel(sines)
-        basisRMSs[k_idx] = RMS(obsLC,obsLCerr,trial_LC)
+        #basisRMSs[k_idx] = RMS(obsLC[np.arange(0,len(overlapTimes),k_interval)],obsLCerr[np.arange(0,len(overlapTimes),k_interval)],trial_LC)
     
-    return basis, basisRMSs
+    return basis#, basisRMSs
 
 cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, list LDCs, np.ndarray[double, ndim=1] times, 
     np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
@@ -461,7 +462,7 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
         double t_interval, bestRMS, RMS_
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
-    ti.gen_LC(times)
+    trial_LC, overlapTimes = ti.gen_LC(times)
 
     i_arr = (np.tile(np.arange(N),(M,1))).T
     j_arr = (np.tile(np.arange(M),(N,1)))
@@ -474,10 +475,10 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
         sines = (np.abs(i_arr + np.ones_like(i_arr,dtype=float) - (Nmid*np.ones_like(i_arr,dtype=float))) + 0.5*np.ones_like(i_arr,dtype=float))/(N/2.)
 
     #Get delta(light curve), calculated between time points 
-    ks = np.arange(0, len(times) - 1)
+    ks = np.arange(0, len(overlapTimes) - 1)
 
-    delta_times = times[1:] - times[0:-1]
-    middle_times = times[0:-1] + (delta_times/2.)
+    delta_times = overlapTimes[1:] - overlapTimes[0:-1]
+    middle_times = overlapTimes[0:-1] + (delta_times/2.)
     
     delta_fluxes = obsLC[1:] - obsLC[0:-1]
     
@@ -489,8 +490,8 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
     basisRMSs = np.zeros((len(ks)))
 
     #to properly account for which section of light curve is influenced by a particular arc
-    tI = times[obsLC < 1.][0]
-    tIV = times[obsLC < 1.][-1]
+    tI = overlapTimes[obsLC < 1.][0]
+    tIV = overlapTimes[obsLC < 1.][-1]
 
     tEvent = tIV - tI
     v = 4./tEvent
@@ -521,7 +522,7 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
             tEnd = middle_times[k_idx] + (tEvent/4.) + (w/v)
 
         delta_slice_mask = ((middle_times >= tStart) & (middle_times <= tEnd))
-        slice_mask = ((times >= tStart) & (times <= tEnd))
+        slice_mask = ((overlapTimes >= tStart) & (overlapTimes <= tEnd))
 
 
         #get indices, xy positions, and angular positions of "on" pixels that overlap the stellar limb
@@ -577,7 +578,11 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
                     nOpacityUnits = int(np.ceil((np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask & egressPixelMask])) * 2. * (float(len(eg_limbPixel_is_half))/float(len(eg_limbPixel_is)))))
                     nLimbPixelSpaces = len(eg_limbPixel_is_half)*2
             
-            except ZeroDivisionError | OverflowError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event
+            except ZeroDivisionError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event
+                nOpacityUnits = 0
+                nLimbPixelSpaces = 1
+
+            except OverflowError:
                 nOpacityUnits = 0
                 nLimbPixelSpaces = 1
             #nOpacityUnits = int(np.ceil(np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask]))) #number of "units" of 0.5 opacity that 
@@ -700,7 +705,7 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
         trial_delta_fluxes = trial_LC[1:] - trial_LC[0:-1]
 
         basis[k_idx] = np.ravel(recombined)#/np.ravel(sines)
-        basisRMSs[k_idx] = RMS(obsLC,obsLCerr,trial_LC) 
+        #basisRMSs[k_idx] = RMS(obsLC[np.arange(0,len(overlapTimes),k_interval)],obsLCerr[np.arange(0,len(overlapTimes),k_interval)],trial_LC) 
         """
         fig = plt.figure(figsize=(4,4))
         plt.imshow(recombined, cmap='bwr_r',interpolation='nearest',vmin=-1.,vmax=1.)
@@ -743,7 +748,7 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
             pass
         """
     
-    return basis, basisRMSs
+    return basis#, basisRMSs
 
 def renormBasis(basis, basis_LC, truth_LC):
     """
@@ -768,7 +773,8 @@ def whoAreMyArcNeighbors(N,M,i,j):
     """
     leftArcGrid = np.zeros((N,M))
     rightArcGrid = np.zeros((N,M))
-    arcGrid_positions = positions(N, M, np.array((-0.1,0.,0.1)), tref=0., v=0.05)[1]
+    arcGrid_positions, ot = positions(N, M, np.array((-0.1,0.,0.1)), tref=0., v=0.05)
+    arcGrid_positions = arcGrid_positions[1]
     #print np.shape(arcGrid_positions)
     r = 1. #radius of arcs, because star is radius unity
     
@@ -818,7 +824,7 @@ def arcRearrange(grid, v, t_ref, times, LDlaw="uniform", LDCs=[]):
     arcRearranged = copy.deepcopy(grid)
     
     ti = TransitingImage(opacitymat=grid, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
-    ti.gen_LC(times)
+    trial_LC, overlapTimes = ti.gen_LC(times)
     
     N = np.shape(grid)[0]
     M = np.shape(grid)[1]
@@ -1868,7 +1874,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
         #initialize transiting image object
         if LDlaw == "uniform":
             ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw="uniform", v=v, t_ref=t_ref, t_arr=t_arr)
-            ti_LC = ti.gen_LC(t_arr)
+            ti_LC, overlapTimes = ti.gen_LC(t_arr)
 
             raveledareas = np.zeros((np.shape(ti.areas)[0],np.shape(ti.areas)[1]*np.shape(ti.areas)[2])) 
 
@@ -1904,7 +1910,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
             nonlinearLDCs = [c1,c2,c3,c4]
 
             ti = TransitingImage(opacitymat=np.ones((N,M)), LDlaw="nonlinear", LDCs=nonlinearLDCs, v=v, t_ref=t_ref, t_arr=t_arr)
-            ti_LC = ti.gen_LC(t_arr)
+            ti_LC, overlapTimes = ti.gen_LC(t_arr)
 
             raveledareas = np.zeros((np.shape(ti.LD)[0],np.shape(ti.LD)[1]*np.shape(ti.LD)[2])) 
 
@@ -1914,7 +1920,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
 
         elif LDlaw == "nonlinear":
             ti = TransitingImage(opacitymat=np.ones((N,M)), LDlaw="nonlinear", LDCs=LDCs, v=v, t_ref=t_ref, t_arr=t_arr)
-            ti_LC = ti.gen_LC(t_arr)
+            ti_LC, overlapTimes = ti.gen_LC(t_arr)
 
             raveledareas = np.zeros((np.shape(ti.LD)[0],np.shape(ti.LD)[1]*np.shape(ti.LD)[2])) 
 
@@ -1922,7 +1928,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
                 for j in range(0,np.shape(ti.LD)[1]): #N axis
                     raveledareas[i,M*j:M*(j+1)] = ti.LD[i,j,:]
 
-        print raveledareas[0]
+        
         #take only half of area matrix to avoid dealing with flip degeneracy
         if (N>1) & (N%2 == 0):
             Nhalf = int(N/2)
@@ -1938,6 +1944,16 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
         #    print np.dot(halfAreas.T, halfAreas)[bb]
 
         # Run simultaneous ART according to user's choice of initial grid.
+        
+        """
+        tMin = t_ref - (2. + ti.w*(M-1))/(2.*v)
+        tMax = t_ref + (2. + ti.w*(M-1))/(2.*v)
+        overlappingTimesMask = (t_arr > tMin) & (t_arr < tMax)
+        
+        overlappingObsLC = obsLC[overlappingTimesMask]
+        overlappingObsLCerr = obsLCerr[overlappingTimesMask]
+        """
+
         if initstate=="uniform":  
             raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=0.5*np.ones((Nhalf,M)), A=halfAreas, obsLC=obsLC, obsLCerr=obsLCerr, filename=filename,window=window)
         elif initstate=="empty":
@@ -1979,50 +1995,50 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
         return wo
 
     elif method == "arcAvg":
-        avgBasis, avgBasis_RMS = makeArcBasisAverage(N=N, M=M, t_ref=t_ref, v=v, LDlaw=LDlaw, LDCs=LDCs, times=t_arr, LCdecrements=LCdecrements, obsLC=obsLC, obsLCerr=obsLCerr)
+        avgBasis = makeArcBasisAverage(N=N, M=M, t_ref=t_ref, v=v, LDlaw=LDlaw, LDCs=LDCs, times=t_arr, LCdecrements=LCdecrements, obsLC=obsLC, obsLCerr=obsLCerr)
         arcAvg = np.mean(avgBasis,axis=0)
     
         arcAvg = arcAvg.reshape(N,M)
         arcAvg = ((arcAvg + arcAvg[::-1,:])/2.)
     
         arcAvg_ti = TransitingImage(opacitymat=arcAvg, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=t_arr)
-        arcAvg_LC = arcAvg_ti.gen_LC(t_arr)
+        arcAvg_LC, overlapTimes = arcAvg_ti.gen_LC(t_arr)
     
         arcAvg = renormBasis(arcAvg,arcAvg_LC,obsLC)
     
         return arcAvg
 
     elif method == "arcPars":
-        parsBasis, parsBasis_RMS = makeArcBasisParsimony(N=N, M=M, t_ref=t_ref, v=v, LDlaw=LDlaw, LDCs=LDCs, times=t_arr, LCdecrements=LCdecrements, obsLC=obsLC, obsLCerr=obsLCerr)
+        parsBasis = makeArcBasisParsimony(N=N, M=M, t_ref=t_ref, v=v, LDlaw=LDlaw, LDCs=LDCs, times=t_arr, LCdecrements=LCdecrements, obsLC=obsLC, obsLCerr=obsLCerr)
         pars = np.mean(parsBasis,axis=0)
     
         pars = pars.reshape(N,M)
         pars = ((pars + pars[::-1,:])/2.)
     
         pars_ti = TransitingImage(opacitymat=pars, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=t_arr)
-        pars_LC = pars_ti.gen_LC(t_arr)
+        pars_LC, overlapTimes= pars_ti.gen_LC(t_arr)
 
         pars = renormBasis(pars,pars_LC,obsLC)
         pars_ti = TransitingImage(opacitymat=pars, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=t_arr)
-        pars_LC = pars_ti.gen_LC(t_arr)
+        pars_LC, overlapTimes = pars_ti.gen_LC(t_arr)
     
         pars = renormBasis(pars,pars_LC,obsLC)
 
         return pars
 
     elif method == "arcComb":
-        combBasis, combBasis_RMS = makeArcBasisCombinatoric(N=N, M=M, t_ref=t_ref, v=v, LDlaw=LDlaw, LDCs=LDCs, times=t_arr, LCdecrements=LCdecrements, obsLC=obsLC, obsLCerr=obsLCerr)
+        combBasis = makeArcBasisCombinatoric(N=N, M=M, t_ref=t_ref, v=v, LDlaw=LDlaw, LDCs=LDCs, times=t_arr, LCdecrements=LCdecrements, obsLC=obsLC, obsLCerr=obsLCerr)
         comb = np.mean(combBasis,axis=0)
     
         comb = comb.reshape(N,M)
         comb = ((comb + comb[::-1,:])/2.)
     
         comb_ti = TransitingImage(opacitymat=comb, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
-        comb_LC = comb_ti.gen_LC(t_arr)
+        comb_LC, overlapTimes = comb_ti.gen_LC(t_arr)
     
         comb = renormBasis(comb,comb_LC,obsLC)
         comb_ti = TransitingImage(opacitymat=comb, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
-        comb_LC = comb_ti.gen_LC(t_arr)
+        comb_LC, overlapTimes = comb_ti.gen_LC(t_arr)
     
         comb = renormBasis(comb,comb_LC,obsLC)
         
