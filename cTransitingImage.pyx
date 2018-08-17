@@ -4,6 +4,7 @@ import numpy as np
 import time
 import copy
 import matplotlib.pyplot as plt
+import warnings
 from scipy import misc, stats
 from .cGridFunctions import *
 
@@ -121,7 +122,10 @@ class TransitingImage(object):
 				#fluxtot[k] = 1. - np.sum(self.areas[k,:,:])
 				fluxtot[k] = 1. - np.sum(self.blockedflux[k,:,:])
 
-		elif (((self.LDlaw == "nonlinear") | (self.LDlaw == "linear") | (self.LDlaw == "quadratic")) & (self.w <= 0.2)):
+		elif (((self.LDlaw == "nonlinear") | (self.LDlaw == "linear") | (self.LDlaw == "quadratic"))):
+			if self.w > 0.2:
+				warnings.warn("Small-planet approximation for LD calculation is inappropriate. Choose higher N if possible.")
+
 			self.areas = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
 			self.blockedflux = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
 			
@@ -157,9 +161,9 @@ class TransitingImage(object):
 				#if np.isnan(fluxtot[k]):
 					#print self.t_arr[k]
 		
-		elif (((self.LDlaw == "nonlinear") | (self.LDlaw == "linear") | (self.LDlaw == "quadratic")) & (self.w > 0.2)):
-			raise Exception("Small-planet approximation for LD calculation is inappropriate. Choose higher resolution")
-			fluxtot = None
+		#elif (((self.LDlaw == "nonlinear") | (self.LDlaw == "linear") | (self.LDlaw == "quadratic")) & (self.w > 0.2)):
+			#raise Exception("Small-planet approximation for LD calculation is inappropriate. Choose higher resolution")
+			#fluxtot = None
 
 		return fluxtot, self.t_arr
 		
