@@ -46,11 +46,14 @@ def positions(n, m, t, tref, v):
 		for j in range(1,m+1):
 			pos[k,:,j-1,0] = xref[j-1] + (t[k] - tref)*v
 	
-	tMin = tref - (2. + w*(m-1))/(2.*v)
-	tMax = tref + (2. + w*(m-1))/(2.*v)
+	if v != 0.:
+		tMin = tref - (2. + w*(m-1))/(2.*v)
+		tMax = tref + (2. + w*(m-1))/(2.*v)
 
-	overlappingTimesMask = (t > tMin) & (t < tMax)
-
+		overlappingTimesMask = (t > tMin) & (t < tMax)
+	else:
+		overlappingTimesMask = np.ones_like(t).astype(bool)
+	
 	overlappingTimes = t[overlappingTimesMask]
 	overlappingPos = pos[overlappingTimesMask]
 
@@ -98,12 +101,12 @@ def pixelate_image(imfile, nside, method='mode', rounding=False):
 		mside = int(np.round((imshape[1]*nside)/float(imshape[0])))
 		
 		tau_orig = np.ones_like(imgrid[:,:,0]) - (np.sqrt((np.sum((imgrid/256.)**2,axis=2))/3.))
-		tau_orig_pos = positions(n=imshape[0],m=imshape[1],t=np.atleast_1d(np.array((0))),tref=0,v=0)[0]
-		
+		tau_orig_pos = positions(n=imshape[0],m=imshape[1],t=np.atleast_1d(np.array((0))),tref=0,v=0.)[0][0]
+
 		w = 2./imshape[0]
 		
 		tau = np.zeros((nside,mside))
-		
+
 		newpix_height = float(imshape[0]*w)/float(nside)
 		newpix_width = float(imshape[1]*w)/float(mside)
 		
@@ -123,7 +126,7 @@ def pixelate_image(imfile, nside, method='mode', rounding=False):
 					tau[i,j] = np.round(np.mean(tau_orig[thisneighborhoodmask]))
 				else:
 					tau[i,j] = np.mean(tau_orig[thisneighborhoodmask])
-	
+
 	return tau
 
 def lowres_grid(opacitymat, positions, nside, method='mean', rounding=False):
