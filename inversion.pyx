@@ -396,7 +396,7 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
         elif delta_fluxes[k_idx] > 0.:
             avg_opacity = (np.abs(delta_fluxes[k_idx])/len(eg_limbPixel_is))/np.sum(ti.areas[k][limbPixelMask & egressPixelMask])
             for pixIdx in range(0, len(eg_limbPixel_is)):
-                recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]])/sines[ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]]
+                recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]])/sines[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]]
         """    
         if (len(limbPixel_is_half) > 0):
             # to endow the entire arc with the *average* ingress opacity:

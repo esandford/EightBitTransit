@@ -13222,7 +13222,7 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasisAverage(int __
  *         elif delta_fluxes[k_idx] > 0.:
  *             avg_opacity = (np.abs(delta_fluxes[k_idx])/len(eg_limbPixel_is))/np.sum(ti.areas[k][limbPixelMask & egressPixelMask])             # <<<<<<<<<<<<<<
  *             for pixIdx in range(0, len(eg_limbPixel_is)):
- *                 recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]])/sines[ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]]
+ *                 recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]])/sines[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]]
  */
       __pyx_t_3 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 397, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
@@ -13367,7 +13367,7 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasisAverage(int __
  *         elif delta_fluxes[k_idx] > 0.:
  *             avg_opacity = (np.abs(delta_fluxes[k_idx])/len(eg_limbPixel_is))/np.sum(ti.areas[k][limbPixelMask & egressPixelMask])
  *             for pixIdx in range(0, len(eg_limbPixel_is)):             # <<<<<<<<<<<<<<
- *                 recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]])/sines[ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]]
+ *                 recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]])/sines[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]]
  *         """
  */
       __pyx_t_43 = PyObject_Length(__pyx_v_eg_limbPixel_is); if (unlikely(__pyx_t_43 == -1)) __PYX_ERR(0, 398, __pyx_L1_error)
@@ -13377,7 +13377,7 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasisAverage(int __
         /* "EightBitTransit/inversion.pyx":399
  *             avg_opacity = (np.abs(delta_fluxes[k_idx])/len(eg_limbPixel_is))/np.sum(ti.areas[k][limbPixelMask & egressPixelMask])
  *             for pixIdx in range(0, len(eg_limbPixel_is)):
- *                 recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]])/sines[ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]]             # <<<<<<<<<<<<<<
+ *                 recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]])/sines[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]]             # <<<<<<<<<<<<<<
  *         """
  *         if (len(limbPixel_is_half) > 0):
  */
@@ -13420,9 +13420,9 @@ static PyObject *__pyx_f_15EightBitTransit_9inversion_makeArcBasisAverage(int __
         __Pyx_GOTREF(__pyx_t_18);
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
         if (unlikely(!__pyx_v_sines)) { __Pyx_RaiseUnboundLocalError("sines"); __PYX_ERR(0, 399, __pyx_L1_error) }
-        __pyx_t_2 = __Pyx_GetItemInt(__pyx_v_ing_limbPixel_is, __pyx_v_pixIdx, Py_ssize_t, 1, PyInt_FromSsize_t, 0, 1, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 399, __pyx_L1_error)
+        __pyx_t_2 = __Pyx_GetItemInt(__pyx_v_eg_limbPixel_is, __pyx_v_pixIdx, Py_ssize_t, 1, PyInt_FromSsize_t, 0, 1, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 399, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_2);
-        __pyx_t_1 = __Pyx_GetItemInt(__pyx_v_ing_limbPixel_js, __pyx_v_pixIdx, Py_ssize_t, 1, PyInt_FromSsize_t, 0, 1, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 399, __pyx_L1_error)
+        __pyx_t_1 = __Pyx_GetItemInt(__pyx_v_eg_limbPixel_js, __pyx_v_pixIdx, Py_ssize_t, 1, PyInt_FromSsize_t, 0, 1, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 399, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 399, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
