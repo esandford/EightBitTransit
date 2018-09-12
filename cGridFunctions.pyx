@@ -47,8 +47,11 @@ def positions(n, m, t, tref, v):
 			pos[k,:,j-1,0] = xref[j-1] + (t[k] - tref)*v
 	
 	if v != 0.:
-		tMin = tref - (2. + w*(m-1))/(2.*v)
-		tMax = tref + (2. + w*(m-1))/(2.*v)
+		#tMin = tref - (2. + w*(m-1))/(2.*v)
+		#tMax = tref + (2. + w*(m-1))/(2.*v)
+		tMin = tref - (2. + w*m)/(2.*v)
+		tMax = tref + (2. + w*m)/(2.*v)
+
 
 		overlappingTimesMask = (t > tMin) & (t < tMax)
 	else:
@@ -127,6 +130,7 @@ def pixelate_image(imfile, nside, method='mode', rounding=False):
 				else:
 					tau[i,j] = np.mean(tau_orig[thisneighborhoodmask])
 
+	tau[tau <= 0.004] = 0.
 	return tau
 
 def lowres_grid(opacitymat, positions, nside, method='mean', rounding=False):

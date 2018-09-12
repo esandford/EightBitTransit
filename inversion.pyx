@@ -183,8 +183,7 @@ cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, lis
             
             #dAdt = delta_areas[k_idx]
             dAdt = delta_areas[k]
-            dAdt[~(limbPixelMask)] = 0    #we do NOT want to mess with the non-limb pixels, 
-                                                        #or the non-on pixels
+            dAdt[~(limbPixelMask)] = 0    #we do NOT want to mess with the non-limb pixels                                                        
 
             #for testing: set egressing pixel areas = 0
             #dAdt[dAdt < 0.] = 0.
@@ -391,13 +390,13 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
         if delta_fluxes[k_idx] < 0.:
             avg_opacity = (np.abs(delta_fluxes[k_idx])/len(ing_limbPixel_is))/np.sum(ti.areas[k][limbPixelMask & ingressPixelMask])
             for pixIdx in range(0, len(ing_limbPixel_is)):
-                recombined[ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]] += avg_opacity*ti.areas[k][ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]]
+                recombined[ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]])/sines[ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]]
             
 
         elif delta_fluxes[k_idx] > 0.:
             avg_opacity = (np.abs(delta_fluxes[k_idx])/len(eg_limbPixel_is))/np.sum(ti.areas[k][limbPixelMask & egressPixelMask])
             for pixIdx in range(0, len(eg_limbPixel_is)):
-                recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]]
+                recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]])/sines[ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]]
         """    
         if (len(limbPixel_is_half) > 0):
             # to endow the entire arc with the *average* ingress opacity:
