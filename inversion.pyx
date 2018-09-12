@@ -329,10 +329,10 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
 
     if (N>1) & (N%2 == 0): #N even
         Nmid = int(N/2) 
-        #sines = (np.abs(i_arr + 0.5*np.ones_like(i_arr, dtype=float) - (Nmid*np.ones_like(i_arr,dtype=float))) + 0.5*np.ones_like(i_arr,dtype=float))/(N/2.)
+        sines = (np.abs(i_arr + 0.5*np.ones_like(i_arr, dtype=float) - (Nmid*np.ones_like(i_arr,dtype=float))) + 0.5*np.ones_like(i_arr,dtype=float))/(N/2.)
     elif (N>1) & (N%2 != 0): #N odd
         Nmid = int((N-1)/2 + 1)
-        #sines = (np.abs(i_arr + np.ones_like(i_arr,dtype=float) - (Nmid*np.ones_like(i_arr,dtype=float))) + 0.5*np.ones_like(i_arr,dtype=float))/(N/2.)
+        sines = (np.abs(i_arr + np.ones_like(i_arr,dtype=float) - (Nmid*np.ones_like(i_arr,dtype=float))) + 0.5*np.ones_like(i_arr,dtype=float))/(N/2.)
 
     #Get delta(light curve), calculated between time points (2*t_interval) apart (i.e., when the grid has moved a distance of w)
     ks = np.arange(0,np.shape(ti.areas)[0],k_interval)
