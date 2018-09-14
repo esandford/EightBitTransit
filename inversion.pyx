@@ -406,14 +406,14 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
                 recombined[limbPixel_is[pixIdx], limbPixel_js[pixIdx]] += avg_opacity*ti.areas[k][limbPixel_is[pixIdx], limbPixel_js[pixIdx]]
         """ 
         #plot it
-        foldedGrid = foldOpacities(recombined)
-        decrements = LCdecrements[foldedGrid.astype(bool)]
-        decrements_1D = np.sum(decrements,axis=0)
-        trial_LC = np.ones_like(decrements_1D) - decrements_1D
-        trial_flux_points = np.zeros((len(ks)+1))
-        trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
-        trial_flux_points[-1] = trial_LC[-1]
-        trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
+        #foldedGrid = foldOpacities(recombined)
+        #decrements = LCdecrements[foldedGrid.astype(bool)]
+        #decrements_1D = np.sum(decrements,axis=0)
+        #trial_LC = np.ones_like(decrements_1D) - decrements_1D
+        #trial_flux_points = np.zeros((len(ks)+1))
+        #trial_flux_points[0:-1] = trial_LC[np.arange(0,len(trial_LC),k_interval)]
+        #trial_flux_points[-1] = trial_LC[-1]
+        #trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
         
         basis[k_idx] = np.ravel(recombined)#/np.ravel(sines)
         #basisRMSs[k_idx] = RMS(obsLC[np.arange(0,len(overlapTimes),k_interval)],obsLCerr[np.arange(0,len(overlapTimes),k_interval)],trial_LC)
