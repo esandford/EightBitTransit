@@ -1,4 +1,5 @@
-__all__ = ['gridfunctions','imagefunctions']
+__all__ = ['cTransitingImage','cGridFunctions','misc','inversion']
 
-from .GridFunctions import *
-from .TransitingImage import *
+from .cTransitingImage import *
+from .misc import *
+from .inversion import *

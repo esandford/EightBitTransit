@@ -1,4 +1,5 @@
 # cython: profile=True
+from __future__ import division
 import numpy as np
 import time
 import copy
@@ -15,8 +16,8 @@ def positions(n, m, t, tref, v):
 	n = height of grid, in pixels
 	m = width of grid, in pixels
 	t = array of times at which to output pixel grid positions
-	tref = reference transit midpoint time [days]
-	v = grid velocity [1/days] (since distance is in units of R*)
+	tref = reference transit midpoint time [time units]
+	v = grid velocity [1/(time units)] (since distance is in units of R*)
 	
 	Outputs:
 	pos = array of shape (len(t), n, m, 2) containing thepositions of pixel (n,m) at each time t. pos[k,:,:,0] are
@@ -45,7 +46,21 @@ def positions(n, m, t, tref, v):
 		for j in range(1,m+1):
 			pos[k,:,j-1,0] = xref[j-1] + (t[k] - tref)*v
 	
-	return pos
+	if v != 0.:
+		#tMin = tref - (2. + w*(m-1))/(2.*v)
+		#tMax = tref + (2. + w*(m-1))/(2.*v)
+		tMin = tref - (2. + w*m)/(2.*v)
+		tMax = tref + (2. + w*m)/(2.*v)
+
+
+		overlappingTimesMask = (t > tMin) & (t < tMax)
+	else:
+		overlappingTimesMask = np.ones_like(t).astype(bool)
+	
+	overlappingTimes = t[overlappingTimesMask]
+	overlappingPos = pos[overlappingTimesMask]
+
+	return overlappingPos, overlappingTimes
 
 def pixelate_image(imfile, nside, method='mode', rounding=False):
 	"""
@@ -65,7 +80,7 @@ def pixelate_image(imfile, nside, method='mode', rounding=False):
 	imgrid = imgrid[:,:,0:3]
 	if nside is None:
 		#print np.shape(imgrid[:,:,0])
-		tau = np.ones_like(imgrid[:,:,0]) - np.round(np.sqrt((np.sum((imgrid/256.)**2,axis=2))/3.))
+		tau = np.ones_like(imgrid[:,:,0]) - (np.sqrt((np.sum((imgrid/256.)**2,axis=2))/3.))
 		#return tau
 	else:
 		imshape = np.shape(imgrid[:,:,0])
@@ -88,13 +103,13 @@ def pixelate_image(imfile, nside, method='mode', rounding=False):
 		
 		mside = int(np.round((imshape[1]*nside)/float(imshape[0])))
 		
-		tau_orig = np.ones_like(imgrid[:,:,0]) - np.round(np.sqrt((np.sum((imgrid/256.)**2,axis=2))/3.))
-		tau_orig_pos = positions(n=imshape[0],m=imshape[1],t=np.atleast_1d(np.array((0))),tref=0,v=0)[0]
-		
+		tau_orig = np.ones_like(imgrid[:,:,0]) - (np.sqrt((np.sum((imgrid/256.)**2,axis=2))/3.))
+		tau_orig_pos = positions(n=imshape[0],m=imshape[1],t=np.atleast_1d(np.array((0))),tref=0,v=0.)[0][0]
+
 		w = 2./imshape[0]
 		
 		tau = np.zeros((nside,mside))
-		
+
 		newpix_height = float(imshape[0]*w)/float(nside)
 		newpix_width = float(imshape[1]*w)/float(mside)
 		
@@ -114,7 +129,8 @@ def pixelate_image(imfile, nside, method='mode', rounding=False):
 					tau[i,j] = np.round(np.mean(tau_orig[thisneighborhoodmask]))
 				else:
 					tau[i,j] = np.mean(tau_orig[thisneighborhoodmask])
-	
+
+	tau[tau <= 0.004] = 0.
 	return tau
 
 def lowres_grid(opacitymat, positions, nside, method='mean', rounding=False):
@@ -428,29 +444,63 @@ cpdef pixeloverlaparea(double x0, double y0, double w):
 			#eliminate intersections at the top and bottom of the stellar disk, which add no information
 			non_tb_x = []
 			non_tb_y = []
-			for i in range(0,6):
-				if (abs(xg[i]) == 0.0) and (abs(yg[i]) == 1.0):
-					pass
+
+			if w == 2.: #one-row grid
+				for i in range(0,6):
+					if (abs(xg[i]) == 0.0) and (abs(yg[i]) == 1.0):
+						pass
+					else:
+						non_tb_x.append(xg[i])
+						non_tb_y.append(yg[i])
+
+				non_tb_x = np.array(non_tb_x)
+				non_tb_y = np.array(non_tb_y)
+
+				if (len(non_tb_x) == 0) & (len(non_tb_y)==0):
+					if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk, so the occulted area is the area of the star
+						#print "called"
+						area = np.pi
+					elif ((x0**2 + y0**2) == 1.): #pixel is exactly halfway inside stellar disk, so the occulted area is half the area of the star
+						area = np.pi/2.
+					else:
+						area = 0.
+
 				else:
-					non_tb_x.append(xg[i])
-					non_tb_y.append(yg[i])
+					chord = ((non_tb_x[1] - non_tb_x[0])**2 + (non_tb_y[1] - non_tb_y[0])**2)**0.5
+					unobscured_area = np.arcsin(0.5*chord) - 0.5*np.sin(2.*np.arcsin(0.5*chord))
+					if ((x0**2 + y0**2) < 1.):
+						return 1.0 - (unobscured_area/np.pi)
+					else:
+						area = 0.
 
-			non_tb_x = np.array(non_tb_x)
-			non_tb_y = np.array(non_tb_y)
+			elif w == 1.: #two-row grid
+				tbandside = [0,0]
 
-			chord = ((non_tb_x[1] - non_tb_x[0])**2 + (non_tb_y[1] - non_tb_y[0])**2)**0.5
+				for i in range(0,6):
+					if (abs(xg[i]) == 0.0) and (abs(yg[i]) == 1.0):
+						tbandside[0] = 1
+					if (abs(xg[i]) == 1.0) and (abs(yg[i]) == 0.0):
+						tbandside[1] = 1
 
-			unobscured_area = np.arcsin(0.5*chord) - 0.5*np.sin(2.*np.arcsin(0.5*chord))
-			return 1.0 - (unobscured_area/np.pi)
+				if sum(tbandside) == 2:
+					area = np.pi/4.
+
+				else:
+					if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk
+						area = w**2
+					else:
+						area = 0.
+
 
 		else:    #no valid intersection points found
-			if ((x0**2 + y0**2) <= 1.): #pixel is fully inside stellar disk
-				area = w**2
+			if ((x0**2 + y0**2) < 1.): #pixel is fully inside stellar disk
+				area = np.min([w**2,np.pi]) #to account for the case of a one-row grid
 		
 			else: #pixel is fully outside stellar disk
 				area = 0.
 	
 	norm_area = area/np.pi #normalize by stellar area, which is pi*1**2
+	#print norm_area
 	return norm_area
 
 cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, double w):
@@ -478,12 +528,6 @@ cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, d
 	r = w/(pi**0.5) #set r such that area = w^2= pi*r^2 => r = w/sqrt(pi), i.e. r is the radius of the circle with area w**2
 	
 	n = len(t)
-
-	#S = np.zeros(n)
-	#am = np.zeros(n)
-	#bm = np.zeros(n)
-	#amR = np.zeros(n)
-	#bmR = np.zeros(n)
 	
 	#Ar_ann = np.zeros(n) #area of annulus
 	#Fl_ann = np.zeros(n) #flux within annulus
@@ -491,18 +535,11 @@ cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, d
 	
 	for i in range(0,n):
 		S = (x[i]**2 + y[i]**2)**0.5 #distance from stellar center
-		am = (S - r)**2 #inner part of annulus
-		bm = (S + r)**2 #outer part of annulus
+		am = (S - r)**2 #inner part of annulus, centered at stellar center, which contains this pixel
+		bm = (S + r)**2 #outer part of annulus, centered at stellar center, which contains this pixel
 
 		amR = (1. - am)**0.25
 		bmR = (1. - bm)**0.25
-		
-		#S[i] = np.sqrt(x[i]**2 + y[i]**2) #distance from stellar center
-		#am[i] = (S[i] - r)**2 #inner part of annulus
-		#bm[i] = (S[i] + r)**2 #outer part of annulus
-
-		#amR[i] = np.sqrt(np.sqrt(1. - am[i]))
-		#bmR[i] = np.sqrt(np.sqrt(1. - bm[i]))
 		
 		if S > (1. + r): #case I: pixel is outside of stellar disk
 			Ar_ann = 0.
@@ -513,20 +550,15 @@ cpdef LDfluxsmall(x, y, t, Ar_occ, double c1, double c2, double c3, double c4, d
 			Ar_ann = pi*(bm - am)
 			Fl_ann = (am - bm)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 + (4./7.)*c3*amR**7 + 0.5*c4*amR**8 - 0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 -(4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
-		
+			#flux blocked by this pixel = pi*(area occulted by pixel/area of annulus)*(flux in annulus/flux of whole star)
+			# I think this is the "effective area" of the pixel for the purposes of inversion with non-uniform LD
 		elif (S < r): #case IV: pixel is very close to stellar center
-			#if np.isnan(bmR[i]):
-				#print "case IV problem! bmR is nan"
-
 			Ar_ann = pi*bm		
 			Fl_ann = -1.*bm*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1 + (2./3.)*c2 + (4./7.)*c3 + 0.5*c4 -0.8*c1*bmR**5 - (2./3.)*c2*bmR**6 - (4./7.)*c3*bmR**7 - 0.5*c4*bmR**8
 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
 			
 		
 		else: #if S[i] > (1.-r) and S[i] < (1.+r), case II: pixel overlaps edge of stellar disk
-			#if np.isnan(amR[i]):
-				#print "case II problem! amR is nan"
-
 			Ar_ann = pi*(1.-am)
 			Fl_ann = (am - 1.)*(c1 + c2 + c3 + c4 - 1.) + 0.8*c1*amR**5 + (2./3.)*c2*amR**6 +(4./7.)*c3*amR**7 + 0.5*c4*amR**8
 			I0[i] = pi*(Ar_occ[i]/Ar_ann)*(Fl_ann/Ftot)
