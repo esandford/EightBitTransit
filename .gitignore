@@ -1,0 +1,8 @@
+*.o
+*.pyc
+*.so
+*.py
+*.html
+*parallelized*
+*deprecated*
+**/build/
