@@ -1,7 +1,6 @@
 # cython: profile=True
 from __future__ import division
 import numpy as np
-import time
 import copy
 from scipy import misc, stats
 from collections import Counter
