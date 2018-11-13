@@ -7,7 +7,9 @@
 # Installation #
 
 To install EightBitTransit, download this directory, navigate to it, and run:
+
 `python setup.py build-ext --inplace`
+
 `python setup.py install`
 
 # Dependencies #
