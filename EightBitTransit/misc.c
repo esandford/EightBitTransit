@@ -1565,7 +1565,7 @@ static const char __pyx_k_near_transparent_mask[] = "near_transparent_mask";
 static const char __pyx_k_input_grid_must_be_square[] = "input grid must be square";
 static const char __pyx_k_output_grid_must_be_square[] = "output grid must be square";
 static const char __pyx_k_fromBinaryGrid_locals_genexpr[] = "fromBinaryGrid.<locals>.genexpr";
-static const char __pyx_k_Users_Emily_Documents_mypythonm[] = "/Users/Emily/Documents/mypythonmods/EightBitTransit/misc.pyx";
+static const char __pyx_k_Users_Emily_Documents_mypythonm[] = "/Users/Emily/Documents/mypythonmods/EightBitTransit/EightBitTransit/misc.pyx";
 static PyObject *__pyx_kp_s_0;
 static PyObject *__pyx_n_s_Cd;
 static PyObject *__pyx_n_s_EightBitTransit_misc;

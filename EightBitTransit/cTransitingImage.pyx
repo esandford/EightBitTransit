@@ -1,8 +1,6 @@
 # cython: profile=True
 from __future__ import division
 import numpy as np
-import time
-import copy
 import matplotlib.pyplot as plt
 import warnings
 from scipy import misc, stats
@@ -19,7 +17,7 @@ class TransitingImage(object):
 		self.lowrestype = "mean" #also allowed: "mode"
 		self.lowresround = False #also allowed: True
 		self.opacitymat = None
-		self.LDlaw = "uniform" #also allowed: "nonlinear"
+		self.LDlaw = "uniform" #also allowed: "linear","quadratic","nonlinear"
 		self.LDCs = None
 		self.positions = None
 		self.areas = None
@@ -97,8 +95,6 @@ class TransitingImage(object):
 			if self.areas is None:
 				self.areas = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
 			self.blockedflux = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
-			
-			#t0 = time.time()
 
 			if np.count_nonzero(self.areas) == 0:
 				for i in range(0,gridshape[0]):
@@ -129,7 +125,6 @@ class TransitingImage(object):
 			self.areas = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
 			self.blockedflux = np.zeros((len(self.t_arr), gridshape[0], gridshape[1]), dtype=float)
 			
-			#t0 = time.time()
 			for i in range(0,gridshape[0]):
 				for j in range(0,gridshape[1]):
 					for k in range(0,len(self.t_arr)):
@@ -137,11 +132,6 @@ class TransitingImage(object):
 						self.areas[k,i,j] = pixeloverlaparea(x0=self.positions[k,i,j,0], y0=self.positions[k,i,j,1], w=self.w)
 						self.blockedflux[k,i,j] = self.areas[k,i,j]*self.opacitymat[i,j]
 						
-			#t1 = time.time()
-			#print(t1-t0)
-			
-			
-			#t2 = time.time()
 			self.LD = np.zeros_like(self.areas)
 			for i in range(0,gridshape[0]):
 				for j in range(0,gridshape[1]):
@@ -152,31 +142,20 @@ class TransitingImage(object):
 					elif self.LDlaw == "linear":
 						self.LD[:,i,j] = LDfluxsmall(x=self.positions[:,i,j,0], y=self.positions[:,i,j,1], t=self.t_arr, Ar_occ=self.blockedflux[:,i,j], c1=0., c2=self.LDCs[0], c3=0., c4=0., w=self.w)
 					
-			#t3 = time.time()
-			#print (t3-t2)
-			
 			fluxtot = np.zeros(len(self.t_arr))
 			for k in range(0,len(self.t_arr)):
 				fluxtot[k] = 1. - np.sum(self.LD[k,:,:])
-				#if np.isnan(fluxtot[k]):
-					#print self.t_arr[k]
 		
-		#elif (((self.LDlaw == "nonlinear") | (self.LDlaw == "linear") | (self.LDlaw == "quadratic")) & (self.w > 0.2)):
-			#raise Exception("Small-planet approximation for LD calculation is inappropriate. Choose higher resolution")
-			#fluxtot = None
-
 		return fluxtot, self.t_arr
 		
 	def plot_grid(self,save=False, filename=None):
 		nside_y = np.shape(self.opacitymat)[0]
 		nside_x = np.shape(self.opacitymat)[1]
 		
-		#nside = np.max(np.shape(self.opacitymat))
 		fig, ax= plt.subplots(1,1,figsize=(8,8))
 		ax.set_aspect('equal')
 		
 		ax.imshow(self.opacitymat,cmap="Greys",aspect="equal",origin="upper",interpolation='none',vmin=0.,vmax=1.)
-		#plt.colorbar()
 		ax.set_xlabel("j",fontsize=16)
 		ax.set_ylabel("i",fontsize=16)
 		ax.set_xlim(-0.5,nside_x-0.5)

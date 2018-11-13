@@ -6,8 +6,6 @@ import copy
 import math
 import itertools
 import matplotlib.pyplot as plt
-import time
-#from libcpp cimport bool as cybool
 
 from .cTransitingImage import *
 from .cGridFunctions import *
