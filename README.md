@@ -23,4 +23,4 @@ To install EightBitTransit, download this directory, navigate to it, and run:
 
 # Examples #
 
-See `./examples/examples.ipynb` for examples of both the forward and inverse shadow imaging problem, including for dip 5 of Boyajian's Star. This code reproduces figure 12 of Sandford et al. 2018.
+See `./examples/examples.ipynb` for examples of both the forward and inverse shadow imaging problem, including for dip 5 of Boyajian's Star. This code reproduces figure 12 of Sandford & Kipping 2018 (https://arxiv.org/abs/1812.01618).
