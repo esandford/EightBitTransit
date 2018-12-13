@@ -24,3 +24,11 @@ To install EightBitTransit, download this directory, navigate to it, and run:
 # Examples #
 
 See `./examples/examples.ipynb` for examples of both the forward and inverse shadow imaging problem, including for dip 5 of Boyajian's Star. This code reproduces figure 12 of Sandford & Kipping 2018 (https://arxiv.org/abs/1812.01618).
+
+# Note on memory #
+
+Repeated TransitingImage() calls can cause python to run out of memory in certain cases (thanks to textadactyl for pointing this out!)--when you are done with a TransitingImage object, deallocate it explicitly, i.e.:
+
+`ti = TransitingImage(...)`
+/some operations on ti, etc./
+`ti = None`
