@@ -31,6 +31,6 @@ Repeated TransitingImage() calls can cause python to run out of memory in certai
 
 `ti = TransitingImage(...)`
 
-/some operations on ti, etc./
+*some operations on ti, etc.*
 
 `ti = None`
