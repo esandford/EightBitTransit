@@ -30,5 +30,7 @@ See `./examples/examples.ipynb` for examples of both the forward and inverse sha
 Repeated TransitingImage() calls can cause python to run out of memory in certain cases (thanks to textadactyl for pointing this out!)--when you are done with a TransitingImage object, deallocate it explicitly, i.e.:
 
 `ti = TransitingImage(...)`
+
 /some operations on ti, etc./
+
 `ti = None`
