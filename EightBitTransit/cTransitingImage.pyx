@@ -166,4 +166,5 @@ class TransitingImage(object):
 		elif save is True:
 			plt.savefig(filename, fmt="png")
 		
+		plt.close()
 		return None

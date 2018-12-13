@@ -7,3 +7,5 @@
 **/build/
 **/*taus.txt
 *ipynb_checkpoints*
+./EightBitTransit/*.c
+./EightBitTransit/*.so
