@@ -3,6 +3,7 @@ from __future__ import division
 import numpy as np
 import copy
 from scipy import misc, stats
+from imageio import imread
 from collections import Counter
 
 __all__ = ['positions', 'pixelate_image', 'lowres_grid', 'pixeloverlaparea', 'LDfluxsmall']
@@ -22,7 +23,7 @@ def positions(n, m, t, tref, v):
 	pos = array of shape (len(t), n, m, 2) containing thepositions of pixel (n,m) at each time t. pos[k,:,:,0] are
 		the x-positions of the whole grid at time t=k; pos[k,:,:,1] are the y-positions.
 	"""
-	pos = np.zeros((len(t),n,m,2))
+	pos = np.zeros((len(t),n,m,2),dtype=float)
 	w = (2./n)
 	
 	#y positions are constant in time
@@ -35,7 +36,7 @@ def positions(n, m, t, tref, v):
 	jmid = 1. + (m-1.)/2.
 	xmidref = 0. #x position of reference pixel at tref
 	
-	xref = np.zeros(m)
+	xref = np.zeros(m,dtype=float)
 	#at time t=tref:
 	for j in range(1,m+1):
 		xref[j-1] = xmidref + (j-jmid)*w
@@ -48,17 +49,18 @@ def positions(n, m, t, tref, v):
 	if v != 0.:
 		#tMin = tref - (2. + w*(m-1))/(2.*v)
 		#tMax = tref + (2. + w*(m-1))/(2.*v)
-		tMin = tref - (2. + w*m)/(2.*v)
-		tMax = tref + (2. + w*m)/(2.*v)
-
-
+		tMin = tref - (2. + w*m)/(2.*np.abs(v))
+		tMax = tref + (2. + w*m)/(2.*np.abs(v))
+	
 		overlappingTimesMask = (t > tMin) & (t < tMax)
 	else:
 		overlappingTimesMask = np.ones_like(t).astype(bool)
 	
+	#print(overlappingTimesMask)	
 	overlappingTimes = t[overlappingTimesMask]
 	overlappingPos = pos[overlappingTimesMask]
-
+	#print(overlappingTimes)
+	#print(overlappingPos)
 	return overlappingPos, overlappingTimes
 
 def pixelate_image(imfile, nside, method='mode', rounding=False):
@@ -75,7 +77,7 @@ def pixelate_image(imfile, nside, method='mode', rounding=False):
 		tau = (nside, (M*nside)/N) matrix of opacities, where each entry is either 0 (transparent) or 1 (opaque)
 	"""
 	
-	imgrid = misc.imread(imfile)
+	imgrid = imread(imfile)
 	imgrid = imgrid[:,:,0:3]
 	if nside is None:
 		#print np.shape(imgrid[:,:,0])

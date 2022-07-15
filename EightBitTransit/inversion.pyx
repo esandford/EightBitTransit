@@ -13,7 +13,8 @@ from .misc import *
 __all__ = ['bruteForceSearch','nCr', 'makeArcBasisParsimony', 'makeArcBasisAverage','makeArcBasisCombinatoric',
 'renormBasis', 'whoAreMyArcNeighbors','arcRearrange','Gaussian2D_PDF','simultaneous_ART',
 'wedgeRearrange','wedgeNegativeEdge', 'wedgeOptimize_sym',
-'foldOpacities','invertLC']
+'foldOpacities','invertLC', 'symmetrize_design_matrix', 'symmetrize_opacity_map',
+'get_overlap_time_mask','unfold_opacity_map']
 
 cpdef bruteForceSearch(int N, int M, double t_ref, double v, str LDlaw, list LDCs, np.ndarray[double, ndim=1] times, 
     np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
@@ -1830,3 +1831,54 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
     elif method == "bruteForce":
         bruteForce, bruteForceRMS = bruteForceSearch(N=N, M=M, t_ref=t_ref, v=v, LDlaw=LDlaw, LDCs=LDCs, times=t_arr, LCdecrements=LCdecrements, obsLC=obsLC, obsLCerr=obsLCerr)
         return bruteForce
+
+# by Kirill Tchernyshyov, for constrained least squares method
+#convenience methods duplicating what you did just to make sure I understand the geometry of what's going on
+
+def symmetrize_opacity_map(opacity_map, cross_axis=0):
+    """
+    take averages across the horizontal line of symmetry
+    returns a matrix of the same size as the opacity matrix
+    """
+    sym_opacity_map = 0.5 * (np.flip(opacity_map, axis=cross_axis) + opacity_map)
+    return sym_opacity_map
+
+
+def symmetrize_design_matrix(design_matrix, cross_axis=0):
+    """
+    combine contributions from different sides of the horizontal line of symmetry
+    returns a matrix with length = ceil(original length / 2) along the cross-transit axis
+    """
+    if cross_axis != 0:
+        design_matrix = np.swapaxes(design_matrix, 0, cross_axis)
+    original_length = design_matrix.shape[0]
+    sym_length = np.ceil(original_length / 2).astype(np.int) #full height of symmetrized design matrix
+    reflected_length = np.floor(original_length / 2).astype(np.int) #height of part that gets reflected
+    
+    sym_design_matrix = (design_matrix[:sym_length] + 
+                            design_matrix[-sym_length:][::-1])
+    if (original_length % 2) == 1:
+        #if there's a center row, it only contributes once
+        sym_design_matrix[-1] *= 0.5
+    
+    if cross_axis != 0:
+        sym_design_matrix = sym_design_matrix.swapaxes(sym_design_matrix, 0, cross_axis)
+    
+    return sym_design_matrix
+
+
+def get_overlap_time_mask(times, N_rows, M_cols, v, t_ref):
+    w = 2. / N_rows
+    t_min = t_ref - (2. + w * M_cols)/(2. * v)
+    t_max = t_ref + (2. + w * M_cols)/(2. * v)
+    return (t_min < times) & (times < t_max)
+
+
+def unfold_opacity_map(single_half_opacity_map):
+    N_sym, M = single_half_opacity_map.shape
+    N_full = 2 * N_sym - (N_sym % 2)
+    full_opacity_map = np.zeros([N_full, M])
+    full_opacity_map[:N_sym] = single_half_opacity_map
+    full_opacity_map[-N_sym:] = np.flip(single_half_opacity_map, axis=0)
+    return full_opacity_map
+
