@@ -895,7 +895,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     taus_arr = np.array(taus)
     tau_updates_arr = np.array(tau_updates)
 
-    np.savetxt("{0}_taus.txt".format(filename), taus)
+    np.savetxt("{0}_taus.txt".format(filename), taus[-1])
 
     return tau
 
@@ -1873,12 +1873,14 @@ def get_overlap_time_mask(times, N_rows, M_cols, v, t_ref):
     t_max = t_ref + (2. + w * M_cols)/(2. * v)
     return (t_min < times) & (times < t_max)
 
-
-def unfold_opacity_map(single_half_opacity_map):
+def unfold_opacity_map(single_half_opacity_map, N):
     N_sym, M = single_half_opacity_map.shape
-    N_full = 2 * N_sym - (N_sym % 2)
+    
+    N_full = 2 * N_sym - (N % 2)
+    
     full_opacity_map = np.zeros([N_full, M])
     full_opacity_map[:N_sym] = single_half_opacity_map
     full_opacity_map[-N_sym:] = np.flip(single_half_opacity_map, axis=0)
     return full_opacity_map
+
 
