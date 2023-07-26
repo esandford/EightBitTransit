@@ -1,10 +1,8 @@
 # cython: profile=True
 from __future__ import division
 import numpy as np
-import copy
-from scipy import misc, stats
+from scipy import stats
 from imageio import imread
-from collections import Counter
 from .pixeloverlap import positions
 __all__ = ['pixelate_image', 'lowres_grid', 'LDfluxsmall']
 

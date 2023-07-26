@@ -2,7 +2,6 @@ from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-from scipy import misc, stats
 from .cGridFunctions import pixelate_image, lowres_grid, LDfluxsmall
 from .pixeloverlap import positions, overlap, overlap_gpu
 __all__ = ['TransitingImage']
