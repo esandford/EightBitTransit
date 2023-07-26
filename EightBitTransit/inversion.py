@@ -16,22 +16,16 @@ __all__ = ['bruteForceSearch','nCr', 'makeArcBasisParsimony', 'makeArcBasisAvera
 'foldOpacities','invertLC', 'symmetrize_design_matrix', 'symmetrize_opacity_map',
 'get_overlap_time_mask','unfold_opacity_map']
 
-cpdef bruteForceSearch(int N, int M, double t_ref, double v, str LDlaw, list LDCs, np.ndarray[double, ndim=1] times, 
-    np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
-    np.ndarray[double, ndim=1] obsLCerr):
+def bruteForceSearch(N, M, t_ref, v, LDlaw, LDCs, times, LCdecrements, obsLC,
+                     obsLCerr):
     """
     Full search of every grid permutation.
     """
-    cdef:
-        np.ndarray[np.int64_t, ndim=2] bestGrid
-        np.ndarray[np.int64_t, ndim=2] binaryGrid
-        np.ndarray[np.double_t, ndim=2] decrements
-        np.ndarray[np.double_t, ndim=1] decrements_1D
-        np.ndarray[np.double_t, ndim=1] trial_LC
-
-        int nCombinations, n
-        
-        double bestRMS, RMS_
+    bestGrid = np.ndarray[np.int64_t, ndim=2]
+    binaryGrid = np.ndarray[np.int64_t, ndim=2]
+    decrements = np.ndarray[np.double_t, ndim=2]
+    decrements_1D = np.ndarray[np.double_t, ndim=1]
+    trial_LC = np.ndarray[np.double_t, ndim=1]
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
     trial_LC, overlapTimes = ti.gen_LC(times)
@@ -63,52 +57,46 @@ cpdef bruteForceSearch(int N, int M, double t_ref, double v, str LDlaw, list LDC
 
     return bestGrid, bestRMS
 
-cpdef int nCr(int n, int r):
+def nCr(n, r):
     f = math.factorial
     return f(n) / f(r) / f(n-r)
 
-cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, list LDCs, np.ndarray[double, ndim=1] times, 
-    np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
-    np.ndarray[double, ndim=1] obsLCerr):
+def makeArcBasisParsimony(N, M, t_ref, v, LDlaw, LDCs, times, LCdecrements,
+                          obsLC, obsLCerr):
     """
     """
-    cdef:
-        np.ndarray[np.int64_t, ndim=2] i_arr
-        np.ndarray[np.int64_t, ndim=2] j_arr
-        np.ndarray[np.double_t, ndim=2] sines
-        np.ndarray[np.int64_t, ndim=1] ks
-        np.ndarray[np.int64_t, ndim=1] limbPixel_is
-        np.ndarray[np.int64_t, ndim=1] limbPixel_js
-        np.ndarray[np.int64_t, ndim=1] limbPixel_is_half
-        np.ndarray[np.int64_t, ndim=1] limbPixel_js_half
-        np.ndarray[np.double_t, ndim=1] time_points
-        np.ndarray[np.double_t, ndim=1] delta_times
-        np.ndarray[np.double_t, ndim=1] middle_times
-        np.ndarray[np.double_t, ndim=1] flux_points
-        np.ndarray[np.double_t, ndim=1] delta_fluxes
-        np.ndarray[np.double_t, ndim=2] basis
-        np.ndarray[np.double_t, ndim=1] basisRMSs
-        np.ndarray[np.int64_t, ndim=1] best_whichOn
-        np.ndarray[np.double_t, ndim=2] recombined
-        np.ndarray[np.double_t, ndim=2] grid
-        np.ndarray[np.int64_t, ndim=1] limbPixels_to_p05
-        np.ndarray[np.double_t, ndim=2] foldedGrid
-        np.ndarray[np.double_t, ndim=2] decrements
-        np.ndarray[np.double_t, ndim=1] decrements_1D
-        np.ndarray[np.double_t, ndim=1] trial_LC
-        np.ndarray[np.double_t, ndim=1] trial_flux_points
-        np.ndarray[np.double_t, ndim=1] trial_delta_fluxes
-        np.ndarray[np.double_t, ndim=3] delta_areas
-        np.ndarray[np.double_t, ndim=2] dAdt
-        np.ndarray[np.double_t, ndim=1] dAdt_rav
-
-        int k, k_interval, Nmid, k_idx, nOpacityUnits, nLimbPixelSpaces, nCombinations, comboIdx, p, northern_i, southern_i, ii, jj, kk, max_area_idx, max_area_i, max_area_mirror_i, max_area_j
-        
-        double t_interval, bestRMS, RMS_, trial_dFdt, dFdt, max_area, mirrorfac
+    i_arr = np.ndarray[np.int64_t, ndim=2]
+    j_arr = np.ndarray[np.int64_t, ndim=2]
+    sines = np.ndarray[np.double_t, ndim=2]
+    ks = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_is = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_js = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_is_half = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_js_half = np.ndarray[np.int64_t, ndim=1]
+    time_points = np.ndarray[np.double_t, ndim=1]
+    delta_times = np.ndarray[np.double_t, ndim=1]
+    middle_times = np.ndarray[np.double_t, ndim=1]
+    flux_points = np.ndarray[np.double_t, ndim=1]
+    delta_fluxes = np.ndarray[np.double_t, ndim=1]
+    basis = np.ndarray[np.double_t, ndim=2]
+    basisRMSs = np.ndarray[np.double_t, ndim=1]
+    best_whichOn = np.ndarray[np.int64_t, ndim=1]
+    recombined = np.ndarray[np.double_t, ndim=2]
+    grid = np.ndarray[np.double_t, ndim=2]
+    limbPixels_to_p05 = np.ndarray[np.int64_t, ndim=1]
+    foldedGrid = np.ndarray[np.double_t, ndim=2]
+    decrements = np.ndarray[np.double_t, ndim=2]
+    decrements_1D = np.ndarray[np.double_t, ndim=1]
+    trial_LC = np.ndarray[np.double_t, ndim=1]
+    trial_flux_points = np.ndarray[np.double_t, ndim=1]
+    trial_delta_fluxes = np.ndarray[np.double_t, ndim=1]
+    delta_areas = np.ndarray[np.double_t, ndim=3]
+    dAdt = np.ndarray[np.double_t, ndim=2]
+    dAdt_rav = np.ndarray[np.double_t, ndim=1]
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
     trial_LC, overlapTimes = ti.gen_LC(times)
-    
+
     #How long does it take for the grid to move laterally by a distance of w/2 (i.e., 1/2 pixel width)?
     #t_interval = (ti.w)/(2.*ti.v)
     t_interval = ti.w/ti.v
@@ -135,13 +123,13 @@ cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, lis
     time_points[-1] = overlapTimes[-1]
     delta_times = time_points[1:] - time_points[0:-1]
     middle_times = time_points[0:-1] + (delta_times/2.)
-    
+
     flux_points = np.zeros((len(ks)+1))
     flux_points[0:-1] = obsLC[np.arange(0,len(overlapTimes),k_interval)]
     flux_points[-1] = obsLC[-1]
-    
+
     delta_fluxes = flux_points[1:] - flux_points[0:-1]
-    
+
     area_points = np.zeros((len(ks)+1, np.shape(ti.areas)[1], np.shape(ti.areas)[2]))
     area_points[0:-1] = ti.areas[np.arange(0,len(overlapTimes),k_interval)]
     area_points[-1] = ti.areas[-1]
@@ -169,19 +157,19 @@ cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, lis
 
         limbPixel_is_half = limbPixel_is[limbPixel_is < Nmid]
         limbPixel_js_half = limbPixel_js[limbPixel_is < Nmid]
-        
+
         #if there are limb pixels and dF/dt > 0.5 pixels' worth of opacity:
-        
+
         #the new way: try to find the most parsimonious solution, adding up tau*dA/dt to match dF/dt without exceeding it.
         #account for egress by letting the grid remember the earlier arcs and assigning signs appropriately to the dA/dt.
 
         #using k_idx
         #if (len(limbPixel_is_half) > 0) & (np.abs(delta_fluxes[k_idx]) > ((ti.w)**2/(2.*np.pi))):
         if (len(limbPixel_is_half) > 0):# & (np.abs(delta_fluxes[k]) > ((ti.w)**2/(2.*np.pi))):
-            
+
             #dAdt = delta_areas[k_idx]
             dAdt = delta_areas[k]
-            dAdt[~(limbPixelMask)] = 0    #we do NOT want to mess with the non-limb pixels                                                        
+            dAdt[~(limbPixelMask)] = 0    #we do NOT want to mess with the non-limb pixels
 
             #for testing: set egressing pixel areas = 0
             #dAdt[dAdt < 0.] = 0.
@@ -228,7 +216,7 @@ cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, lis
 
                     #set this area equal to 0 so we don't re-use it
                     dAdt_rav[max_area_idx] = 0.
-           
+
             #if flux change is positive
             else:
                 while (trial_dFdt < dFdt) & np.any(dAdt_rav < 0.):
@@ -256,7 +244,7 @@ cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, lis
                     #set this area equal to 0 so we don't re-use it
                     dAdt_rav[max_area_idx] = 0.
 
-            
+
         #plot it
         foldedGrid = foldOpacities(recombined)
         decrements = LCdecrements[foldedGrid.astype(bool)]
@@ -266,54 +254,50 @@ cpdef makeArcBasisParsimony(int N, int M, double t_ref, double v, str LDlaw, lis
         trial_flux_points[0:-1] = trial_LC[np.arange(0,len(overlapTimes),k_interval)]
         trial_flux_points[-1] = trial_LC[-1]
         trial_delta_fluxes = trial_flux_points[1:] - trial_flux_points[0:-1]
-        
+
         basis[k_idx] = np.ravel(recombined)#/np.ravel(sines)
         #basisRMSs[k_idx] = RMS(obsLC[np.arange(0,len(overlapTimes),k_interval)],obsLCerr[np.arange(0,len(overlapTimes),k_interval)],trial_LC)
-    
+
     return basis#, basisRMSs
 
-cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list LDCs, np.ndarray[double, ndim=1] times, 
-    np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
-    np.ndarray[double, ndim=1] obsLCerr):
+def makeArcBasisAverage(N, M, t_ref, v, LDlaw, LDCs, times, LCdecrements, obsLC,
+                        obsLCerr):
     """
     """
-    cdef:
-        np.ndarray[np.int64_t, ndim=2] i_arr
-        np.ndarray[np.int64_t, ndim=2] j_arr
-        #np.ndarray[np.double_t, ndim=2] sines
-        np.ndarray[np.int64_t, ndim=1] ks
-        np.ndarray[np.int64_t, ndim=1] limbPixel_is
-        np.ndarray[np.int64_t, ndim=1] limbPixel_js
-        np.ndarray[np.int64_t, ndim=1] limbPixel_is_half
-        np.ndarray[np.int64_t, ndim=1] limbPixel_js_half
-        np.ndarray[np.double_t, ndim=1] time_points
-        np.ndarray[np.double_t, ndim=1] delta_times
-        np.ndarray[np.double_t, ndim=1] middle_times
-        np.ndarray[np.double_t, ndim=1] flux_points
-        np.ndarray[np.double_t, ndim=1] delta_fluxes
-        np.ndarray[np.double_t, ndim=2] basis
-        np.ndarray[np.double_t, ndim=1] basisRMSs
-        np.ndarray[np.int64_t, ndim=1] best_whichOn
-        np.ndarray[np.double_t, ndim=2] recombined
-        np.ndarray[np.double_t, ndim=2] grid
-        np.ndarray[np.int64_t, ndim=1] limbPixels_to_p05
-        np.ndarray[np.double_t, ndim=2] foldedGrid
-        np.ndarray[np.double_t, ndim=2] decrements
-        np.ndarray[np.double_t, ndim=1] decrements_1D
-        np.ndarray[np.double_t, ndim=1] trial_LC
-        np.ndarray[np.double_t, ndim=1] trial_flux_points
-        np.ndarray[np.double_t, ndim=1] trial_delta_fluxes
-        np.ndarray[np.double_t, ndim=3] delta_areas
-        np.ndarray[np.double_t, ndim=2] dAdt
-        np.ndarray[np.double_t, ndim=1] dAdt_rav
 
-        int k, k_interval, Nmid, k_idx, nOpacityUnits, nLimbPixelSpaces, nCombinations, comboIdx, p, northern_i, southern_i, ii, jj, kk, max_area_idx, max_area_i, max_area_mirror_i, max_area_j
-        
-        double t_interval, RMS_
+    i_arr = np.ndarray[np.int64_t, ndim=2]
+    j_arr = np.ndarray[np.int64_t, ndim=2]
+    #np.ndarray[np.double_t, ndim=2] sines
+    ks = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_is = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_js = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_is_half = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_js_half = np.ndarray[np.int64_t, ndim=1]
+    time_points = np.ndarray[np.double_t, ndim=1]
+    delta_times = np.ndarray[np.double_t, ndim=1]
+    middle_times = np.ndarray[np.double_t, ndim=1]
+    flux_points = np.ndarray[np.double_t, ndim=1]
+    delta_fluxes = np.ndarray[np.double_t, ndim=1]
+    basis = np.ndarray[np.double_t, ndim=2]
+    basisRMSs = np.ndarray[np.double_t, ndim=1]
+    best_whichOn = np.ndarray[np.int64_t, ndim=1]
+    recombined = np.ndarray[np.double_t, ndim=2]
+    grid = np.ndarray[np.double_t, ndim=2]
+    limbPixels_to_p05 = np.ndarray[np.int64_t, ndim=1]
+    foldedGrid = np.ndarray[np.double_t, ndim=2]
+    decrements = np.ndarray[np.double_t, ndim=2]
+    decrements_1D = np.ndarray[np.double_t, ndim=1]
+    trial_LC = np.ndarray[np.double_t, ndim=1]
+    trial_flux_points = np.ndarray[np.double_t, ndim=1]
+    trial_delta_fluxes = np.ndarray[np.double_t, ndim=1]
+    delta_areas = np.ndarray[np.double_t, ndim=3]
+    dAdt = np.ndarray[np.double_t, ndim=2]
+    dAdt_rav = np.ndarray[np.double_t, ndim=1]
+
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
     trial_LC, overlapTimes = ti.gen_LC(times)
-    
+
     #How long does it take for the grid to move laterally by a distance of w/2 (i.e., 1/2 pixel width)?
     #t_interval = (ti.w)/(2.*ti.v)
     t_interval = ti.w/ti.v
@@ -340,13 +324,13 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
     time_points[-1] = overlapTimes[-1]
     delta_times = time_points[1:] - time_points[0:-1]
     middle_times = time_points[0:-1] + (delta_times/2.)
-    
+
     flux_points = np.zeros((len(ks)+1))
     flux_points[0:-1] = obsLC[np.arange(0,len(overlapTimes),k_interval)]
     flux_points[-1] = obsLC[-1]
-    
+
     delta_fluxes = flux_points[1:] - flux_points[0:-1]
-    
+
     area_points = np.zeros((len(ks)+1, np.shape(ti.areas)[1], np.shape(ti.areas)[2]))
     area_points[0:-1] = ti.areas[np.arange(0,len(overlapTimes),k_interval)]
     area_points[-1] = ti.areas[-1]
@@ -354,7 +338,7 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
 
     for i in range(len(middle_times)):
         delta_areas[i,:,:] = area_points[i+1] - area_points[i]
-    
+
     basis = np.zeros((len(ks),N*M))
     basisRMSs = np.zeros((len(ks)))
 
@@ -367,7 +351,7 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
         limbPixelMask = (delta_areas[k_idx] != 0.)#((ti.areas[k] > 0.) & (ti.areas[k] < ((ti.w)**2)/np.pi))
         ingressPixelMask = (delta_areas[k_idx] > 0.)
         egressPixelMask = (delta_areas[k_idx] < 0.)
-        
+
         limbPixel_is = i_arr[limbPixelMask]
         limbPixel_js = j_arr[limbPixelMask]
 
@@ -383,70 +367,64 @@ cpdef makeArcBasisAverage(int N, int M, double t_ref, double v, str LDlaw, list 
         eg_limbPixel_js = j_arr[limbPixelMask & egressPixelMask]
         eg_limbPixel_is_half = eg_limbPixel_is[eg_limbPixel_is < Nmid]
         eg_limbPixel_js_half = eg_limbPixel_js[eg_limbPixel_is < Nmid]
-        
-        
+
+
         if delta_fluxes[k_idx] < 0.:
             avg_opacity = (np.abs(delta_fluxes[k_idx])/len(ing_limbPixel_is))/np.sum(ti.areas[k][limbPixelMask & ingressPixelMask])
             for pixIdx in range(0, len(ing_limbPixel_is)):
                 recombined[ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]])/sines[ing_limbPixel_is[pixIdx], ing_limbPixel_js[pixIdx]]
-            
+
 
         elif delta_fluxes[k_idx] > 0.:
             avg_opacity = (np.abs(delta_fluxes[k_idx])/len(eg_limbPixel_is))/np.sum(ti.areas[k][limbPixelMask & egressPixelMask])
             for pixIdx in range(0, len(eg_limbPixel_is)):
                 recombined[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]] += (avg_opacity*ti.areas[k][eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]])/sines[eg_limbPixel_is[pixIdx], eg_limbPixel_js[pixIdx]]
-        
+
         basis[k_idx] = np.ravel(recombined)
-        
-    
+
+
     return basis
 
-cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, list LDCs, np.ndarray[double, ndim=1] times, 
-    np.ndarray[double, ndim=3] LCdecrements, np.ndarray[double, ndim=1] obsLC, 
-    np.ndarray[double, ndim=1] obsLCerr):
+def makeArcBasisCombinatoric(N, M, t_ref, v, LDlaw, LDCs, times, LCdecrements,
+                             obsLC, obsLCerr):
     """
     Do genetic recombination *along arcs*
     """
-    cdef:
-        np.ndarray[np.int64_t, ndim=2] i_arr
-        np.ndarray[np.int64_t, ndim=2] j_arr
-        np.ndarray[np.double_t, ndim=2] sines
-        np.ndarray[np.int64_t, ndim=1] ks
-        np.ndarray[np.int64_t, ndim=1] limbPixel_is
-        np.ndarray[np.int64_t, ndim=1] limbPixel_js
-        np.ndarray[np.int64_t, ndim=1] limbPixel_is_half
-        np.ndarray[np.int64_t, ndim=1] limbPixel_js_half
-        np.ndarray[np.double_t, ndim=1] time_points
-        np.ndarray[np.double_t, ndim=1] delta_times
-        np.ndarray[np.double_t, ndim=1] middle_times
-        np.ndarray[np.double_t, ndim=1] flux_points
-        np.ndarray[np.double_t, ndim=1] delta_fluxes
-        np.ndarray[np.double_t, ndim=2] basis
-        np.ndarray[np.double_t, ndim=1] basisRMSs
-        np.ndarray[np.int64_t, ndim=1] best_whichOn
-        np.ndarray[np.double_t, ndim=2] recombined
-        np.ndarray[np.double_t, ndim=2] grid
-        np.ndarray[np.int64_t, ndim=1] limbPixels_to_p05
-        np.ndarray[np.double_t, ndim=2] foldedGrid
-        np.ndarray[np.double_t, ndim=2] decrements
-        np.ndarray[np.double_t, ndim=1] decrements_1D
-        np.ndarray[np.double_t, ndim=1] trial_LC
-        np.ndarray[np.double_t, ndim=1] trial_flux_points
-        np.ndarray[np.double_t, ndim=1] trial_delta_fluxes
-        np.ndarray[np.double_t, ndim=3] delta_areas
-        np.ndarray[np.double_t, ndim=2] dAdt
-        np.ndarray[np.double_t, ndim=1] dAdt_rav
-
-        int k, k_interval, Nmid, k_idx, nOpacityUnits, nLimbPixelSpaces, nCombinations, comboIdx, p, northern_i, southern_i, ii, jj, kk, max_area_idx, max_area_i, max_area_mirror_i, max_area_j
-        
-        double t_interval, bestRMS, RMS_
+    i_arr = np.ndarray[np.int64_t, ndim=2]
+    j_arr = np.ndarray[np.int64_t, ndim=2]
+    sines = np.ndarray[np.double_t, ndim=2]
+    ks = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_is = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_js = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_is_half = np.ndarray[np.int64_t, ndim=1]
+    limbPixel_js_half = np.ndarray[np.int64_t, ndim=1]
+    time_points = np.ndarray[np.double_t, ndim=1]
+    delta_times = np.ndarray[np.double_t, ndim=1]
+    middle_times = np.ndarray[np.double_t, ndim=1]
+    flux_points = np.ndarray[np.double_t, ndim=1]
+    delta_fluxes = np.ndarray[np.double_t, ndim=1]
+    basis = np.ndarray[np.double_t, ndim=2]
+    basisRMSs = np.ndarray[np.double_t, ndim=1]
+    best_whichOn = np.ndarray[np.int64_t, ndim=1]
+    recombined = np.ndarray[np.double_t, ndim=2]
+    grid = np.ndarray[np.double_t, ndim=2]
+    limbPixels_to_p05 = np.ndarray[np.int64_t, ndim=1]
+    foldedGrid = np.ndarray[np.double_t, ndim=2]
+    decrements = np.ndarray[np.double_t, ndim=2]
+    decrements_1D = np.ndarray[np.double_t, ndim=1]
+    trial_LC = np.ndarray[np.double_t, ndim=1]
+    trial_flux_points = np.ndarray[np.double_t, ndim=1]
+    trial_delta_fluxes = np.ndarray[np.double_t, ndim=1]
+    delta_areas = np.ndarray[np.double_t, ndim=3]
+    dAdt = np.ndarray[np.double_t, ndim=2]
+    dAdt_rav = np.ndarray[np.double_t, ndim=1]
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
     trial_LC, overlapTimes = ti.gen_LC(times)
 
     i_arr = (np.tile(np.arange(N),(M,1))).T
     j_arr = (np.tile(np.arange(M),(N,1)))
-    
+
     if (N>1) & (N%2 == 0): #N even
         Nmid = int(N/2) 
         sines = (np.abs(i_arr + 0.5*np.ones_like(i_arr, dtype=float) - (Nmid*np.ones_like(i_arr,dtype=float))) + 0.5*np.ones_like(i_arr,dtype=float))/(N/2.)
@@ -459,9 +437,9 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
 
     delta_times = overlapTimes[1:] - overlapTimes[0:-1]
     middle_times = overlapTimes[0:-1] + (delta_times/2.)
-    
+
     delta_fluxes = obsLC[1:] - obsLC[0:-1]
-    
+
     delta_areas = np.zeros((len(middle_times), N, M))
     for i in range(len(middle_times)):
         delta_areas[i,:,:] = ti.areas[i+1] - ti.areas[i]
@@ -488,7 +466,7 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
         if middle_times[k_idx] < (tI + (tEvent/4.)): #there are only ingressing pixels, no egressing (first fourth of light curve)
             tStart = middle_times[k_idx] - (w/v)
             tEnd = middle_times[k_idx] + (tEvent/4.) + (w/v)
-                    
+
         elif middle_times[k_idx] > (tIV - (tEvent/4.)): #there are only egressing pixels, no ingressing (last fourth of light curve)
             tStart = middle_times[k_idx] - (tEvent/4.) - (w/v)
             tEnd = middle_times[k_idx] + (w/v)
@@ -506,11 +484,11 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
 
 
         #get indices, xy positions, and angular positions of "on" pixels that overlap the stellar limb
-        
+
         limbPixelMask = (delta_areas[k_idx] != 0.)#((ti.areas[k] > 0.) & (ti.areas[k] < ((ti.w)**2)/np.pi))
         ingressPixelMask = (delta_areas[k_idx] > 0.)
         egressPixelMask = (delta_areas[k_idx] < 0.)
-        
+
         limbPixel_is = i_arr[limbPixelMask]
         limbPixel_js = j_arr[limbPixelMask]
 
@@ -526,7 +504,7 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
         eg_limbPixel_js = j_arr[limbPixelMask & egressPixelMask]
         eg_limbPixel_is_half = eg_limbPixel_is[eg_limbPixel_is < Nmid]
         eg_limbPixel_js_half = eg_limbPixel_js[eg_limbPixel_is < Nmid]
-        
+
         if (delta_fluxes[k_idx] == 0.):
             combinedMask = (limbPixelMask)
 
@@ -539,7 +517,7 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
                 elif delta_fluxes[k_idx] > 0.:
                     nOpacityUnits = int(np.ceil((np.abs(delta_fluxes[k_idx])/np.mean(ti.areas[k][limbPixelMask & egressPixelMask])) * 2. * (float(len(eg_limbPixel_is_half))/float(len(eg_limbPixel_is)))))
                     nLimbPixelSpaces = len(eg_limbPixel_is_half)*2
-            
+
             except ZeroDivisionError: #happens sometimes with real/noisy data, when you get the LC increasing again in the first quarter of t_event
                 nOpacityUnits = 0
                 nLimbPixelSpaces = 1
@@ -547,34 +525,34 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
             except OverflowError:
                 nOpacityUnits = 0
                 nLimbPixelSpaces = 1
-            
+
             if delta_fluxes[k_idx] < 0.:
                 combinedMask = (limbPixelMask & ingressPixelMask)
             elif delta_fluxes[k_idx] > 0.:
                 combinedMask = (limbPixelMask & egressPixelMask)
-            
+
             nCombinations = nCr(nLimbPixelSpaces, nOpacityUnits)
-            
+
             combinations = itertools.combinations(iterable = np.arange(nLimbPixelSpaces), r = nOpacityUnits)
 
             bestRMS = 1000000.0
             best_whichOn = np.zeros((len(limbPixel_is_half)),dtype=int)
-            
+
             for comboIdx, combo in enumerate(combinations):
                 grid = np.zeros((N,M))
-                
+
                 if delta_fluxes[k_idx] < 0.:
                     limbPixels_to_p05 = np.array(combo, dtype=int) % len(ing_limbPixel_is_half)
-                
+
                     for p in limbPixels_to_p05:
                         northern_i = ing_limbPixel_is_half[p]
                         southern_i = N - ing_limbPixel_is_half[p] - 1
                         grid[northern_i,ing_limbPixel_js_half[p]] += 0.5
                         grid[southern_i,ing_limbPixel_js_half[p]] += 0.5
-                
+
                 elif delta_fluxes[k_idx] > 0.:
                     limbPixels_to_p05 = np.array(combo, dtype=int) % len(eg_limbPixel_is_half)
-                
+
                     for p in limbPixels_to_p05:
                         northern_i = eg_limbPixel_is_half[p]
                         southern_i = N - eg_limbPixel_is_half[p] - 1
@@ -582,60 +560,60 @@ cpdef makeArcBasisCombinatoric(int N, int M, double t_ref, double v, str LDlaw, 
                         grid[southern_i,eg_limbPixel_js_half[p]] += 0.5
 
                 foldedGrid = foldOpacities(grid)
-                
+
                 decrements = LCdecrements[foldedGrid.astype(bool)]
                 decrements_1D = np.sum(decrements,axis=0)
 
                 trial_LC = np.ones_like(decrements_1D) - decrements_1D
                 trial_delta_fluxes = trial_LC[1:] - trial_LC[0:-1]
 
-                
+
                 RMS_ = np.sum((delta_fluxes - trial_delta_fluxes)**2)
-                
+
                 if RMS_ < bestRMS:
                     bestRMS = RMS_
                     best_whichOn = limbPixels_to_p05
-                    
+
             for p in best_whichOn:
                 if delta_fluxes[k_idx] < 0.:
                     northern_i = ing_limbPixel_is_half[p]
                     southern_i = N - ing_limbPixel_is_half[p] - 1
                     recombined[northern_i,ing_limbPixel_js_half[p]] += 0.5
                     recombined[southern_i,ing_limbPixel_js_half[p]] += 0.5
-                
+
                 elif delta_fluxes[k_idx] > 0.:
                     northern_i = eg_limbPixel_is_half[p]
                     southern_i = N - eg_limbPixel_is_half[p] - 1
                     recombined[northern_i,eg_limbPixel_js_half[p]] += 0.5
                     recombined[southern_i,eg_limbPixel_js_half[p]] += 0.5
 
-                
+
         foldedGrid = foldOpacities(recombined)
         decrements = LCdecrements[foldedGrid.astype(bool)]
         decrements_1D = np.sum(decrements,axis=0)
         trial_LC = np.ones_like(decrements_1D) - decrements_1D
-        
+
         trial_delta_fluxes = trial_LC[1:] - trial_LC[0:-1]
 
         basis[k_idx] = np.ravel(recombined)
-    
+
     return basis
 
 def renormBasis(basis, basis_LC, truth_LC):
     """
     renormalize
     """
-    
+
     true_transit_depth = 1. - np.min(truth_LC)
-    
+
     basis_transit_depth = 1. - np.min(basis_LC)
-    
+
     normFactor = (true_transit_depth/basis_transit_depth)
-    
+
     renormBasis = normFactor*basis
     renormBasis[renormBasis > 1.] = 1.
     renormBasis[renormBasis < 0.] = 0.
-    
+
     return renormBasis
 
 def whoAreMyArcNeighbors(N,M,i,j):
@@ -648,121 +626,121 @@ def whoAreMyArcNeighbors(N,M,i,j):
     arcGrid_positions = arcGrid_positions[1]
     #print np.shape(arcGrid_positions)
     r = 1. #radius of arcs, because star is radius unity
-    
+
     w = 2./N
-    
+
     x_int = arcGrid_positions[i,j,0] #x-coordinate of intersection point of the two arcs
     y_int = arcGrid_positions[i,j,1] #y-coordinate of intersection point of the two arcs
-    
+
     #print x_int, y_int
-    
+
     xc1 = x_int - np.sqrt((r**2 - y_int**2))
     xc2 = x_int + np.sqrt((r**2 - y_int**2))
-    
+
     #equation of left-opening arc: (x - xc1)**2 + y**2 = r**2; x > xc1
     #equation of right-opening arc: (x - xc2)**2 + y**2 = r**2; x < xc2
-    
+
     #(if xc1 > -1, add negative opacity along this arc: (x - xc1)**2 + y**2 = r**2; x < xc1 ?)
     #(if xc2 < 1, add negative opacity along this arc: (x - xc2)**2 + y**2 = r**2; x > xc2 ?)
-    
+
     #print xc1, xc2
-    
+
     leftArc_xs = xc1 + np.sqrt((r**2 - arcGrid_positions[:,:,1]**2))
     leftArc_lb = leftArc_xs - (w/2.)*np.sqrt(2.)
     leftArc_ub = leftArc_xs + (w/2.)*np.sqrt(2.)
-    
+
     leftArc_mask = (arcGrid_positions[:,:,0] >= leftArc_lb) & (arcGrid_positions[:,:,0] < leftArc_ub) 
-    
-    
+
+
     rightArc_xs = xc2 - np.sqrt((r**2 - arcGrid_positions[:,:,1]**2))
     rightArc_lb = rightArc_xs - (w/2.)*np.sqrt(2.)
     rightArc_ub = rightArc_xs + (w/2.)*np.sqrt(2.)
-    
+
     rightArc_mask = (arcGrid_positions[:,:,0] >= rightArc_lb) & (arcGrid_positions[:,:,0] < rightArc_ub) 
-    
+
     leftArcGrid[leftArc_mask] = 1.
     rightArcGrid[rightArc_mask] = 1.
-    
+
     return leftArcGrid.astype(bool), rightArcGrid.astype(bool)
 
 def arcRearrange(grid, v, t_ref, times, LDlaw="uniform", LDCs=[]):
     """
     Rearrange opacity to remove unphysical pixels in a grid.
-    
+
     We only want to deal with  pixels which are < 0. or > 1. 
     """
-    
+
     arcRearranged = copy.deepcopy(grid)
-    
+
     ti = TransitingImage(opacitymat=grid, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
     trial_LC, overlapTimes = ti.gen_LC(times)
-    
+
     N = np.shape(grid)[0]
     M = np.shape(grid)[1]
 
     i_arr = (np.tile(np.arange(N),(M,1))).T
     j_arr = (np.tile(np.arange(M),(N,1)))
-    
+
     negativePixelMask = (grid < 0.)
     negativePixel_is = i_arr[negativePixelMask]
     negativePixel_js = j_arr[negativePixelMask]
     #print len(negativePixel_is)
-    
+
     for n, op in enumerate(grid[negativePixelMask]):
         i = negativePixel_is[n]
         j = negativePixel_js[n]
-        
+
         leftArcNeighborMask, rightArcNeighborMask = whoAreMyArcNeighbors(N,M,i,j)
 
         leftArcOpacity = np.sum(grid[leftArcNeighborMask])
         rightArcOpacity = np.sum(grid[rightArcNeighborMask])
-        
+
         #set unphysical arcs at the edges equal to 0.
         if (leftArcOpacity < 0.) & (j < M/2.):
             arcRearranged[leftArcNeighborMask] = 0.
         if (rightArcOpacity < 0.) & (j > M/2.):
             arcRearranged[rightArcNeighborMask] = 0.
-            
+
     negativePixelMask = (arcRearranged < 0.)
     negativePixel_is = i_arr[negativePixelMask]
     negativePixel_js = j_arr[negativePixelMask]
-    
+
     for n, op in enumerate(grid[negativePixelMask]):
         i = negativePixel_is[n]
         j = negativePixel_js[n]
-        
-        leftArcNeighborMask, rightArcNeighborMask = whoAreMyArcNeighbors(N,M,i,j)
-        
-        leftArcOpacity = np.sum(grid[leftArcNeighborMask])
-        rightArcOpacity = np.sum(grid[rightArcNeighborMask])
-        
-        arcNeighborMask = (leftArcNeighborMask | rightArcNeighborMask)
-        
-        arcRearranged[i,j] = 0.
-        arcRearranged[arcNeighborMask] += op/len(arcRearranged[arcNeighborMask])
-        
-        
-    tooBigPixelMask = (grid > 1.)
-    tooBigPixel_is = i_arr[tooBigPixelMask]
-    tooBigPixel_js = j_arr[tooBigPixelMask]
-    
-    for n, op in enumerate(grid[tooBigPixelMask]):
-        i = tooBigPixel_is[n]
-        j = tooBigPixel_js[n]
-        
+
         leftArcNeighborMask, rightArcNeighborMask = whoAreMyArcNeighbors(N,M,i,j)
 
         leftArcOpacity = np.sum(grid[leftArcNeighborMask])
         rightArcOpacity = np.sum(grid[rightArcNeighborMask])
-        
+
         arcNeighborMask = (leftArcNeighborMask | rightArcNeighborMask)
-        
+
+        arcRearranged[i,j] = 0.
+        arcRearranged[arcNeighborMask] += op/len(arcRearranged[arcNeighborMask])
+
+
+    tooBigPixelMask = (grid > 1.)
+    tooBigPixel_is = i_arr[tooBigPixelMask]
+    tooBigPixel_js = j_arr[tooBigPixelMask]
+
+    for n, op in enumerate(grid[tooBigPixelMask]):
+        i = tooBigPixel_is[n]
+        j = tooBigPixel_js[n]
+
+        leftArcNeighborMask, rightArcNeighborMask = whoAreMyArcNeighbors(N,M,i,j)
+
+        leftArcOpacity = np.sum(grid[leftArcNeighborMask])
+        rightArcOpacity = np.sum(grid[rightArcNeighborMask])
+
+        arcNeighborMask = (leftArcNeighborMask | rightArcNeighborMask)
+
         arcRearranged[i,j] = 1.
         arcRearranged[arcNeighborMask] += (op - 1.)/len(arcRearranged[arcNeighborMask])
-    
-    
+
+
     arcRearranged = (arcRearranged + arcRearranged[::-1,:])/2.
-    
+
     return arcRearranged
 
 
@@ -773,7 +751,7 @@ def Gaussian2D_PDF(xVec, muVec, sigmaMatrix):
     """
     sigmaDet = np.linalg.det(sigmaMatrix)
     sigmaInv = np.linalg.inv(sigmaMatrix)
-    
+
     return np.exp(-0.5 * np.dot((xVec-muVec).T, np.dot(sigmaInv, (xVec - muVec))))/np.sqrt((2.*np.pi)**2 * sigmaDet)
 
 cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_init, 
@@ -781,13 +759,13 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     str filename, str window):
     """
     Use the algebraic reconstruction technique to solve the system A*tau = np.ones_like(obsLC) - obsLC.
-    
+
     Inputs:
     n_iter = number of iterations 
     tau_init = initial guess for the raveled opacity vector tau (shape = NM = k)
     A = matrix of pixel overlap areas (shape = (NM, NM) = (k, k))
     obsLC = observed normalized flux values in the light curve (shape = NM = k)
-    
+
     Outputs:
     tau = opacity vector
     """
@@ -805,7 +783,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
         np.ndarray[np.double_t, ndim=2] windowarr2D=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
         np.ndarray[np.double_t, ndim=2] SART_zeropadded=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
         np.ndarray[np.double_t, ndim=2] truth_zeropadded=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
-        
+
         int q, N, M, tau_entry, entry_idx
         double outer_numerator, outer_denominator, inner_numerator, inner_denominator, testRMS
         list RMSs, taus, tau_updates
@@ -818,7 +796,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     if (np.shape(A)[0] == np.shape(A)[1]):
         RHS = np.ones_like(obsLC) - obsLC
         Asquare = A
-        
+
     else:
         origRHS = np.ones_like(obsLC) - obsLC
         RHS = np.dot(A.T, np.ones_like(obsLC) - obsLC)
@@ -839,7 +817,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     elif window=="hamming":
         for n in range(0,len(windowarr)):
             windowarr[n] = 0.54 - 0.46*np.cos((2.*np.pi*n)/(len(windowarr)-1))
-    
+
     elif window=="2DGaussian":
         jmid = (M-1)/2.
         w = 2./(2*N)
@@ -848,10 +826,10 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
                 x = (j-jmid)*w
                 y = 1. - (w/2.) - i*w
                 windowarr2D[i,j] = 0.025*Gaussian2D_PDF(np.array((x,y)), np.array((0.,0.)), 0.1*np.eye(2))
-    
+
     for q in range(0, n_iter):
         tau_update = np.zeros_like(tau, dtype=float)
-        
+
         for j in range(0, np.shape(Asquare)[0]):
             outer_numerator = 0. 
             outer_denominator = np.sum(Asquare[:,j])
@@ -869,11 +847,11 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
 
                 inner_numerator = (RHS[i] - np.dot(Asquare[i], tau)) * Asquare[i,j] * windowarr[i]
                 outer_numerator = outer_numerator + (inner_numerator/inner_denominator)
-            
+
             tau_update[j] = (outer_numerator/outer_denominator)
-            
+
         tau = tau + tau_update
-        
+
         if window == '2DGaussian':
             Nquarter = 4*N / 4
             Mquarter = 2*M / 4
@@ -891,7 +869,7 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
         RMSs.append(testRMS)
         taus.append(tau)
         tau_updates.append(tau_update)
-    
+
     taus_arr = np.array(taus)
     tau_updates_arr = np.array(tau_updates)
 
@@ -902,18 +880,18 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
 def wedgeRearrange(tau):
     """
     Exploit the "wedge degeneracy" to shift opacity around and prevent unphysical opacities.
-    
+
     Strategy: Move too-high & too-low opacities out, so they can be distributed across wider pixel blocks
     (When you reach the edges of the grid, turn around and push remaining unphysical opacities in?? Or else just
     round to 1s, 0s.)
     """
     newtau = copy.copy(tau)
-    
+
     # Start at the middle of the grid
     N = np.shape(tau)[0]
     M = np.shape(tau)[1]
     middleN = int(np.floor((N-1)/2.))
-    
+
     w = 2./N
     #N even
     if N%2 == 0:
@@ -921,22 +899,22 @@ def wedgeRearrange(tau):
         southRows = np.arange(N-1-middleN, N, 1)
         b = w/2.
         nextRow_b = (3.*w)/2.
-        
+
     #N odd
     else:
         northRows = np.arange(middleN-1, -1, -1)
         southRows = np.arange(N-middleN, N, 1)
-        
+
         #impact parameter of middle pixel row is 0. for an odd-N grid
         middleRow = tau[middleN]
         middleRow_unphys = np.arange(0,M)[(middleRow > 1.0) | (middleRow < 0.0)]
-        
+
         #propagate unphysical opacities out to neighboring rows
         b = 0.
         nextRow_b = w
         #width of pixel block with same transit duration [units of PIXELS]
         sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-nextRow_b**2)) / w
-        
+
         sameDuration_int = 0
         sameDuration_leftover = sameDuration
         while sameDuration_leftover > 1.:
@@ -946,58 +924,58 @@ def wedgeRearrange(tau):
         if sameDuration_int%2 == 0:
             sameDuration_int = sameDuration_int - 1
             sameDuration_leftover = sameDuration_leftover + 1.
-        
+
         for j in middleRow_unphys:
             #get spillover column idxs
             spillover_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
             spillover_j = spillover_j[(spillover_j >= 0.) &  (spillover_j < M)]
-            
+
             #let unphysical opacities overflow, where the distribution of overflows is proportional to
             # the pixel's "contribution" to the transit duration
-            
+
             if middleRow[j] > 1.:
                 amtOverflow = middleRow[j] - 1.
                 newtau[middleN, j] = 1.
             elif middleRow[j] < 0.:
                 amtOverflow = middleRow[j]
                 newtau[middleN, j] = 0.
-                
+
             directOverflowWeight = (1./sameDuration)
             edgeOverflowWeight = (sameDuration_leftover/2.)
-            
+
             for col in spillover_j:
                 newtau[middleN+1,col] += (directOverflowWeight*amtOverflow)/2. #divide by 2 because middle row overflows both north and south
                 newtau[middleN-1,col] += (directOverflowWeight*amtOverflow)/2.
-            
+
             leftCol = j - int(np.floor(sameDuration_int/2)) - 1
             rightCol = j + int(np.floor(sameDuration_int/2)) + 1
-                    
+
             while leftCol < 0:
                 leftCol = leftCol + 1
             while rightCol > M-1:
                 rightCol = rightCol - 1
-                
+
             newtau[middleN+1, leftCol] += (edgeOverflowWeight*amtOverflow)/2.
             newtau[middleN+1, rightCol] += (edgeOverflowWeight*amtOverflow)/2.
-            
+
             newtau[middleN-1, leftCol] += (edgeOverflowWeight*amtOverflow)/2.
             newtau[middleN-1, rightCol] += (edgeOverflowWeight*amtOverflow)/2.
-            
+
             b = w
             nextRow_b = 2.*w
-            
-    
+
+
     for row in northRows[:-1]:
         northRow = tau[row]
         northRow_unphys = np.arange(0,M)[(northRow > 1.0) | (northRow < 0.0)]
-        
+
         southRow = tau[N-1-row]
         southRow_unphys = np.arange(0,M)[(southRow > 1.0) | (southRow < 0.0)]
-        
+
         #propagate unphysical opacities out to neighboring rows
         #width of pixel block with same transit duration [units of PIXELS]
         sameDuration = (w + 2.*np.sqrt(1.-b**2) - 2.*np.sqrt(1.-nextRow_b**2)) / w
-        
+
         sameDuration_int = 0
         sameDuration_leftover = sameDuration
         while sameDuration_leftover > 1.:
@@ -1007,105 +985,105 @@ def wedgeRearrange(tau):
         if sameDuration_int%2 == 0:
             sameDuration_int = sameDuration_int - 1
             sameDuration_leftover = sameDuration_leftover + 1.
-        
+
         for j in northRow_unphys:
             #get spillover column idxs
             spillover_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
             spillover_j = spillover_j[(spillover_j >= 0.) &  (spillover_j < M)]
-            
+
             #let unphysical opacities overflow, where the distribution of overflows is proportional to
             # the pixel's "contribution" to the transit duration
-            
+
             if northRow[j] > 1.:
                 amtOverflow = northRow[j] - 1.
                 newtau[row, j] = 1.
             elif northRow[j] < 0.:
                 amtOverflow = northRow[j]
                 newtau[row, j] = 0.
-                
+
             directOverflowWeight = (1./sameDuration)
             edgeOverflowWeight = (sameDuration_leftover/2.)
-            
+
             for col in spillover_j:
                 newtau[row-1,col] += (directOverflowWeight*amtOverflow)
-                
+
             leftCol = j - int(np.floor(sameDuration_int/2)) - 1
             rightCol = j + int(np.floor(sameDuration_int/2)) + 1
-                    
+
             while leftCol < 0:
                 leftCol = leftCol + 1
             while rightCol > M-1:
                 rightCol = rightCol - 1
-                
+
             newtau[row-1, leftCol] += (edgeOverflowWeight*amtOverflow)
             newtau[row-1, rightCol] += (edgeOverflowWeight*amtOverflow)
-            
+
         for j in southRow_unphys:
             #get spillover column idxs
             spillover_j = np.arange(j-(int(np.floor(sameDuration_int/2))), j+(int(np.floor(sameDuration_int/2))) + 1)
             spillover_j = spillover_j[(spillover_j >= 0.) &  (spillover_j < M)]
-            
+
             #let unphysical opacities overflow, where the distribution of overflows is proportional to
             # the pixel's "contribution" to the transit duration
-            
+
             if southRow[j] > 1.:
                 amtOverflow = southRow[j] - 1.
                 newtau[N-1-row, j] = 1.
             elif southRow[j] < 0.:
                 amtOverflow = southRow[j]
                 newtau[N-1-row, j] = 0.
-                
+
             directOverflowWeight = (1./sameDuration)
             edgeOverflowWeight = (sameDuration_leftover/2.)
-            
+
             for col in spillover_j:
                 newtau[N-row,col] += (directOverflowWeight*amtOverflow)
-                
+
             leftCol = j - int(np.floor(sameDuration_int/2)) - 1
             rightCol = j + int(np.floor(sameDuration_int/2)) + 1
-                    
+
             while leftCol < 0:
                 leftCol = leftCol + 1
             while rightCol > M-1:
                 rightCol = rightCol - 1
-                
+
             newtau[N-row, leftCol] += (edgeOverflowWeight*amtOverflow)
             newtau[N-row, rightCol] += (edgeOverflowWeight*amtOverflow)
-            
+
         b += w
         nextRow_b += w
-    
+
     return newtau
 
 def wedgeNegativeEdge(tau):
     """
     Exploit the "wedge degeneracy" to shift opacity around, outside-in.
     """
-    
+
     # Start at the middle of the grid
     N = np.shape(tau)[0]
     M = np.shape(tau)[1]
     middleN = int(np.floor((N-1)/2.))
-    
+
     w = 2./N
-    
+
     proptau = copy.copy(tau)
-    
+
     #N even
     if N%2 == 0:
         northRows = np.arange(middleN, -1, -1)
         southRows = np.arange(N-1-middleN, N, 1)
         b = w/2.
         outermost_b = 1. - w/2.
-        
+
     #N odd
     else:
         northRows = np.arange(middleN-1, -1, -1)
         southRows = np.arange(N-middleN, N, 1)
-        
+
         #pull opacity from outer rows to central row
         b = 0.
-        
+
         #row that negative opacity is pulled from: loop from outermost to innermost rows
         for fillop in [1.0]:
             for outerRow in range(0, middleN):
@@ -1179,7 +1157,7 @@ def wedgeNegativeEdge(tau):
                            proptau[middleN, j] = 0.
                            proptau[outerRow, col] -= excess/2.
                            proptau[N-1-outerRow, col] -= excess/2.
-                    
+
     #do the same for the next-middlemost rows, out toward the top and bottom of the grid.
     for fillop in [1.0]:
         for nrow in northRows[:-1][::-1]: #no need to do it for the top row
@@ -1264,47 +1242,47 @@ def wedgeNegativeEdge(tau):
                     #make proposed tau grid symmetrical
                     for srowidx, srow in enumerate(southRows):
                         proptau[srow] = proptau[northRows[srowidx]]
-                
-        
+
+
     return proptau
 
 def wedgeOptimize_sym(tau, obsLC, obsLCerr, areas):
     """
     Exploit the "wedge degeneracy" to shift opacity around. This is different from wedgeRearrange because here, we're
     starting from a grid of physical opacities (0 <= tau <= 1).
-    
+
     Strategy: Start from the middle, and pull opacity from the outermost row until the middle-most pixels are full or the outermost
     pixels are empty. Then move outward to the next-middlemost row, pulling opacity from the outermost row and then the next-outermost row, etc.
     """
-    
+
     # Start at the middle of the grid
     N = np.shape(tau)[0]
     M = np.shape(tau)[1]
     middleN = int(np.floor((N-1)/2.))
-    
+
     w = 2./N
-    
+
     newtau = copy.copy(tau)
     newtauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(newtau,(N*M,1)))
     newtauLC = newtauLC[:,0]
     newtauCost = RMS(obsLC, obsLCerr, newtauLC)
     proptau = copy.copy(newtau)
-    
+
     #N even
     if N%2 == 0:
         northRows = np.arange(middleN, -1, -1)
         southRows = np.arange(N-1-middleN, N, 1)
         b = w/2.
         outermost_b = 1. - w/2.
-        
+
     #N odd
     else:
         northRows = np.arange(middleN-1, -1, -1)
         southRows = np.arange(N-middleN, N, 1)
-        
+
         #pull opacity from outer rows to central row
         b = 0.
-        
+
         #row that opacity is pulled from: loop from outermost to innermost rows
         for fillop in [1.0, 0.5]:
             for outerRow in range(0, middleN):
@@ -1430,14 +1408,14 @@ def wedgeOptimize_sym(tau, obsLC, obsLCerr, areas):
                     #account for prior in deciding whether to accept
                     propPrior = (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
                     oldPrior = 2*(1.-outer_b**2)**0.25 * (w**2 * sameDuration_forOpacity) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
-            
+
                     proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
                     proptauLC = proptauLC[:,0]
                     proptauCost = RMS(obsLC, obsLCerr, proptauLC)
-                    
+
                     deltaRMS = np.exp(-0.5*(proptauCost**2 - newtauCost**2))
                     postRatio = deltaRMS * (propPrior/oldPrior)
-                    
+
                     testProb = np.random.uniform(0.,1.)
                     if testProb < postRatio:
                         newtau = proptau
@@ -1445,7 +1423,7 @@ def wedgeOptimize_sym(tau, obsLC, obsLCerr, areas):
                         proptau = copy.copy(newtau)
                     else:
                         proptau = copy.copy(newtau)
-            
+
     #do the same for the next-middlemost rows, out toward the top and bottom of the grid.
     for fillop in [1.0, 0.5]:
         for nrow in northRows[:-1][::-1]: #no need to do it for the top row
@@ -1561,22 +1539,22 @@ def wedgeOptimize_sym(tau, obsLC, obsLCerr, areas):
 
                     for col in extra_spillin_j:
                         proptau[outerRow, col] = 0.
-                        
+
                     #make proposed tau grid symmetrical
                     for srowidx, srow in enumerate(southRows):
                         proptau[srow] = proptau[northRows[srowidx]]
-                    
+
                     #account for prior in deciding whether to accept
                     propPrior = (1.-b**2)**0.25 * w**2 # (1-b^2)^(1/4) * p^2, from Kipping & Sandford 2016
                     oldPrior = 2.*(1.-outer_b**2)**0.25 * (w**2 * sameDuration_forOpacity) #use area of spill-in pixel blocks to calculate ratio-of-radii proxy
-            
+
                     proptauLC = np.atleast_2d(np.ones_like(obsLC)).T - np.dot(areas,np.reshape(proptau,(N*M,1)))
                     proptauLC = proptauLC[:,0]
                     proptauCost = RMS(obsLC, obsLCerr, proptauLC)
-                    
+
                     deltaRMS = np.exp(-0.5*(proptauCost**2 - newtauCost**2))
                     postRatio = deltaRMS * (propPrior/oldPrior)
-                    
+
                     testProb = np.random.uniform(0.,1.)
                     if testProb < postRatio:
                         #print "north better"
@@ -1585,32 +1563,31 @@ def wedgeOptimize_sym(tau, obsLC, obsLCerr, areas):
                         proptau = copy.copy(newtau)
                     else:
                         proptau = copy.copy(newtau)
-                
-        
+
+
     return proptau
 
-cpdef foldOpacities(np.ndarray[double, ndim=2] tau):
+def foldOpacities(tau):
     """
     Start with a 2D opacity grid and fold opacities over to northern hemisphere
     """
-    cdef:
-        np.ndarray[np.double_t, ndim=2] foldedTau
-        int N, M, i, j
-    
+
+    foldedTau = np.ndarray[np.double_t, ndim=2]
+
     foldedTau = copy.copy(tau)
     N = np.shape(tau)[0]
     M = np.shape(tau)[1]
-    
+
     for i in range(0, int(np.floor(N/2.))):
         for j in range(0,M):
             if (tau[i,j] + tau[N-1-i, j]) <= 1.:
                 foldedTau[i,j] = foldedTau[i,j] + foldedTau[N-1-i, j]
                 foldedTau[N-1-i,j] = 0.
-                
+
             else:
                 foldedTau[N-1-i,j] = (foldedTau[i,j] + foldedTau[N-1-i, j]) - 1.
                 foldedTau[i,j] = 1.
-                
+
     return foldedTau
 
 
@@ -1628,7 +1605,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
     method = arcAvg, SART, arcPars, arcComb
     LDlaw = limb darkening law ("uniform","linear","quadratic","nonlinear")
     LDCs = limb darkening coefficients to correspond to LDlaw
-    
+
     SART-specific kwargs:
     n_iter = number of SART iterations
     initstate = SART initialization ("uniform","empty","random", or user input)
@@ -1644,7 +1621,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
     and output results at two stages:
         - after simultaneous ART and optional WR and optional WO
         - after folding/rounding of above.
-    
+
     """
 
     #check for required kwargs
@@ -1669,7 +1646,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
     #if LC decrements array is not provided:
     if not ("LCdecrements" in kwargs):
         LCdecrements = calculateLCdecrements(N,M,LDlaw,LDCs,v,t_ref,t_arr)
-    
+
 
     if method == "SART":
         #initialize transiting image object
@@ -1682,7 +1659,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
             for i in range(0,np.shape(ti.areas)[0]): #time axis
                 for j in range(0,np.shape(ti.areas)[1]): #N axis
                     raveledareas[i,M*j:M*(j+1)] = ti.areas[i,j,:]
-        
+
         elif LDlaw == "linear":
             c1 = 0.
             c2 = LDCs[0]
@@ -1704,7 +1681,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
             #the nonlinear case reduces to the quadratic case by the following equations:
             c1 = 0.
             c3 = 0.
-            
+
             c2 = LDCs[0] + 2.*LDCs[1]
             c4 = -1.*LDCs[1]
 
@@ -1729,13 +1706,13 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
                 for j in range(0,np.shape(ti.LD)[1]): #N axis
                     raveledareas[i,M*j:M*(j+1)] = ti.LD[i,j,:]
 
-        
+
         #take only half of area matrix to avoid dealing with flip degeneracy
         if (N>1) & (N%2 == 0):
             Nhalf = int(N/2)
         elif (N>1) & (N%2 != 0):
             Nhalf = int((N-1)/2 + 1)
-        
+
         halfAreas = raveledareas[:,0:(Nhalf*M)] #left half!! 
 
         if initstate=="uniform":  
@@ -1748,8 +1725,8 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
             initstateHalf = copy.deepcopy(initstate)[0:Nhalf,:]
             initstateHalf = np.ravel(initstateHalf)
             raveledtau = simultaneous_ART(n_iter=n_iter, tau_init=initstateHalf, A=halfAreas, obsLC=obsLC, obsLCerr=obsLCerr, filename=filename,window=window)
-        
-        
+
+
         if (N>1) & (N%2 == 0): #N even
         #raveledtau = top pixels only 
             raveledtauHalf = np.reshape(copy.deepcopy(raveledtau), (int(N/2), M))
@@ -1757,7 +1734,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
             raveledtau[0:int(N/2)] = raveledtauHalf
             for rowIdx in np.arange(N-1, int(N/2) - 1, -1):
                 raveledtau[rowIdx] = raveledtauHalf[N - rowIdx - 1]
-                
+
         elif (N>1) & (N%2 != 0):
             #raveledtau = top pixels + 1 row only 
             raveledtauHalf = np.reshape(copy.deepcopy(raveledtau), (int((N-1)/2 + 1), M))
@@ -1765,7 +1742,7 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
             raveledtau[0:int((N-1)/2 + 1)] = raveledtauHalf
             for rowIdx in np.arange(N-1, int((N-1)/2), -1):
                 raveledtau[rowIdx] = raveledtauHalf[N - rowIdx - 1]
-        
+
         raveledtau = raveledtau/2.
         raveledtau = np.round(raveledtau,2)
 
@@ -1781,31 +1758,31 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
     elif method == "arcAvg":
         avgBasis = makeArcBasisAverage(N=N, M=M, t_ref=t_ref, v=v, LDlaw=LDlaw, LDCs=LDCs, times=t_arr, LCdecrements=LCdecrements, obsLC=obsLC, obsLCerr=obsLCerr)
         arcAvg = np.mean(avgBasis,axis=0)
-    
+
         arcAvg = arcAvg.reshape(N,M)
         arcAvg = ((arcAvg + arcAvg[::-1,:])/2.)
-    
+
         arcAvg_ti = TransitingImage(opacitymat=arcAvg, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=t_arr)
         arcAvg_LC, overlapTimes = arcAvg_ti.gen_LC(t_arr)
-    
+
         arcAvg = renormBasis(arcAvg,arcAvg_LC,obsLC)
-    
+
         return arcAvg
 
     elif method == "arcPars":
         parsBasis = makeArcBasisParsimony(N=N, M=M, t_ref=t_ref, v=v, LDlaw=LDlaw, LDCs=LDCs, times=t_arr, LCdecrements=LCdecrements, obsLC=obsLC, obsLCerr=obsLCerr)
         pars = np.mean(parsBasis,axis=0)
-    
+
         pars = pars.reshape(N,M)
         pars = ((pars + pars[::-1,:])/2.)
-    
+
         pars_ti = TransitingImage(opacitymat=pars, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=t_arr)
         pars_LC, overlapTimes= pars_ti.gen_LC(t_arr)
 
         pars = renormBasis(pars,pars_LC,obsLC)
         pars_ti = TransitingImage(opacitymat=pars, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=t_arr)
         pars_LC, overlapTimes = pars_ti.gen_LC(t_arr)
-    
+
         pars = renormBasis(pars,pars_LC,obsLC)
 
         return pars
@@ -1813,19 +1790,19 @@ def invertLC(N, M, v, t_ref, t_arr, obsLC, obsLCerr, method, LDlaw="uniform", LD
     elif method == "arcComb":
         combBasis = makeArcBasisCombinatoric(N=N, M=M, t_ref=t_ref, v=v, LDlaw=LDlaw, LDCs=LDCs, times=t_arr, LCdecrements=LCdecrements, obsLC=obsLC, obsLCerr=obsLCerr)
         comb = np.mean(combBasis,axis=0)
-    
+
         comb = comb.reshape(N,M)
         comb = ((comb + comb[::-1,:])/2.)
-    
+
         comb_ti = TransitingImage(opacitymat=comb, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
         comb_LC, overlapTimes = comb_ti.gen_LC(t_arr)
-    
+
         comb = renormBasis(comb,comb_LC,obsLC)
         comb_ti = TransitingImage(opacitymat=comb, LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
         comb_LC, overlapTimes = comb_ti.gen_LC(t_arr)
-    
+
         comb = renormBasis(comb,comb_LC,obsLC)
-        
+
         return comb
 
     elif method == "bruteForce":
@@ -1854,16 +1831,16 @@ def symmetrize_design_matrix(design_matrix, cross_axis=0):
     original_length = design_matrix.shape[0]
     sym_length = np.ceil(original_length / 2).astype(np.int) #full height of symmetrized design matrix
     reflected_length = np.floor(original_length / 2).astype(np.int) #height of part that gets reflected
-    
+
     sym_design_matrix = (design_matrix[:sym_length] + 
                             design_matrix[-sym_length:][::-1])
     if (original_length % 2) == 1:
         #if there's a center row, it only contributes once
         sym_design_matrix[-1] *= 0.5
-    
+
     if cross_axis != 0:
         sym_design_matrix = sym_design_matrix.swapaxes(sym_design_matrix, 0, cross_axis)
-    
+
     return sym_design_matrix
 
 
@@ -1875,9 +1852,9 @@ def get_overlap_time_mask(times, N_rows, M_cols, v, t_ref):
 
 def unfold_opacity_map(single_half_opacity_map, N):
     N_sym, M = single_half_opacity_map.shape
-    
+
     N_full = 2 * N_sym - (N % 2)
-    
+
     full_opacity_map = np.zeros([N_full, M])
     full_opacity_map[:N_sym] = single_half_opacity_map
     full_opacity_map[-N_sym:] = np.flip(single_half_opacity_map, axis=0)
