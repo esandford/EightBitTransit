@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 from scipy import misc, stats
-from cGridFunctions import pixelate_image, lowres_grid, LDfluxsmall
-from pixeloverlap import positions, overlap, overlap_gpu
+from .cGridFunctions import pixelate_image, lowres_grid, LDfluxsmall
+from .pixeloverlap import positions, overlap, overlap_gpu
 __all__ = ['TransitingImage']
 
 
@@ -255,7 +255,7 @@ class TransitingImage(object):
                         c4=c4,
                         w=self.w
                     )
-                    for ii, ld in self.LD:
+                    for ii, ld in enumerate(self.LD):
                         self.LD[ii][i][j] = LD[ii]
 
             fluxtot = np.zeros(len(self.t_arr))

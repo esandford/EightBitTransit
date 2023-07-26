@@ -1,14 +1,15 @@
 # cython: profile=True
 from __future__ import division
 import numpy as np
-cimport numpy as np
+import numpy as np
 import copy
 import math
 import itertools
 
-from .cTransitingImage import *
+from .TransitingImageGpu import *
 from .cGridFunctions import *
 from .misc import *
+from .pixeloverlap import positions
 
 __all__ = ['bruteForceSearch','nCr', 'makeArcBasisParsimony', 'makeArcBasisAverage','makeArcBasisCombinatoric',
 'renormBasis', 'whoAreMyArcNeighbors','arcRearrange','Gaussian2D_PDF','simultaneous_ART',
@@ -21,11 +22,11 @@ def bruteForceSearch(N, M, t_ref, v, LDlaw, LDCs, times, LCdecrements, obsLC,
     """
     Full search of every grid permutation.
     """
-    bestGrid = np.ndarray[np.int64_t, ndim=2]
-    binaryGrid = np.ndarray[np.int64_t, ndim=2]
-    decrements = np.ndarray[np.double_t, ndim=2]
-    decrements_1D = np.ndarray[np.double_t, ndim=1]
-    trial_LC = np.ndarray[np.double_t, ndim=1]
+    bestGrid = np.ndarray(np.int64_t, ndim=2)
+    binaryGrid = np.ndarray(np.int64_t, ndim=2)
+    decrements = np.ndarray(np.double_t, ndim=2)
+    decrements_1D = np.ndarray(np.double_t, ndim=1)
+    trial_LC = np.ndarray(np.double_t, ndim=1)
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
     trial_LC, overlapTimes = ti.gen_LC(times)
@@ -65,34 +66,34 @@ def makeArcBasisParsimony(N, M, t_ref, v, LDlaw, LDCs, times, LCdecrements,
                           obsLC, obsLCerr):
     """
     """
-    i_arr = np.ndarray[np.int64_t, ndim=2]
-    j_arr = np.ndarray[np.int64_t, ndim=2]
-    sines = np.ndarray[np.double_t, ndim=2]
-    ks = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_is = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_js = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_is_half = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_js_half = np.ndarray[np.int64_t, ndim=1]
-    time_points = np.ndarray[np.double_t, ndim=1]
-    delta_times = np.ndarray[np.double_t, ndim=1]
-    middle_times = np.ndarray[np.double_t, ndim=1]
-    flux_points = np.ndarray[np.double_t, ndim=1]
-    delta_fluxes = np.ndarray[np.double_t, ndim=1]
-    basis = np.ndarray[np.double_t, ndim=2]
-    basisRMSs = np.ndarray[np.double_t, ndim=1]
-    best_whichOn = np.ndarray[np.int64_t, ndim=1]
-    recombined = np.ndarray[np.double_t, ndim=2]
-    grid = np.ndarray[np.double_t, ndim=2]
-    limbPixels_to_p05 = np.ndarray[np.int64_t, ndim=1]
-    foldedGrid = np.ndarray[np.double_t, ndim=2]
-    decrements = np.ndarray[np.double_t, ndim=2]
-    decrements_1D = np.ndarray[np.double_t, ndim=1]
-    trial_LC = np.ndarray[np.double_t, ndim=1]
-    trial_flux_points = np.ndarray[np.double_t, ndim=1]
-    trial_delta_fluxes = np.ndarray[np.double_t, ndim=1]
-    delta_areas = np.ndarray[np.double_t, ndim=3]
-    dAdt = np.ndarray[np.double_t, ndim=2]
-    dAdt_rav = np.ndarray[np.double_t, ndim=1]
+    i_arr = np.ndarray(np.int64_t, ndim=2)
+    j_arr = np.ndarray(np.int64_t, ndim=2)
+    sines = np.ndarray(np.double_t, ndim=2)
+    ks = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_is = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_js = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_is_half = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_js_half = np.ndarray(np.int64_t, ndim=1)
+    time_points = np.ndarray(np.double_t, ndim=1)
+    delta_times = np.ndarray(np.double_t, ndim=1)
+    middle_times = np.ndarray(np.double_t, ndim=1)
+    flux_points = np.ndarray(np.double_t, ndim=1)
+    delta_fluxes = np.ndarray(np.double_t, ndim=1)
+    basis = np.ndarray(np.double_t, ndim=2)
+    basisRMSs = np.ndarray(np.double_t, ndim=1)
+    best_whichOn = np.ndarray(np.int64_t, ndim=1)
+    recombined = np.ndarray(np.double_t, ndim=2)
+    grid = np.ndarray(np.double_t, ndim=2)
+    limbPixels_to_p05 = np.ndarray(np.int64_t, ndim=1)
+    foldedGrid = np.ndarray(np.double_t, ndim=2)
+    decrements = np.ndarray(np.double_t, ndim=2)
+    decrements_1D = np.ndarray(np.double_t, ndim=1)
+    trial_LC = np.ndarray(np.double_t, ndim=1)
+    trial_flux_points = np.ndarray(np.double_t, ndim=1)
+    trial_delta_fluxes = np.ndarray(np.double_t, ndim=1)
+    delta_areas = np.ndarray(np.double_t, ndim=3)
+    dAdt = np.ndarray(np.double_t, ndim=2)
+    dAdt_rav = np.ndarray(np.double_t, ndim=1)
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
     trial_LC, overlapTimes = ti.gen_LC(times)
@@ -265,34 +266,34 @@ def makeArcBasisAverage(N, M, t_ref, v, LDlaw, LDCs, times, LCdecrements, obsLC,
     """
     """
 
-    i_arr = np.ndarray[np.int64_t, ndim=2]
-    j_arr = np.ndarray[np.int64_t, ndim=2]
-    #np.ndarray[np.double_t, ndim=2] sines
-    ks = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_is = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_js = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_is_half = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_js_half = np.ndarray[np.int64_t, ndim=1]
-    time_points = np.ndarray[np.double_t, ndim=1]
-    delta_times = np.ndarray[np.double_t, ndim=1]
-    middle_times = np.ndarray[np.double_t, ndim=1]
-    flux_points = np.ndarray[np.double_t, ndim=1]
-    delta_fluxes = np.ndarray[np.double_t, ndim=1]
-    basis = np.ndarray[np.double_t, ndim=2]
-    basisRMSs = np.ndarray[np.double_t, ndim=1]
-    best_whichOn = np.ndarray[np.int64_t, ndim=1]
-    recombined = np.ndarray[np.double_t, ndim=2]
-    grid = np.ndarray[np.double_t, ndim=2]
-    limbPixels_to_p05 = np.ndarray[np.int64_t, ndim=1]
-    foldedGrid = np.ndarray[np.double_t, ndim=2]
-    decrements = np.ndarray[np.double_t, ndim=2]
-    decrements_1D = np.ndarray[np.double_t, ndim=1]
-    trial_LC = np.ndarray[np.double_t, ndim=1]
-    trial_flux_points = np.ndarray[np.double_t, ndim=1]
-    trial_delta_fluxes = np.ndarray[np.double_t, ndim=1]
-    delta_areas = np.ndarray[np.double_t, ndim=3]
-    dAdt = np.ndarray[np.double_t, ndim=2]
-    dAdt_rav = np.ndarray[np.double_t, ndim=1]
+    i_arr = np.ndarray(np.int64_t, ndim=2)
+    j_arr = np.ndarray(np.int64_t, ndim=2)
+    #np.ndarray(np.double_t, ndim=2) sines
+    ks = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_is = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_js = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_is_half = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_js_half = np.ndarray(np.int64_t, ndim=1)
+    time_points = np.ndarray(np.double_t, ndim=1)
+    delta_times = np.ndarray(np.double_t, ndim=1)
+    middle_times = np.ndarray(np.double_t, ndim=1)
+    flux_points = np.ndarray(np.double_t, ndim=1)
+    delta_fluxes = np.ndarray(np.double_t, ndim=1)
+    basis = np.ndarray(np.double_t, ndim=2)
+    basisRMSs = np.ndarray(np.double_t, ndim=1)
+    best_whichOn = np.ndarray(np.int64_t, ndim=1)
+    recombined = np.ndarray(np.double_t, ndim=2)
+    grid = np.ndarray(np.double_t, ndim=2)
+    limbPixels_to_p05 = np.ndarray(np.int64_t, ndim=1)
+    foldedGrid = np.ndarray(np.double_t, ndim=2)
+    decrements = np.ndarray(np.double_t, ndim=2)
+    decrements_1D = np.ndarray(np.double_t, ndim=1)
+    trial_LC = np.ndarray(np.double_t, ndim=1)
+    trial_flux_points = np.ndarray(np.double_t, ndim=1)
+    trial_delta_fluxes = np.ndarray(np.double_t, ndim=1)
+    delta_areas = np.ndarray(np.double_t, ndim=3)
+    dAdt = np.ndarray(np.double_t, ndim=2)
+    dAdt_rav = np.ndarray(np.double_t, ndim=1)
 
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
@@ -390,34 +391,34 @@ def makeArcBasisCombinatoric(N, M, t_ref, v, LDlaw, LDCs, times, LCdecrements,
     """
     Do genetic recombination *along arcs*
     """
-    i_arr = np.ndarray[np.int64_t, ndim=2]
-    j_arr = np.ndarray[np.int64_t, ndim=2]
-    sines = np.ndarray[np.double_t, ndim=2]
-    ks = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_is = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_js = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_is_half = np.ndarray[np.int64_t, ndim=1]
-    limbPixel_js_half = np.ndarray[np.int64_t, ndim=1]
-    time_points = np.ndarray[np.double_t, ndim=1]
-    delta_times = np.ndarray[np.double_t, ndim=1]
-    middle_times = np.ndarray[np.double_t, ndim=1]
-    flux_points = np.ndarray[np.double_t, ndim=1]
-    delta_fluxes = np.ndarray[np.double_t, ndim=1]
-    basis = np.ndarray[np.double_t, ndim=2]
-    basisRMSs = np.ndarray[np.double_t, ndim=1]
-    best_whichOn = np.ndarray[np.int64_t, ndim=1]
-    recombined = np.ndarray[np.double_t, ndim=2]
-    grid = np.ndarray[np.double_t, ndim=2]
-    limbPixels_to_p05 = np.ndarray[np.int64_t, ndim=1]
-    foldedGrid = np.ndarray[np.double_t, ndim=2]
-    decrements = np.ndarray[np.double_t, ndim=2]
-    decrements_1D = np.ndarray[np.double_t, ndim=1]
-    trial_LC = np.ndarray[np.double_t, ndim=1]
-    trial_flux_points = np.ndarray[np.double_t, ndim=1]
-    trial_delta_fluxes = np.ndarray[np.double_t, ndim=1]
-    delta_areas = np.ndarray[np.double_t, ndim=3]
-    dAdt = np.ndarray[np.double_t, ndim=2]
-    dAdt_rav = np.ndarray[np.double_t, ndim=1]
+    i_arr = np.ndarray(np.int64_t, ndim=2)
+    j_arr = np.ndarray(np.int64_t, ndim=2)
+    sines = np.ndarray(np.double_t, ndim=2)
+    ks = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_is = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_js = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_is_half = np.ndarray(np.int64_t, ndim=1)
+    limbPixel_js_half = np.ndarray(np.int64_t, ndim=1)
+    time_points = np.ndarray(np.double_t, ndim=1)
+    delta_times = np.ndarray(np.double_t, ndim=1)
+    middle_times = np.ndarray(np.double_t, ndim=1)
+    flux_points = np.ndarray(np.double_t, ndim=1)
+    delta_fluxes = np.ndarray(np.double_t, ndim=1)
+    basis = np.ndarray(np.double_t, ndim=2)
+    basisRMSs = np.ndarray(np.double_t, ndim=1)
+    best_whichOn = np.ndarray(np.int64_t, ndim=1)
+    recombined = np.ndarray(np.double_t, ndim=2)
+    grid = np.ndarray(np.double_t, ndim=2)
+    limbPixels_to_p05 = np.ndarray(np.int64_t, ndim=1)
+    foldedGrid = np.ndarray(np.double_t, ndim=2)
+    decrements = np.ndarray(np.double_t, ndim=2)
+    decrements_1D = np.ndarray(np.double_t, ndim=1)
+    trial_LC = np.ndarray(np.double_t, ndim=1)
+    trial_flux_points = np.ndarray(np.double_t, ndim=1)
+    trial_delta_fluxes = np.ndarray(np.double_t, ndim=1)
+    delta_areas = np.ndarray(np.double_t, ndim=3)
+    dAdt = np.ndarray(np.double_t, ndim=2)
+    dAdt_rav = np.ndarray(np.double_t, ndim=1)
 
     ti = TransitingImage(opacitymat=np.zeros((N,M)), LDlaw=LDlaw, LDCs=LDCs, v=v, t_ref=t_ref, t_arr=times)
     trial_LC, overlapTimes = ti.gen_LC(times)
@@ -754,9 +755,7 @@ def Gaussian2D_PDF(xVec, muVec, sigmaMatrix):
 
     return np.exp(-0.5 * np.dot((xVec-muVec).T, np.dot(sigmaInv, (xVec - muVec))))/np.sqrt((2.*np.pi)**2 * sigmaDet)
 
-cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_init, 
-    np.ndarray[double, ndim=2] A, np.ndarray[double, ndim=1] obsLC, np.ndarray[double, ndim=1] obsLCerr, 
-    str filename, str window):
+def simultaneous_ART(n_iter, tau_init, A,  obsLC, obsLCerr, filename, window):
     """
     Use the algebraic reconstruction technique to solve the system A*tau = np.ones_like(obsLC) - obsLC.
 
@@ -769,24 +768,19 @@ cpdef np.ndarray simultaneous_ART(int n_iter, np.ndarray[double, ndim=2] tau_ini
     Outputs:
     tau = opacity vector
     """
-    cdef:
-        np.ndarray[np.double_t, ndim=1] tau=np.ravel(tau_init) #tau_init = (Nhalf, M)
-        np.ndarray[np.double_t, ndim=1] RHS
-        np.ndarray[np.double_t, ndim=1] tau_update=np.zeros_like(tau, dtype=float)
-        np.ndarray[np.double_t, ndim=2] testtau=np.zeros_like(tau_init)
-        np.ndarray[np.double_t, ndim=2] testLC=np.zeros_like(np.atleast_2d(obsLC))
-        np.ndarray[np.double_t, ndim=1] testLC1d=np.zeros_like(obsLC)
-        np.ndarray[np.double_t, ndim=2] Asquare=np.zeros((len(tau),len(tau)))
-        np.ndarray[np.double_t, ndim=1] origRHS=np.zeros(len(obsLC))
-        np.ndarray[np.double_t, ndim=1] windowarr=np.ones_like(tau, dtype=float)
+    tau=np.ravel(tau_init) #tau_init = (Nhalf, M)
+    RHS
+    tau_update=np.zeros_like(tau, dtype=float)
+    testtau=np.zeros_like(tau_init)
+    testLC=np.zeros_like(np.atleast_2d(obsLC))
+    testLC1d=np.zeros_like(obsLC)
+    Asquare=np.zeros((len(tau),len(tau)))
+    origRHS=np.zeros(len(obsLC))
+    windowarr=np.ones_like(tau, dtype=float)
 
-        np.ndarray[np.double_t, ndim=2] windowarr2D=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
-        np.ndarray[np.double_t, ndim=2] SART_zeropadded=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
-        np.ndarray[np.double_t, ndim=2] truth_zeropadded=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
-
-        int q, N, M, tau_entry, entry_idx
-        double outer_numerator, outer_denominator, inner_numerator, inner_denominator, testRMS
-        list RMSs, taus, tau_updates
+    windowarr2D=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
+    SART_zeropadded=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
+    truth_zeropadded=np.zeros((np.shape(tau_init)[0]*4 - 1, np.shape(tau_init)[1]*2 - 1), dtype=float)
 
     #tau = np.ravel(tau_init)
     N = np.shape(tau_init)[0]
@@ -1572,7 +1566,7 @@ def foldOpacities(tau):
     Start with a 2D opacity grid and fold opacities over to northern hemisphere
     """
 
-    foldedTau = np.ndarray[np.double_t, ndim=2]
+    foldedTau = np.ndarray(np.double_t, ndim=2)
 
     foldedTau = copy.copy(tau)
     N = np.shape(tau)[0]

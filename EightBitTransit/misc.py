@@ -2,7 +2,7 @@
 from __future__ import division
 import numpy as np
 from scipy import stats
-from .cTransitingImage import *
+from .TransitingImageGpu import *
 
 __all__ = ['lowres_grid_ti','change_res_grid','sigmoid_opacities', 'continuous_opacities', 
 'RMS', 'RMS_penalty', 'b_penalty', 'toBinaryGrid', 'fromBinaryGrid', 'calculateLCdecrements', 'ternary',

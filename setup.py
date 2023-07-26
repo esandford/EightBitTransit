@@ -7,8 +7,8 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ["matplotlib==3.5", "numpy==1.21", "scipy==1.7",
-                "imageio==2.31", "numba==0.56", "jupyterlab==3.4"]
+requirements = ["matplotlib", "numpy", "scipy",
+                "imageio", "numba", "jupyterlab"]
 
 test_requirements = []
 

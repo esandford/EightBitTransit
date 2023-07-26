@@ -6,6 +6,7 @@ SQRT2 = np.float32(2**0.5)
 PI = np.float32(np.pi)
 
 
+@jit
 def positions(n, m, t, tref, v):
     """
     Calculates the (x, y) position of the m x n pixel grid at each time t.
@@ -690,3 +691,4 @@ xs = np.array(0.96*100, dtype=np.float32)
 ys = np.zeros(100, dtype=np.float32)
 ws = np.array([.1]*100, dtype=np.float32)
 norm_area = overlap_gpu(xs, ys, ws, False)
+p = positions(n=10, m=10, t=np.arange(10, dtype=float), tref=5., v=1.)

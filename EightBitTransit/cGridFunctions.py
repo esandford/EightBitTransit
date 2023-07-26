@@ -5,7 +5,7 @@ import copy
 from scipy import misc, stats
 from imageio import imread
 from collections import Counter
-
+from .pixeloverlap import positions
 __all__ = ['pixelate_image', 'lowres_grid', 'LDfluxsmall']
 
 
