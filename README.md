@@ -1,6 +1,6 @@
 # README #
 
-`EightBitTransit` is an MIT-licensed Cython code that:
+This version of `EightBitTransit` is an MIT-licensed python code redesigned to make use of GPU parallelization with Numba:
 1. Can calculate the light curve of any pixelated image transiting a star;
 2. Can invert a light curve to recover the "shadow image" that produced it.
 
@@ -8,22 +8,22 @@
 
 To install EightBitTransit, download this directory, navigate to it, and run:
 
-`python setup.py build_ext --inplace`
-
-`python setup.py install`
+`pip install .`
 
 # Dependencies #
 * Numpy
 * Scipy
-* Matplotlib
-* Copy
-* Math
-* Itertools
-* Collections
+* Numba
+* imageio
+* itertools
+* matplotlib
+  
+Optionally (for the example notebook):
+* jupyterlab
 
 # Examples #
 
-See `./examples/examples.ipynb` for examples of both the forward and inverse shadow imaging problem, including for dip 5 of Boyajian's Star. This code reproduces figure 12 of Sandford & Kipping 2018 (https://arxiv.org/abs/1812.01618).
+See `./examples/examples-gpu.ipynb` for examples of both the forward and inverse shadow imaging problem, including for dip 5 of Boyajian's Star. This code reproduces figure 12 of Sandford & Kipping 2018 (https://arxiv.org/abs/1812.01618).
 
 # Note on memory #
 
