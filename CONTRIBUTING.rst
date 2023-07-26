@@ -38,8 +38,8 @@ and "help wanted" is open to whoever wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-phasefolder could always use more documentation, whether as part of the
-official phasefolder docs, in docstrings, or even on the web in blog posts,
+EightBitTransit could always use more documentation, whether as part of the
+official EightBitTransit docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
 Submit Feedback
@@ -57,9 +57,9 @@ If you are proposing a feature:
 Get Started!
 ------------
 
-Ready to contribute? Here's how to set up `phasefolder` for local development.
+Ready to contribute? Here's how to set up `EightBitTransit` for local development.
 
-1. Fork the `phasefolder` repo on GitHub.
+1. Fork the `EightBitTransit` repo on GitHub.
 2. Clone your fork locally::
 
     $ git clone git@github.com:your_name_here/EightBitTransit.git
@@ -106,7 +106,7 @@ Before you submit a pull request, check that it meets these guidelines:
 Tips
 ----
 
-To run a subset of tests::
+To run a subset of tests:: (not implemented yet...) 
 
 
     $ python -m unittest tests.test_EightBitTransit
