@@ -68,7 +68,7 @@ Ready to contribute? Here's how to set up `EightBitTransit` for local developmen
 
     $ mkvirtualenv eightbit
     $ cd EightBitTransit/
-    $ pip install . -e develop
+    $ pip install -e .
 
 4. Create a branch for local development::
 
