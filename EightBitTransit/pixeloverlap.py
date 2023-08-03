@@ -1,6 +1,8 @@
 import math
 import numpy as np
-from numba import jit, vectorize
+from numba import jit, vectorize, boolean
+from numba.cuda import select_device, CudaSupportError
+from numba.cuda.cudadrv.nvvm import NvvmSupportError
 
 SQRT2 = np.float32(2**0.5)
 PI = np.float32(np.pi)
@@ -24,7 +26,7 @@ def positions(n, m, t, tref, v):
         grid at time t=k; pos[k,:,:,1] are the y-positions.
     """
     t_len = len(t)
-    pos = np.zeros((t_len, n, m, 2), dtype=float)
+    pos = np.zeros((t_len, n, m, 2), dtype=np.float64)
     w = (2./n) # pixel height = diameter of stellar disk/number of pixels
 
     # y positions are constant in time
@@ -47,7 +49,7 @@ def positions(n, m, t, tref, v):
 
         overlappingTimesMask = (t > tMin) & (t < tMax)
     else:
-        overlappingTimesMask = np.ones_like(t).astype(bool)
+        overlappingTimesMask = np.ones_like(t).astype(boolean)
     # print(overlappingTimesMask)
     overlappingTimes = t[overlappingTimesMask]
     overlappingPos = pos[overlappingTimesMask]
@@ -96,14 +98,13 @@ def overlap(x0, y0, w, verbose=False):
     """
     # radial distance to pixel location
     pix_r = (x0**2 + y0**2)**0.5
-
+    pix_rc = ((abs(x0)+w/2)**2 + (abs(y0)+w/2)**2)**0.5
     if (pix_r >= 1+w/SQRT2) or (abs(x0) >= (1+w/2)) or (abs(y0) >= (1+w/2)):
         # pixel is guaranteed to be fully outside the star
         if verbose: print("Pixel outside")
         area = 0.0
         return area
-
-    elif pix_r <= 1-w/SQRT2:
+    elif pix_rc <= 1:
         # pixel is guaranteed to be fully inside the star
         if verbose: print("pixel inside")
         area = w**2
@@ -112,7 +113,9 @@ def overlap(x0, y0, w, verbose=False):
     n_intersections = int(0)
 
     def test(x, y):
-        return (abs(x-x0) <= w/2) and (abs(y-y0) <= w/2)
+        cond1 = (round(abs(x-x0), 10) <= round(0.5*w, 10))
+        cond2 = (round(abs(y-y0), 10) <= round(0.5*w, 10))
+        return cond1 and cond2
 
     # calculate coordinates of intersection solutions
     xarr = ((1. - 0.5*w - y0)*(1. + 0.5*w + y0))**0.5
@@ -679,16 +682,41 @@ def overlap(x0, y0, w, verbose=False):
     return norm_area
 
 
-@vectorize(['float32(float32, float32, float32, boolean)'], target='cuda')
-def overlap_gpu(x0, y0, w, verbose=False):
-    return overlap(x0, y0, w, verbose)
+try:
+    @vectorize(['float32(float32, float32, float32, boolean)'], target='cuda')
+    def overlap_gpu(x0, y0, w, verbose=False):
+        return overlap(x0, y0, w, verbose)
+except NvvmSupportError:
+    print("""
+    NvvmSupportError: libNVVM cannot be found. Do `conda install cudatoolkit`:
+    libnvvm.so: cannot open shared object file: No such file or directory
 
+    Initializing EightBitTransit *without* gpu multiprocessing.
+    """)
+    def overlap_gpu(x0, y0, w, verbose=False):
+        areas = np.zeros_like(x0)
+        for ind, x in enumerate(x0):
+            areas[ind] = overlap(x, y0[ind], w, False)
+        return overlap(x0, y0, w, verbose)
 
 # initialize the cuda implementations of the functions.
 norm_area = overlap(0.96, 0.0, 0.1, verbose=False)
-# Test 1 million pixels
-xs = np.array(0.96*100, dtype=np.float32)
-ys = np.zeros(100, dtype=np.float32)
-ws = np.array([.1]*100, dtype=np.float32)
-norm_area = overlap_gpu(xs, ys, ws, False)
 p = positions(n=10, m=10, t=np.arange(10, dtype=float), tref=5., v=1.)
+
+try:
+    xs = np.array(0.96*100, dtype=np.float32)
+    ys = np.zeros(100, dtype=np.float32)
+    ws = np.array([.1]*100, dtype=np.float32)
+    norm_area = overlap_gpu(xs, ys, ws, False)
+except CudaSupportError:
+    # check if there's a gpu with supported drivers
+
+    print("""
+    CUDA driver library cannot be found.
+    If you are sure that a CUDA driver is installed,
+    try setting environment variable NUMBA_CUDA_DRIVER
+    with the file path of the CUDA driver shared library.
+    
+    Initializing EightBitTransit *without* gpu multiprocessing.
+    """)
+    pass
